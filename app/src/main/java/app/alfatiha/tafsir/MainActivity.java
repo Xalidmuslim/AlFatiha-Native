@@ -250,7 +250,7 @@ public class MainActivity extends Activity {
 
         LinearLayout titles=new LinearLayout(this); titles.setOrientation(LinearLayout.VERTICAL); titles.setPadding(dp(12),0,dp(5),0);
         titles.addView(text("Аль-Фатиха",20,ink(),false));
-        titles.addView(text("Знаток тафсира",12.5f,muted(),false));
+        titles.addView(text("Изучение Аль-Фатихи",12.5f,muted(),false));
         top.addView(titles,new LinearLayout.LayoutParams(0,-2,1));
 
         Button theme=miniButton(dark?"☀":"☾");
