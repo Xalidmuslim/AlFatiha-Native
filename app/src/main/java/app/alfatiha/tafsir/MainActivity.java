@@ -103,13 +103,25 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(bg());
 
+        if(Build.VERSION.SDK_INT>=20){
+            root.setOnApplyWindowInsetsListener((v,insets)->{
+                v.setPadding(
+                    0,
+                    insets.getSystemWindowInsetTop(),
+                    0,
+                    insets.getSystemWindowInsetBottom()
+                );
+                return insets;
+            });
+        }
+
         scroll=new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setClipToPadding(false);
         scroll.setBackgroundColor(bg());
         page=new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(18),dp(14),dp(18),dp(36));
+        page.setPadding(dp(18),dp(10),dp(18),dp(110));
         scroll.addView(page,new ScrollView.LayoutParams(-1,-2));
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
 
@@ -291,8 +303,8 @@ public class MainActivity extends Activity {
         TextView t=text(s,11.5f,color,true);
         t.setLetterSpacing(.06f);
         t.setAllCaps(true);
-        int fill=dark?blend(color,Color.BLACK,.46f):blend(color,Color.WHITE,.68f);
-        int border=dark?blend(color,Color.WHITE,.56f):blend(color,Color.WHITE,.30f);
+        int fill=dark?blend(color,Color.BLACK,.46f):blend(color,Color.WHITE,.70f);
+        int border=dark?blend(color,Color.WHITE,.22f):blend(color,Color.WHITE,.55f);
         t.setBackground(solidBg(fill,99,border));
         t.setPadding(dp(10),dp(6),dp(10),dp(6));
         return t;
