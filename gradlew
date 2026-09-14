@@ -1,4 +1,4 @@
-#!/data/data/com.itsaky.androidide/files/usr/bin/bash
+#!/usr/bin/env bash
 set -e
 GRADLE_VERSION=8.9
 BASE="$HOME/.gradle/manual-dists/gradle-$GRADLE_VERSION"
