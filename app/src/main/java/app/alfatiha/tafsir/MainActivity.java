@@ -288,8 +288,12 @@ public class MainActivity extends Activity {
     }
 
     private TextView kicker(String s,int color){
-        TextView t=text(s,11.5f,color,true); t.setLetterSpacing(.06f); t.setAllCaps(true);
-        t.setBackground(solidBg(dark?blend(color,Color.BLACK,.55f):blend(color,Color.WHITE,.85f),99,0));
+        TextView t=text(s,11.5f,color,true);
+        t.setLetterSpacing(.06f);
+        t.setAllCaps(true);
+        int fill=dark?blend(color,Color.BLACK,.46f):blend(color,Color.WHITE,.68f);
+        int border=dark?blend(color,Color.WHITE,.56f):blend(color,Color.WHITE,.30f);
+        t.setBackground(solidBg(fill,99,border));
         t.setPadding(dp(10),dp(6),dp(10),dp(6));
         return t;
     }
@@ -386,6 +390,7 @@ public class MainActivity extends Activity {
         intro.addView(text("Почему присутствие сердца меняет чтение Аль-Фатихи",20.5f,ink(),true));
         intro.addView(text("Сначала прочитайте короткое предисловие: оно объясняет, зачем нужен весь курс.",14,muted(),false));
         Button bi=outline("Открыть предисловие  →");bi.setOnClickListener(v->renderIntro(true));intro.addView(bi,new LinearLayout.LayoutParams(-1,dp(52)));
+        intro.setOnClickListener(v->renderIntro(true));
 
         JSONArray data=arr("mind_data.json");Set<String> seen=prefs.getStringSet("mind_seen",new HashSet<>());
         for(int i=0;i<data.length();i++){
@@ -396,6 +401,7 @@ public class MainActivity extends Activity {
             tx.addView(text(o.optString("t"),18,ink(),true));tx.addView(text(o.optString("ru"),13.5f,muted(),false));row.addView(tx,new LinearLayout.LayoutParams(0,-2,1));c.addView(row);
             if(seen.contains(String.valueOf(i)))c.addView(text("✓ Открыто",12,C_SAGE,true));
             final int idx=i;Button b=outline(seen.contains(String.valueOf(i))?"Продолжить урок":"Открыть урок");b.setOnClickListener(v->renderMindLesson(idx,true));c.addView(b,new LinearLayout.LayoutParams(-1,dp(50)));
+            c.setOnClickListener(v->renderMindLesson(idx,true));
         }
         LinearLayout exam=card(blueSoft());exam.addView(kicker("ЭКЗАМЕН",C_BLUE));exam.addView(text("Экзамен по осознанному чтению",21,ink(),true));exam.addView(text("30 сложных заданий: близкие варианты и самостоятельные ответы.",14,muted(),false));Button be=action("Начать экзамен",C_BLUE);be.setOnClickListener(v->renderNativeQuiz("mind_exam",0,true));exam.addView(be);
     }
