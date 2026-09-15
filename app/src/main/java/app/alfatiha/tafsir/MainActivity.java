@@ -727,7 +727,11 @@ public class MainActivity extends Activity {
         };
         bm.setOnClickListener(v->openMind.run());
         m.addView(bm);
-        m.setOnClickListener(v->openMind.run());
+
+        // Нажатие на саму большую карточку всегда ведёт
+        // в главный раздел осознанного чтения.
+        // Продолжение последнего урока остаётся только на кнопке.
+        m.setOnClickListener(v->renderMindHub(true));
 
         LinearLayout q=card(blueSoft());cardHead(q,"ПРОВЕРКА ЗНАНИЙ",C_BLUE,"Викторина по Аль-Фатихе");
         q.addView(text("Сложные вопросы по тафсиру: близкие варианты, анализ, сопоставление и экспертные режимы.",15.5f,muted(),false));
@@ -818,9 +822,93 @@ public class MainActivity extends Activity {
         JSONArray a=arr("mind_intro.json");
         int[] tones={sandSoft(),blueSoft(),sageSoft()};
         for(int i=0;i<a.length();i++){
-            JSONObject o=a.optJSONObject(i);LinearLayout c=card(tones[i%tones.length]);
-            TextView n=kicker(String.format(Locale.getDefault(),"%02d",i+1),i%3==0?Color.rgb(145,104,42):i%3==1?C_BLUE:C_SAGE);c.addView(n,new LinearLayout.LayoutParams(-2,-2));
-            c.addView(text(o.optString("title"),21,ink(),true));addParagraphs(c,o.optString("text"),15.5f);
+            JSONObject o=a.optJSONObject(i);
+            int tone=tones[i%tones.length];
+            int accent=i%3==0?Color.rgb(145,104,42):i%3==1?C_BLUE:C_SAGE;
+
+            LinearLayout c=card(tone);
+
+            TextView n=kicker(
+                    "ВСТУПЛЕНИЕ · "+(i+1)+"/"+a.length(),
+                    accent
+            );
+            c.addView(n,new LinearLayout.LayoutParams(-2,-2));
+
+            // Заголовок вынесен в отдельную внутреннюю рамку,
+            // чтобы он визуально не сливался с основным текстом.
+            LinearLayout titleBox=newSurface(
+                    dark
+                            ? blend(accent,Color.BLACK,.68f)
+                            : blend(accent,Color.WHITE,.88f),
+                    18,14,1
+            );
+
+            TextView title=text(
+                    o.optString("title"),
+                    20.5f,
+                    ink(),
+                    true
+            );
+            title.setLineSpacing(dp(2),1.08f);
+            titleBox.addView(title);
+
+            LinearLayout.LayoutParams titleLp=
+                    new LinearLayout.LayoutParams(-1,-2);
+            titleLp.setMargins(0,dp(10),0,dp(10));
+            c.addView(titleBox,titleLp);
+
+            String body=o.optString("text").trim();
+            String[] paragraphs=body.split("\\n\\s*\\n");
+
+            for(int p=0;p<paragraphs.length;p++){
+                String paragraph=paragraphs[p].trim();
+                if(paragraph.isEmpty())continue;
+
+                boolean emphasis =
+                        paragraph.startsWith("Ибн аль-Каййим")
+                        || paragraph.startsWith("Ибн Таймия")
+                        || paragraph.startsWith("«")
+                        || paragraph.startsWith("О присутствии сердца")
+                        || paragraph.startsWith("Поэтому вопрос")
+                        || paragraph.startsWith("Поэтому перед")
+                        || paragraph.startsWith("Не цель:");
+
+                if(emphasis){
+                    LinearLayout callout=newSurface(
+                            p%2==0?sageSoft():sandSoft(),
+                            17,13,1
+                    );
+
+                    TextView pt=text(
+                            paragraph,
+                            15.3f,
+                            ink(),
+                            false
+                    );
+                    pt.setLineSpacing(dp(3),1.12f);
+                    callout.addView(pt);
+
+                    LinearLayout.LayoutParams cp=
+                            new LinearLayout.LayoutParams(-1,-2);
+                    cp.setMargins(0,dp(5),0,dp(7));
+                    c.addView(callout,cp);
+                }else{
+                    TextView pt=text(
+                            paragraph,
+                            15.3f,
+                            ink(),
+                            false
+                    );
+                    pt.setLineSpacing(dp(3),1.12f);
+                    pt.setPadding(
+                            dp(5),
+                            dp(7),
+                            dp(5),
+                            dp(10)
+                    );
+                    c.addView(pt);
+                }
+            }
         }
         page.addView(contentActions("intro",introShareText(),true));
         Button b=action("Начать урок",C_SAGE);b.setOnClickListener(v->renderMindLesson(0,true));page.addView(b);
