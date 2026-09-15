@@ -915,9 +915,211 @@ public class MainActivity extends Activity {
     }
 
     private void showLessonPicker(int currentIdx){
-        JSONArray data=arr("mind_data.json");String[] names=new String[data.length()];
-        for(int i=0;i<data.length();i++)names[i]=(i+1)+". "+data.optJSONObject(i).optString("t");
-        new AlertDialog.Builder(this).setTitle("Перейти к части").setSingleChoiceItems(names,currentIdx,(d,which)->{d.dismiss();renderMindLesson(which,true);}).setNegativeButton("Отмена",null).show();
+        JSONArray data=arr("mind_data.json");
+
+        final Dialog d=new Dialog(this);
+
+        LinearLayout shell=newSurface(
+                dark?Color.rgb(34,41,37):panel(),
+                28,16,8
+        );
+
+        LinearLayout top=new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView title=text(
+                "Перейти к части",
+                21,
+                ink(),
+                true
+        );
+        top.addView(
+                title,
+                new LinearLayout.LayoutParams(0,-2,1)
+        );
+
+        Button close=outline("×");
+        close.setTextSize(sz(23));
+        close.setMinWidth(0);
+        close.setMinimumWidth(0);
+        top.addView(
+                close,
+                new LinearLayout.LayoutParams(dp(48),dp(48))
+        );
+
+        shell.addView(top);
+
+        TextView sub=text(
+                "Выберите одну из 8 смысловых частей Аль-Фатихи",
+                13.2f,
+                muted(),
+                false
+        );
+        sub.setPadding(0,dp(2),0,dp(8));
+        shell.addView(sub);
+
+        ScrollView sc=new ScrollView(this);
+        sc.setFillViewport(false);
+        sc.setClipToPadding(false);
+
+        LinearLayout list=new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(0,dp(4),0,dp(4));
+
+        for(int i=0;i<data.length();i++){
+            JSONObject item=data.optJSONObject(i);
+            if(item==null)continue;
+
+            final int target=i;
+            boolean active=i==currentIdx;
+
+            int fill=active
+                    ? sageSoft()
+                    : (i%2==0?panel():blueSoft());
+
+            LinearLayout row=newSurface(
+                    fill,
+                    19,
+                    12,
+                    active?4:1
+            );
+
+            row.setBackground(
+                    surfaceBg(
+                            fill,
+                            dark?fill:blend(fill,Color.WHITE,.14f),
+                            19,
+                            active?C_SAGE:line()
+                    )
+            );
+
+            LinearLayout inside=new LinearLayout(this);
+            inside.setOrientation(LinearLayout.HORIZONTAL);
+            inside.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView num=text(
+                    String.valueOf(i+1),
+                    15,
+                    active?Color.WHITE:(i%2==0?C_SAGE:C_BLUE),
+                    true
+            );
+            num.setGravity(Gravity.CENTER);
+            num.setBackground(
+                    solidBg(
+                            active
+                                    ? C_SAGE
+                                    : dark
+                                        ? Color.rgb(46,53,49)
+                                        : blend(fill,Color.WHITE,.25f),
+                            14,
+                            active?C_SAGE:line()
+                    )
+            );
+
+            inside.addView(
+                    num,
+                    new LinearLayout.LayoutParams(dp(48),dp(48))
+            );
+
+            LinearLayout tx=new LinearLayout(this);
+            tx.setOrientation(LinearLayout.VERTICAL);
+            tx.setPadding(dp(12),0,0,0);
+
+            tx.addView(
+                    text(
+                            item.optString("t"),
+                            16,
+                            ink(),
+                            true
+                    )
+            );
+
+            String ru=item.optString("ru");
+            if(!ru.isEmpty()){
+                tx.addView(
+                        text(
+                                ru,
+                                12.8f,
+                                muted(),
+                                false
+                        )
+                );
+            }
+
+            if(active){
+                TextView current=text(
+                        "Текущая часть",
+                        11.5f,
+                        C_SAGE,
+                        true
+                );
+                current.setPadding(0,dp(2),0,0);
+                tx.addView(current);
+            }
+
+            inside.addView(
+                    tx,
+                    new LinearLayout.LayoutParams(0,-2,1)
+            );
+
+            row.addView(inside);
+
+            row.setOnClickListener(v->{
+                d.dismiss();
+                renderMindLesson(target,true);
+            });
+
+            LinearLayout.LayoutParams rp=
+                    new LinearLayout.LayoutParams(-1,-2);
+            rp.setMargins(0,dp(5),0,dp(5));
+            list.addView(row,rp);
+        }
+
+        sc.addView(
+                list,
+                new ScrollView.LayoutParams(-1,-2)
+        );
+
+        shell.addView(
+                sc,
+                new LinearLayout.LayoutParams(-1,0,1)
+        );
+
+        Button cancel=outline("Отмена");
+        cancel.setOnClickListener(v->d.dismiss());
+
+        LinearLayout.LayoutParams cp=
+                new LinearLayout.LayoutParams(-1,dp(50));
+        cp.setMargins(0,dp(8),0,0);
+        shell.addView(cancel,cp);
+
+        close.setOnClickListener(v->d.dismiss());
+
+        d.setContentView(shell);
+        d.show();
+
+        Window w=d.getWindow();
+        if(w!=null){
+            w.setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(
+                            Color.TRANSPARENT
+                    )
+            );
+
+            int sw=getResources()
+                    .getDisplayMetrics()
+                    .widthPixels;
+
+            int sh=getResources()
+                    .getDisplayMetrics()
+                    .heightPixels;
+
+            w.setLayout(
+                    (int)(sw*.92f),
+                    (int)(sh*.78f)
+            );
+        }
     }
 
     private void renderMindLesson(int idx,boolean push){
@@ -991,13 +1193,831 @@ public class MainActivity extends Activity {
 
     private JSONArray quizArray(String mode){switch(mode){case"classic":return arr("quiz_data.json");case"multi":return arr("multi_data.json");case"match":return arr("match_data.json");case"hadith":return arr("hadith_data.json");case"free":return arr("free_data.json");case"expert":return arr("expert_data.json");case"mind_quick":return quickMindArray();case"mind_exam":return arr("mind_exam.json");default:return new JSONArray();}}
 
-    private void renderNativeQuiz(String mode,int idx,boolean push){JSONArray a=quizArray(mode);if(a.length()==0){toast("Нет данных");return;}if(idx<0||idx>=a.length())idx=0;clear("quiz",mode+":"+idx,push);currentSection=isMindMode(mode)?"mind":"quiz";SharedPreferences.Editor qe=prefs.edit().putInt("idx_"+mode,idx);
-        if(!isMindMode(mode)){
-            qe.putString("last_quiz_mode",mode).putString("last_mode",mode);
-        }
-        qe.apply();appTop();LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.HORIZONTAL);meta.setGravity(Gravity.CENTER_VERTICAL);String lab="mind_quick".equals(mode)?"КОРОТКАЯ ПРОВЕРКА":"mind_exam".equals(mode)?"ИТОГОВЫЙ ЭКЗАМЕН":modeTitle(mode).toUpperCase(Locale.ROOT);meta.addView(kicker(lab,isMindMode(mode)?C_SAGE:C_BLUE),new LinearLayout.LayoutParams(0,-2,1));Button jump=outline((idx+1)+" / "+a.length()+"  ▾");int ci=idx;jump.setOnClickListener(v->showQuestionPicker(mode,ci,a.length()));meta.addView(jump,new LinearLayout.LayoutParams(dp(100),dp(44)));page.addView(meta);ProgressBar pb=progressBar((idx+1)*100/a.length(),isMindMode(mode)?C_SAGE:C_BLUE);LinearLayout.LayoutParams plp=new LinearLayout.LayoutParams(-1,dp(8));plp.setMargins(0,dp(8),0,dp(12));page.addView(pb,plp);JSONObject q=a.optJSONObject(idx);if(mode.equals("match")){renderMatch(q,mode,idx,a.length());return;}if(mode.equals("free")||(isMindMode(mode)&&"self".equals(q.optString("type")))){renderFree(q,mode,idx,a.length());return;}if(mode.equals("multi")){renderMulti(q,mode,idx,a.length());return;}renderMcq(q,mode,idx,a.length());}
+    private void renderNativeQuiz(String mode,int idx,boolean push){
+        JSONArray a=quizArray(mode);
 
-    private void showQuestionPicker(String mode,int currentIdx,int total){final Dialog d=new Dialog(this);LinearLayout box=newSurface(panel(),24,15,0);box.addView(text("Перейти к заданию",20,ink(),true));GridView g=new GridView(this);g.setNumColumns(5);g.setHorizontalSpacing(dp(7));g.setVerticalSpacing(dp(7));g.setAdapter(new BaseAdapter(){public int getCount(){return total;}public Object getItem(int p){return p;}public long getItemId(int p){return p;}public View getView(int p,View v,ViewGroup parent){TextView t=v instanceof TextView?(TextView)v:text("",14,ink(),true);t.setGravity(Gravity.CENTER);t.setMinHeight(dp(48));t.setMinimumHeight(dp(48));t.setText(String.valueOf(p+1));boolean on=p==currentIdx;t.setTextColor(on?Color.WHITE:ink());t.setBackground(solidBg(on?C_SAGE:panel(),13,on?C_SAGE:line()));return t;}});box.addView(g,new LinearLayout.LayoutParams(-1,0,1));Button x=outline("Отмена");x.setOnClickListener(v->d.dismiss());box.addView(x,new LinearLayout.LayoutParams(-1,dp(50)));d.setContentView(box);g.setOnItemClickListener((a,v,p,id)->{d.dismiss();renderNativeQuiz(mode,p,true);});d.show();Window w=d.getWindow();if(w!=null){w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));int sw=getResources().getDisplayMetrics().widthPixels,sh=getResources().getDisplayMetrics().heightPixels;w.setLayout((int)(sw*.92f),(int)(sh*.78f));}}
+        if(a.length()==0){
+            toast("Нет данных");
+            return;
+        }
+
+        if(idx<0||idx>=a.length())idx=0;
+
+        clear(
+                "quiz",
+                mode+":"+idx,
+                push
+        );
+
+        currentSection=isMindMode(mode)?"mind":"quiz";
+
+        SharedPreferences.Editor qe=
+                prefs.edit().putInt("idx_"+mode,idx);
+
+        if(!isMindMode(mode)){
+            qe.putString("last_quiz_mode",mode)
+              .putString("last_mode",mode);
+        }
+
+        qe.apply();
+
+        appTop();
+
+        LinearLayout meta=new LinearLayout(this);
+        meta.setOrientation(LinearLayout.HORIZONTAL);
+        meta.setGravity(Gravity.CENTER_VERTICAL);
+
+        String lab=
+                "mind_quick".equals(mode)
+                        ?"КОРОТКАЯ ПРОВЕРКА"
+                        :"mind_exam".equals(mode)
+                                ?"ИТОГОВЫЙ ЭКЗАМЕН"
+                                :modeTitle(mode)
+                                    .toUpperCase(Locale.ROOT);
+
+        meta.addView(
+                kicker(
+                        lab,
+                        isMindMode(mode)?C_SAGE:C_BLUE
+                ),
+                new LinearLayout.LayoutParams(0,-2,1)
+        );
+
+        Button jump=outline(
+                (idx+1)+" / "+a.length()+"  ▾"
+        );
+
+        final int ci=idx;
+
+        jump.setOnClickListener(
+                v->showQuestionPicker(
+                        mode,
+                        ci,
+                        a.length()
+                )
+        );
+
+        meta.addView(
+                jump,
+                new LinearLayout.LayoutParams(
+                        dp(100),
+                        dp(44)
+                )
+        );
+
+        page.addView(meta);
+
+        ProgressBar pb=progressBar(
+                (idx+1)*100/a.length(),
+                isMindMode(mode)?C_SAGE:C_BLUE
+        );
+
+        LinearLayout.LayoutParams plp=
+                new LinearLayout.LayoutParams(-1,dp(8));
+
+        plp.setMargins(
+                0,
+                dp(8),
+                0,
+                dp(9)
+        );
+
+        page.addView(pb,plp);
+
+        addQuizQuickNavigation(
+                mode,
+                idx,
+                a.length()
+        );
+
+        JSONObject q=a.optJSONObject(idx);
+
+        if(mode.equals("match")){
+            renderMatch(
+                    q,
+                    mode,
+                    idx,
+                    a.length()
+            );
+            return;
+        }
+
+        if(
+                mode.equals("free")
+                ||
+                (
+                    isMindMode(mode)
+                    &&
+                    "self".equals(
+                            q.optString("type")
+                    )
+                )
+        ){
+            renderFree(
+                    q,
+                    mode,
+                    idx,
+                    a.length()
+            );
+            return;
+        }
+
+        if(mode.equals("multi")){
+            renderMulti(
+                    q,
+                    mode,
+                    idx,
+                    a.length()
+            );
+            return;
+        }
+
+        renderMcq(
+                q,
+                mode,
+                idx,
+                a.length()
+        );
+    }
+
+    private void addQuizQuickNavigation(
+            String mode,
+            int idx,
+            int total
+    ){
+        LinearLayout nav=new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        nav.setGravity(Gravity.CENTER_VERTICAL);
+
+        Button first=outline("↺ С 1 вопроса");
+        first.setTextSize(sz(12.2f));
+        first.setSingleLine(true);
+
+        Button prev=outline("← Предыдущий вопрос");
+        prev.setTextSize(sz(12.2f));
+        prev.setSingleLine(true);
+
+        if(idx==0){
+            first.setEnabled(false);
+            prev.setEnabled(false);
+            first.setAlpha(.45f);
+            prev.setAlpha(.45f);
+        }else{
+            first.setOnClickListener(
+                    v->renderNativeQuiz(
+                            mode,
+                            0,
+                            true
+                    )
+            );
+
+            final int pi=idx-1;
+
+            prev.setOnClickListener(
+                    v->renderNativeQuiz(
+                            mode,
+                            pi,
+                            true
+                    )
+            );
+        }
+
+        LinearLayout.LayoutParams a=
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                );
+
+        LinearLayout.LayoutParams b=
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                );
+
+        b.setMargins(dp(7),0,0,0);
+
+        nav.addView(first,a);
+        nav.addView(prev,b);
+
+        LinearLayout.LayoutParams np=
+                new LinearLayout.LayoutParams(-1,-2);
+
+        np.setMargins(
+                0,
+                0,
+                0,
+                dp(7)
+        );
+
+        page.addView(nav,np);
+    }
+
+    private void showQuestionPicker(
+            String mode,
+            int currentIdx,
+            int totalHint
+    ){
+        final JSONArray data=quizArray(mode);
+        final int total=data.length();
+
+        final HashSet<String> answered=
+                new HashSet<>(
+                        prefs.getStringSet(
+                                "answered_ids",
+                                new HashSet<>()
+                        )
+                );
+
+        final HashSet<String> wrong=
+                new HashSet<>(
+                        prefs.getStringSet(
+                                "wrong_ids",
+                                new HashSet<>()
+                        )
+                );
+
+        final HashSet<String> corrected=
+                new HashSet<>(
+                        prefs.getStringSet(
+                                "corrected_ids",
+                                new HashSet<>()
+                        )
+                );
+
+        final HashSet<String> bookmarks=
+                new HashSet<>(
+                        prefs.getStringSet(
+                                "bookmarks",
+                                new HashSet<>()
+                        )
+                );
+
+        int answeredCount=0;
+        int wrongCount=0;
+        int correctedCount=0;
+        int bookmarkCount=0;
+
+        for(int i=0;i<total;i++){
+            JSONObject q=data.optJSONObject(i);
+            if(q==null)continue;
+
+            String id=qid(mode,q);
+
+            if(answered.contains(id))
+                answeredCount++;
+
+            if(wrong.contains(id))
+                wrongCount++;
+
+            if(corrected.contains(id))
+                correctedCount++;
+
+            if(bookmarks.contains(id))
+                bookmarkCount++;
+        }
+
+        int correctCount=
+                Math.max(
+                        0,
+                        answeredCount-wrongCount
+                );
+
+        final Dialog d=new Dialog(this);
+
+        LinearLayout shell=newSurface(
+                dark?Color.rgb(34,41,37):panel(),
+                28,
+                14,
+                8
+        );
+
+        LinearLayout head=new LinearLayout(this);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+
+        head.addView(
+                text(
+                        "Все вопросы",
+                        22,
+                        ink(),
+                        true
+                ),
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                )
+        );
+
+        Button close=outline("×");
+        close.setTextSize(sz(23));
+        close.setMinWidth(0);
+        close.setMinimumWidth(0);
+
+        head.addView(
+                close,
+                new LinearLayout.LayoutParams(
+                        dp(48),
+                        dp(48)
+                )
+        );
+
+        shell.addView(head);
+
+        TextView summary=text(
+                "Отвечено: "+answeredCount+
+                " из "+total+
+                "   •   Верно: "+correctCount+
+                "   •   Ошибки: "+wrongCount+
+                (
+                    correctedCount>0
+                            ?"   •   Исправлено: "+correctedCount
+                            :""
+                ),
+                12.8f,
+                muted(),
+                false
+        );
+
+        summary.setPadding(
+                0,
+                dp(3),
+                0,
+                dp(8)
+        );
+
+        shell.addView(summary);
+
+        LinearLayout tabs=new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button all=outline(
+                "Все · "+total
+        );
+
+        Button errors=outline(
+                "Ошибки · "+wrongCount
+        );
+
+        Button saved=outline(
+                "Закладки · "+bookmarkCount
+        );
+
+        all.setTextSize(sz(11.8f));
+        errors.setTextSize(sz(11.8f));
+        saved.setTextSize(sz(11.8f));
+
+        all.setSingleLine(true);
+        errors.setSingleLine(true);
+        saved.setSingleLine(true);
+
+        LinearLayout.LayoutParams t1=
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                );
+
+        LinearLayout.LayoutParams t2=
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                );
+
+        t2.setMargins(dp(6),0,0,0);
+
+        LinearLayout.LayoutParams t3=
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                );
+
+        t3.setMargins(dp(6),0,0,0);
+
+        tabs.addView(all,t1);
+        tabs.addView(errors,t2);
+        tabs.addView(saved,t3);
+
+        shell.addView(tabs);
+
+        TextView legend=text(
+                "✓ верно  ·  × ошибка  ·  ↻ исправлено  ·  ☆ закладка",
+                11.8f,
+                muted(),
+                false
+        );
+
+        legend.setPadding(
+                0,
+                dp(9),
+                0,
+                dp(5)
+        );
+
+        shell.addView(legend);
+
+        final int[] filter={0};
+
+        final ArrayList<Integer> visible=
+                new ArrayList<>();
+
+        for(int i=0;i<total;i++)
+            visible.add(i);
+
+        GridView grid=new GridView(this);
+
+        grid.setNumColumns(6);
+        grid.setHorizontalSpacing(dp(6));
+        grid.setVerticalSpacing(dp(6));
+        grid.setStretchMode(
+                GridView.STRETCH_COLUMN_WIDTH
+        );
+        grid.setClipToPadding(false);
+        grid.setPadding(
+                0,
+                dp(3),
+                0,
+                dp(4)
+        );
+
+        final BaseAdapter adapter=
+                new BaseAdapter(){
+
+            @Override
+            public int getCount(){
+                return visible.size();
+            }
+
+            @Override
+            public Object getItem(int position){
+                return visible.get(position);
+            }
+
+            @Override
+            public long getItemId(int position){
+                return visible.get(position);
+            }
+
+            @Override
+            public View getView(
+                    int position,
+                    View convertView,
+                    ViewGroup parent
+            ){
+                TextView cell=
+                        convertView instanceof TextView
+                                ?(TextView)convertView
+                                :text(
+                                        "",
+                                        13.2f,
+                                        ink(),
+                                        true
+                                );
+
+                int qi=visible.get(position);
+
+                JSONObject q=
+                        data.optJSONObject(qi);
+
+                String id=
+                        q==null
+                                ?mode+":"+qi
+                                :qid(mode,q);
+
+                boolean isAnswered=
+                        answered.contains(id);
+
+                boolean isWrong=
+                        wrong.contains(id);
+
+                boolean isCorrected=
+                        corrected.contains(id)
+                        && !isWrong;
+
+                boolean isSaved=
+                        bookmarks.contains(id);
+
+                String state="";
+
+                if(isWrong)
+                    state="×";
+                else if(isCorrected)
+                    state="↻";
+                else if(isAnswered)
+                    state="✓";
+
+                if(isSaved)
+                    state+=
+                            state.isEmpty()
+                                    ?"☆"
+                                    :"  ☆";
+
+                cell.setText(
+                        String.valueOf(qi+1)
+                        +
+                        (
+                            state.isEmpty()
+                                    ?""
+                                    :"\n"+state
+                        )
+                );
+
+                cell.setGravity(Gravity.CENTER);
+                cell.setLineSpacing(0,1f);
+
+                cell.setLayoutParams(
+                        new AbsListView.LayoutParams(
+                                -1,
+                                dp(64)
+                        )
+                );
+
+                int fill=panel();
+                int stroke=line();
+                int txt=muted();
+
+                if(isWrong){
+                    fill=dark
+                            ?Color.rgb(62,43,42)
+                            :C_BAD_BG;
+                    stroke=C_BAD;
+                    txt=C_BAD;
+                }else if(isCorrected){
+                    fill=sandSoft();
+                    stroke=Color.rgb(166,129,69);
+                    txt=dark
+                            ?Color.rgb(211,183,128)
+                            :Color.rgb(139,101,45);
+                }else if(isAnswered){
+                    fill=sageSoft();
+                    stroke=blend(
+                            C_SAGE,
+                            line(),
+                            .42f
+                    );
+                    txt=C_SAGE;
+                }else if(isSaved){
+                    fill=lavSoft();
+                    stroke=Color.rgb(126,108,144);
+                    txt=dark
+                            ?Color.rgb(193,181,207)
+                            :Color.rgb(112,92,132);
+                }
+
+                boolean current=
+                        qi==currentIdx;
+
+                if(current)
+                    stroke=C_SAGE;
+
+                cell.setTextColor(txt);
+
+                cell.setBackground(
+                        surfaceBg(
+                                fill,
+                                dark
+                                        ?fill
+                                        :blend(
+                                                fill,
+                                                Color.WHITE,
+                                                .15f
+                                        ),
+                                14,
+                                stroke
+                        )
+                );
+
+                cell.setElevation(
+                        dp(current?4:1)
+                );
+
+                return cell;
+            }
+        };
+
+        grid.setAdapter(adapter);
+
+        Runnable rebuild=()->{
+            visible.clear();
+
+            for(int i=0;i<total;i++){
+                JSONObject q=
+                        data.optJSONObject(i);
+
+                if(q==null)
+                    continue;
+
+                String id=qid(mode,q);
+
+                if(
+                    filter[0]==1
+                    &&
+                    !wrong.contains(id)
+                )
+                    continue;
+
+                if(
+                    filter[0]==2
+                    &&
+                    !bookmarks.contains(id)
+                )
+                    continue;
+
+                visible.add(i);
+            }
+
+            adapter.notifyDataSetChanged();
+        };
+
+        all.setOnClickListener(v->{
+            filter[0]=0;
+            rebuild.run();
+
+            styleOverviewTab(
+                    all,
+                    true,
+                    C_SAGE
+            );
+
+            styleOverviewTab(
+                    errors,
+                    false,
+                    C_BAD
+            );
+
+            styleOverviewTab(
+                    saved,
+                    false,
+                    Color.rgb(112,96,134)
+            );
+        });
+
+        errors.setOnClickListener(v->{
+            filter[0]=1;
+            rebuild.run();
+
+            styleOverviewTab(
+                    all,
+                    false,
+                    C_SAGE
+            );
+
+            styleOverviewTab(
+                    errors,
+                    true,
+                    C_BAD
+            );
+
+            styleOverviewTab(
+                    saved,
+                    false,
+                    Color.rgb(112,96,134)
+            );
+        });
+
+        saved.setOnClickListener(v->{
+            filter[0]=2;
+            rebuild.run();
+
+            styleOverviewTab(
+                    all,
+                    false,
+                    C_SAGE
+            );
+
+            styleOverviewTab(
+                    errors,
+                    false,
+                    C_BAD
+            );
+
+            styleOverviewTab(
+                    saved,
+                    true,
+                    Color.rgb(112,96,134)
+            );
+        });
+
+        styleOverviewTab(
+                all,
+                true,
+                C_SAGE
+        );
+
+        styleOverviewTab(
+                errors,
+                false,
+                C_BAD
+        );
+
+        styleOverviewTab(
+                saved,
+                false,
+                Color.rgb(112,96,134)
+        );
+
+        shell.addView(
+                grid,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        0,
+                        1
+                )
+        );
+
+        grid.setOnItemClickListener(
+                (parent,view,position,id)->{
+                    int target=
+                            visible.get(position);
+
+                    d.dismiss();
+
+                    renderNativeQuiz(
+                            mode,
+                            target,
+                            true
+                    );
+                }
+        );
+
+        close.setOnClickListener(
+                v->d.dismiss()
+        );
+
+        d.setContentView(shell);
+        d.show();
+
+        Window w=d.getWindow();
+
+        if(w!=null){
+            w.setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(
+                            Color.TRANSPARENT
+                    )
+            );
+
+            int sw=getResources()
+                    .getDisplayMetrics()
+                    .widthPixels;
+
+            int sh=getResources()
+                    .getDisplayMetrics()
+                    .heightPixels;
+
+            w.setLayout(
+                    (int)(sw*.94f),
+                    (int)(sh*.82f)
+            );
+        }
+    }
+
+    private void styleOverviewTab(
+            Button b,
+            boolean active,
+            int accent
+    ){
+        int fill=
+                active
+                        ?accent
+                        :(
+                            dark
+                                    ?Color.rgb(43,50,46)
+                                    :Color.rgb(250,248,243)
+                        );
+
+        b.setTextColor(
+                active
+                        ?Color.WHITE
+                        :ink()
+        );
+
+        b.setBackground(
+                surfaceBg(
+                        fill,
+                        active
+                                ?blend(
+                                        fill,
+                                        Color.BLACK,
+                                        .07f
+                                )
+                                :(
+                                    dark
+                                            ?Color.rgb(39,46,42)
+                                            :Color.rgb(247,244,237)
+                                ),
+                        16,
+                        active?accent:line()
+                )
+        );
+
+        b.setElevation(
+                dp(active?3:1)
+        );
+    }
 
     private String modeTitle(String m){switch(m){case"classic":return"Классическая викторина";case"multi":return"Два правильных";case"match":return"Сопоставление";case"hadith":return"Хадис → смысл";case"free":return"Без вариантов";case"expert":return"Эксперт";case"mind_quick":return"Проверка понимания";case"mind_exam":return"Итоговый экзамен";}return"Викторина";}
     private String qText(JSONObject q,String mode){if(mode.equals("hadith"))return q.optString("hadith")+"\n\n"+q.optString("question");if(isMindMode(mode))return q.optString("q");return q.optString("question");}
@@ -1036,12 +2056,299 @@ public class MainActivity extends Activity {
         cv.marker.setBackground(solidBg(markFill,14,selected||correct||wrong?stroke:line()));cv.marker.setTextColor(markText);cv.marker.setText(correct?"✓":wrong?"×":String.valueOf(cv.index+1));cv.label.setTypeface(tf(selected||correct));
     }
 
-    private void renderMcq(JSONObject q,String mode,int idx,int total){
-        LinearLayout qc=card(panel());qc.addView(text(qText(q,mode),20.5f,ink(),false));JSONArray opts=optionsAsArray(q,mode);ArrayList<ChoiceView> choices=new ArrayList<>();final int[] selected={-1};
-        for(int i=0;i<opts.length();i++){ChoiceView cv=choice(i,opts.optString(i),false);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(6),0,dp(6));qc.addView(cv.root,lp);choices.add(cv);final int ix=i;cv.root.setOnClickListener(v->{selected[0]=ix;for(ChoiceView x:choices)renderChoice(x,x.index==ix,false,false);});}
-        Button check=action("Проверить",C_SAGE);qc.addView(check);bookmarkButton(q,mode,qc);qc.addView(contentActions("",quizQuestionShareText(q,mode),false));
-        check.setOnClickListener(v->{if(selected[0]<0){toast("Выберите ответ");return;}int sel=selected[0],correct=correctIndex(q,mode);boolean ok=sel==correct;for(ChoiceView x:choices)renderChoice(x,x.index==sel,x.index==correct,x.index==sel&&!ok);for(ChoiceView x:choices)x.root.setOnClickListener(null);record(mode,q,ok);
-            LinearLayout result=card(ok?(dark?Color.rgb(36,60,48):C_GOOD_BG):(dark?Color.rgb(64,42,41):C_BAD_BG));result.addView(text(ok?"✓ Верно":"✕ Неверно. Правильный ответ: "+(correct>=0?(correct+1):"—"),18,ok?C_GOOD:C_BAD,true));String ex=explanation(q,mode,sel);if(!ex.isEmpty())addParagraphs(result,ex,14.8f);String src=sources(q);if(!src.isEmpty())result.addView(text("Источник: "+src,12.7f,muted(),false));addAllExplanations(q,mode,result,opts.length());result.addView(contentActions("",quizResultShareText(q,mode,correct),false));Button next=action(idx+1<total?"Следующий вопрос":"Завершить",C_BLUE);next.setOnClickListener(x->{if(idx+1<total)renderNativeQuiz(mode,idx+1,true);else if(isMindMode(mode))renderMindHub(true);else renderQuizHub(true);});result.addView(next);markDone(check,"Ответ проверен");
+    private void renderMcq(
+            JSONObject q,
+            String mode,
+            int idx,
+            int total
+    ){
+        LinearLayout qc=card(panel());
+
+        qc.addView(
+                text(
+                        qText(q,mode),
+                        20.5f,
+                        ink(),
+                        false
+                )
+        );
+
+        JSONArray opts=
+                optionsAsArray(q,mode);
+
+        ArrayList<ChoiceView> choices=
+                new ArrayList<>();
+
+        final int[] selected={-1};
+        final boolean[] locked={false};
+
+        final boolean autoCheck=
+                "classic".equals(mode);
+
+        final Button check=
+                action(
+                        "Проверить",
+                        C_SAGE
+                );
+
+        for(int i=0;i<opts.length();i++){
+            ChoiceView cv=
+                    choice(
+                            i,
+                            opts.optString(i),
+                            false
+                    );
+
+            LinearLayout.LayoutParams lp=
+                    new LinearLayout.LayoutParams(
+                            -1,
+                            -2
+                    );
+
+            lp.setMargins(
+                    0,
+                    dp(6),
+                    0,
+                    dp(6)
+            );
+
+            qc.addView(cv.root,lp);
+            choices.add(cv);
+
+            final int ix=i;
+
+            cv.root.setOnClickListener(v->{
+                if(locked[0])
+                    return;
+
+                selected[0]=ix;
+
+                for(ChoiceView x:choices){
+                    renderChoice(
+                            x,
+                            x.index==ix,
+                            false,
+                            false
+                    );
+                }
+
+                if(autoCheck){
+                    locked[0]=true;
+
+                    finishMcqAnswer(
+                            q,
+                            mode,
+                            idx,
+                            total,
+                            opts,
+                            choices,
+                            ix,
+                            check,
+                            false
+                    );
+                }
+            });
+        }
+
+        if(!autoCheck)
+            qc.addView(check);
+
+        bookmarkButton(
+                q,
+                mode,
+                qc
+        );
+
+        qc.addView(
+                contentActions(
+                        "",
+                        quizQuestionShareText(
+                                q,
+                                mode
+                        ),
+                        false
+                )
+        );
+
+        if(!autoCheck){
+            check.setOnClickListener(v->{
+                if(locked[0])
+                    return;
+
+                if(selected[0]<0){
+                    toast("Выберите ответ");
+                    return;
+                }
+
+                locked[0]=true;
+
+                finishMcqAnswer(
+                        q,
+                        mode,
+                        idx,
+                        total,
+                        opts,
+                        choices,
+                        selected[0],
+                        check,
+                        true
+                );
+            });
+        }
+    }
+
+    private void finishMcqAnswer(
+            JSONObject q,
+            String mode,
+            int idx,
+            int total,
+            JSONArray opts,
+            ArrayList<ChoiceView> choices,
+            int sel,
+            Button check,
+            boolean showCheckState
+    ){
+        int correct=
+                correctIndex(
+                        q,
+                        mode
+                );
+
+        boolean ok=
+                sel==correct;
+
+        for(ChoiceView x:choices){
+            renderChoice(
+                    x,
+                    x.index==sel,
+                    x.index==correct,
+                    x.index==sel&&!ok
+            );
+
+            x.root.setOnClickListener(null);
+        }
+
+        record(
+                mode,
+                q,
+                ok
+        );
+
+        LinearLayout result=card(
+                ok
+                        ?(
+                            dark
+                                    ?Color.rgb(36,60,48)
+                                    :C_GOOD_BG
+                        )
+                        :(
+                            dark
+                                    ?Color.rgb(64,42,41)
+                                    :C_BAD_BG
+                        )
+        );
+
+        result.addView(
+                text(
+                        ok
+                                ?"✓ Верно"
+                                :"✕ Неверно. Правильный ответ: "
+                                    +(
+                                        correct>=0
+                                                ?correct+1
+                                                :"—"
+                                    ),
+                        18,
+                        ok?C_GOOD:C_BAD,
+                        true
+                )
+        );
+
+        String ex=
+                explanation(
+                        q,
+                        mode,
+                        sel
+                );
+
+        if(!ex.isEmpty())
+            addParagraphs(
+                    result,
+                    ex,
+                    14.8f
+            );
+
+        String src=sources(q);
+
+        if(!src.isEmpty()){
+            result.addView(
+                    text(
+                            "Источник: "+src,
+                            12.7f,
+                            muted(),
+                            false
+                    )
+            );
+        }
+
+        addAllExplanations(
+                q,
+                mode,
+                result,
+                opts.length()
+        );
+
+        result.addView(
+                contentActions(
+                        "",
+                        quizResultShareText(
+                                q,
+                                mode,
+                                correct
+                        ),
+                        false
+                )
+        );
+
+        Button next=action(
+                idx+1<total
+                        ?"Следующий вопрос"
+                        :"Завершить",
+                C_BLUE
+        );
+
+        next.setOnClickListener(v->{
+            if(idx+1<total){
+                renderNativeQuiz(
+                        mode,
+                        idx+1,
+                        true
+                );
+            }else if(isMindMode(mode)){
+                renderMindHub(true);
+            }else{
+                renderQuizHub(true);
+            }
+        });
+
+        result.addView(next);
+
+        if(showCheckState)
+            markDone(
+                    check,
+                    "Ответ проверен"
+            );
+
+        result.post(()->{
+            int y=Math.max(
+                    0,
+                    result.getTop()-dp(18)
+            );
+
+            scroll.smoothScrollTo(
+                    0,
+                    y
+            );
         });
     }
 
@@ -1079,11 +2386,104 @@ public class MainActivity extends Activity {
     private boolean isBookmarked(String m,JSONObject q){return prefs.getStringSet("bookmarks",new HashSet<>()).contains(qid(m,q));}
     private void toggleBookmark(String m,JSONObject q){HashSet<String>s=new HashSet<>(prefs.getStringSet("bookmarks",new HashSet<>()));String id=qid(m,q);if(!s.add(id))s.remove(id);prefs.edit().putStringSet("bookmarks",s).apply();}
 
-    private void record(String mode,JSONObject q,boolean ok){
-        String id=qid(mode,q);HashSet<String> answered=new HashSet<>(prefs.getStringSet("answered_ids",new HashSet<>()));HashSet<String> wrong=new HashSet<>(prefs.getStringSet("wrong_ids",new HashSet<>()));boolean fresh=answered.add(id);
-        SharedPreferences.Editor e=prefs.edit().putStringSet("answered_ids",answered);
-        if(ok)wrong.remove(id);else wrong.add(id);e.putStringSet("wrong_ids",wrong);
-        if(fresh){e.putInt("answered_total",prefs.getInt("answered_total",0)+1).putInt("correct_total",prefs.getInt("correct_total",0)+(ok?1:0)).putInt("answered_"+mode,prefs.getInt("answered_"+mode,0)+1).putInt("correct_"+mode,prefs.getInt("correct_"+mode,0)+(ok?1:0));}
+    private void record(
+            String mode,
+            JSONObject q,
+            boolean ok
+    ){
+        String id=qid(mode,q);
+
+        HashSet<String> answered=
+                new HashSet<>(
+                        prefs.getStringSet(
+                                "answered_ids",
+                                new HashSet<>()
+                        )
+                );
+
+        HashSet<String> wrong=
+                new HashSet<>(
+                        prefs.getStringSet(
+                                "wrong_ids",
+                                new HashSet<>()
+                        )
+                );
+
+        HashSet<String> corrected=
+                new HashSet<>(
+                        prefs.getStringSet(
+                                "corrected_ids",
+                                new HashSet<>()
+                        )
+                );
+
+        boolean fresh=
+                answered.add(id);
+
+        boolean wasWrong=
+                wrong.contains(id);
+
+        SharedPreferences.Editor e=
+                prefs.edit()
+                     .putStringSet(
+                             "answered_ids",
+                             answered
+                     );
+
+        if(ok){
+            wrong.remove(id);
+
+            if(wasWrong)
+                corrected.add(id);
+        }else{
+            wrong.add(id);
+            corrected.remove(id);
+        }
+
+        e.putStringSet(
+                "wrong_ids",
+                wrong
+        );
+
+        e.putStringSet(
+                "corrected_ids",
+                corrected
+        );
+
+        if(fresh){
+            e.putInt(
+                    "answered_total",
+                    prefs.getInt(
+                            "answered_total",
+                            0
+                    )+1
+            );
+
+            e.putInt(
+                    "correct_total",
+                    prefs.getInt(
+                            "correct_total",
+                            0
+                    )+(ok?1:0)
+            );
+
+            e.putInt(
+                    "answered_"+mode,
+                    prefs.getInt(
+                            "answered_"+mode,
+                            0
+                    )+1
+            );
+
+            e.putInt(
+                    "correct_"+mode,
+                    prefs.getInt(
+                            "correct_"+mode,
+                            0
+                    )+(ok?1:0)
+            );
+        }
+
         e.apply();
     }
 
