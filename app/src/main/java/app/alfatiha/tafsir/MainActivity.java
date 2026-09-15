@@ -705,7 +705,21 @@ public class MainActivity extends Activity {
         meta.addView(text("Прогресс основного урока",13,muted(),false),new LinearLayout.LayoutParams(0,-2,1));
         meta.addView(text(seen+" из 8",13,ink(),true));m.addView(meta);
         m.addView(progressBar(pct,C_SAGE),new LinearLayout.LayoutParams(-1,dp(10)));
-        Button bm=action(seen>0?"Продолжить":"Начать обучение",C_SAGE);bm.setOnClickListener(v->renderMindHub(true));m.addView(bm);m.setOnClickListener(v->renderMindHub(true));
+        Button bm=action(seen>0?"Продолжить":"Начать обучение",C_SAGE);
+        Runnable openMind=()->{
+            if(seen>0){
+                int last=prefs.getInt("mind_last_idx",-1);
+                if(last<0 || last>=8){
+                    last=Math.min(7,Math.max(0,seen-1));
+                }
+                renderMindLesson(last,true);
+            }else{
+                renderMindHub(true);
+            }
+        };
+        bm.setOnClickListener(v->openMind.run());
+        m.addView(bm);
+        m.setOnClickListener(v->openMind.run());
 
         LinearLayout q=card(blueSoft());cardHead(q,"ПРОВЕРКА ЗНАНИЙ",C_BLUE,"Викторина по Аль-Фатихе");
         q.addView(text("Сложные вопросы по тафсиру: близкие варианты, анализ, сопоставление и экспертные режимы.",15.5f,muted(),false));
@@ -811,6 +825,7 @@ public class MainActivity extends Activity {
 
     private void renderMindLesson(int idx,boolean push){
         JSONArray data=arr("mind_data.json");if(idx<0||idx>=data.length())idx=0;
+        prefs.edit().putInt("mind_last_idx",idx).apply();
         clear("mindLesson",String.valueOf(idx),push);currentSection="mind";appTop();
         HashSet<String> seen=new HashSet<>(prefs.getStringSet("mind_seen",new HashSet<>()));seen.add(String.valueOf(idx));prefs.edit().putStringSet("mind_seen",seen).apply();
         Button part=outline("Часть "+(idx+1)+" из "+data.length()+"   ▾");final int ci=idx;part.setOnClickListener(v->showLessonPicker(ci));page.addView(part,new LinearLayout.LayoutParams(-1,dp(48)));
