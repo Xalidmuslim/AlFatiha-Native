@@ -10499,7 +10499,7 @@ function properSegmentIntersection(a,b,c,d){
   const eps=1e-6;
   return ((o1>eps&&o2<-eps)||(o1<-eps&&o2>eps))&&((o3>eps&&o4<-eps)||(o3<-eps&&o4>eps))
 }
-function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0,wallSegments=[],vertices=[],leaderSegments=[]){
+function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0,wallSegments=[],vertices=[],leaderSegments=[],roomPoly=null){
   const dx=b.x-a.x,dy=b.y-a.y;
   const L=Math.hypot(dx,dy)||1;
   const nx=-dy/L,ny=dx/L;
@@ -10632,9 +10632,49 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
     }
   }
 
-  // Primary strategy: use the side of the diagonal that has the most room.
-  // Large offsets are allowed; a leader line will show which diagonal owns
-  // the value so it cannot be mistaken for a neighbouring line.
+  // Primary strategy: search the WHOLE free region that belongs to this
+  // diagonal (its nearest-diagonal/Voronoi zone), not only a narrow strip
+  // beside the line. This lets a value move into a visibly large empty area
+  // when one exists, while still remaining unambiguously owned by its line.
+  const globalFree=[];
+  if(roomPoly&&roomPoly.length>=3){
+    const xs=roomPoly.map(p=>p.x),ys=roomPoly.map(p=>p.y);
+    const minX=Math.min(...xs),maxX=Math.max(...xs);
+    const minY=Math.min(...ys),maxY=Math.max(...ys);
+    const step=Math.max(16*inv,24*inv);
+
+    for(let gy=minY+18*inv;gy<=maxY-18*inv;gy+=step){
+      for(let gx=minX+18*inv;gx<=maxX-18*inv;gx+=step){
+        const p={x:gx,y:gy};
+        if(!pointInPolygon(p,roomPoly))continue;
+
+        const proj=segmentProjectionInfo(p,a,b);
+        if(!proj||proj.t<.10||proj.t>.90)continue;
+
+        const ownDist=pointSegmentDistance(gx,gy,a,b);
+        let otherDist=Infinity;
+        for(const seg of segments){
+          if(seg.id===currentId)continue;
+          otherDist=Math.min(otherDist,pointSegmentDistance(gx,gy,seg.a,seg.b))
+        }
+
+        // Candidate belongs to this diagonal only if this diagonal is clearly
+        // the closest one. This prevents values from visually swapping lines.
+        if(Number.isFinite(otherDist)&&ownDist+10*inv>=otherDist)continue;
+
+        globalFree.push(score(
+          proj.t,gx,gy,0,"free",
+          ownDist/Math.max(inv,.0001),
+          proj.x,proj.y
+        ))
+      }
+    }
+  }
+
+  const goodGlobal=globalFree.filter(x=>x.valid).sort((x,y)=>x.penalty-y.penalty);
+  if(goodGlobal.length)return goodGlobal[0];
+
+  // Secondary strategy: use a local perpendicular strip beside the diagonal.
   const free=[];
   for(const t of uniqueT){
     const bx=a.x+dx*t,by=a.y+dy*t;
@@ -12861,6 +12901,7 @@ function svgGeometry(r){
     b:pointById(r,e.b)
   })).filter(x=>x.a&&x.b);
   const labelVertices=(r.points||[]).filter(p=>Number.isFinite(+p.x)&&Number.isFinite(+p.y));
+  const labelRoomPoly=cyclePolygonPoints(r)||null;
 
 
   for(const d of r.diagList||[]){
@@ -12888,7 +12929,7 @@ function svgGeometry(r){
     const diagText=r.showAutoLetters===false?txt:`${diagLabel(r,d)} ${txt}`;
     const place=pickDiagLabelPlacement(
       a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,
-      diagLabelItems.length,diagFanPreferredT(r,d),760,560,wallSegments,labelVertices,diagLeaderSegments
+      diagLabelItems.length,diagFanPreferredT(r,d),760,560,wallSegments,labelVertices,diagLeaderSegments,labelRoomPoly
     );
     const pose=labelPose(d);
     const dlx=pose.manual?pose.x:place.x;
