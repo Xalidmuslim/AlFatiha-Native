@@ -8420,6 +8420,7 @@ function statusText(r,calc){
   if(cycleOrder(r)){
     const gMode=webTestGeometryMode(r);
     if(gMode==="actual_dirty")return"Фактическая геометрия требует обновления после изменения замеров.";
+    if(gMode==="actual_forced")return"Контур замкнут · фактическая геометрия применена приблизительно, несмотря на конфликт замеров.";
     if(gMode==="actual")return"Контур замкнут · фактическая геометрия по замерам.";
     if(!calc.ok)return calc.message;
     return"Контур замкнут · геометрия эскиза. Размеры не меняют форму."
@@ -9904,7 +9905,7 @@ function renderDrawToolsMenu(){
     <button class="draw-tool ${r.point90Magnet!==false?"active":""}" data-draw-action="point90" ${r.geometryLocked?"disabled":""}><span>∟</span><b>90° точки</b></button>
     <button class="draw-tool ${r.showAutoLetters===false?"":"active"}" data-draw-action="letters"><span>A</span><b>${r.showAutoLetters===false?"Показать":"Скрыть"} буквы</b></button>
     <button class="draw-tool ${webTestGeometryMode(r)==="sketch"?"active":""}" data-draw-action="sketchGeometry" ${r.geometryLocked?"disabled":""} title="Эскиз остаётся таким, как его нарисовал замерщик. Цифры не наклоняют стены."><span>⌂</span><b>Геометрия эскиза</b></button>
-    <button class="draw-tool ${webTestGeometryMode(r)==="actual"?"active":""}" data-draw-action="actualGeometry" ${r.geometryLocked?"disabled":""} title="Строит форму только по измеренным стенам и измеренным диагоналям."><span>△</span><b>${webTestGeometryMode(r)==="actual_dirty"?"Фактическая · обновить":"Фактическая геометрия"}</b></button>
+    <button class="draw-tool ${["actual","actual_forced"].includes(webTestGeometryMode(r))?"active":""}" data-draw-action="actualGeometry" ${r.geometryLocked?"disabled":""} title="Строит форму только по измеренным стенам и измеренным диагоналям. При конфликте можно отдельно разрешить приблизительное построение."><span>△</span><b>${webTestGeometryMode(r)==="actual_dirty"?"Фактическая · обновить":webTestGeometryMode(r)==="actual_forced"?"Фактическая · приблизит.":"Фактическая геометрия"}</b></button>
     <button class="draw-tool" data-draw-action="autoDiags" ${r.geometryLocked?"disabled":""}><span>⌁</span><b>Авто диагонали</b></button>
     <button class="draw-tool" data-draw-action="validate"><span>✓</span><b>Проверить замер</b></button>
     <button class="draw-tool" data-draw-action="wallSequence" ${closed?"":"disabled"}><span>123</span><b>Размеры стен</b></button>
@@ -10912,7 +10913,7 @@ const WEBTEST_FACTUAL_TOL=1;
 
 function webTestGeometryMode(r){
   const v=r?.[WEBTEST_MODE_KEY];
-  return v==="actual"||v==="actual_dirty"?v:"sketch"
+  return v==="actual"||v==="actual_dirty"||v==="actual_forced"?v:"sketch"
 }
 function webTestHasSketchBackup(r){
   return !!(r&&Array.isArray(r[WEBTEST_SKETCH_KEY])&&r[WEBTEST_SKETCH_KEY].length)
@@ -10929,7 +10930,7 @@ function webTestDiscardFactualSession(r){
 function webTestMarkFactualDirty(r){
   if(!r||!webTestHasSketchBackup(r))return;
   const mode=webTestGeometryMode(r);
-  if(mode==="actual"||mode==="actual_dirty")r[WEBTEST_MODE_KEY]="actual_dirty"
+  if(mode==="actual"||mode==="actual_dirty"||mode==="actual_forced")r[WEBTEST_MODE_KEY]="actual_dirty"
 }
 function webTestMarkDiagMeasured(d){
   if(!d)return;
@@ -11222,11 +11223,54 @@ function applySketchGeometry(){
   activeVertexId=null;save();renderRoom();
   showToast("Эскиз восстановлен. Масштаб и положение сохранены.")
 }
+function solveForcedApproximateFactualGeometry(r){
+  // This is an explicit preview mode. It intentionally allows a best-fit result
+  // when exact measured circles do not intersect. Auto/calculated diagonals are
+  // removed from the temporary clone so only field measurements influence it.
+  const temp=clone(r);
+  temp.diagList=(temp.diagList||[]).map(d=>{
+    const x={...d};
+    if(!webTestIsMeasuredDiag(d))x.mm="";
+    return x
+  });
+  const solved=solveFreeGeometry(temp);
+  if(!solved?.ok||!solved.pos)return{ok:false,message:"Не удалось построить даже приблизительную форму по этим замерам."};
+  return{
+    ...solved,
+    ok:true,
+    forcedApproximate:true,
+    message:`Приблизительная форма построена принудительно. Остаточное расхождение до ${fmtWallMeters(solved.maxErr||0)} м. Это только визуальная проверка, а не подтверждённая фактическая геометрия.`
+  }
+}
+function applyForcedFactualGeometry(){
+  const r=curRoom();if(!r)return;
+  const solved=solveForcedApproximateFactualGeometry(r);
+  if(!solved.ok){showToast(solved.message);return}
+
+  push();
+  webTestCaptureSketch(r);
+  if(!webTestApplySolvedPositions(r,solved)){showToast("Не удалось применить приблизительную геометрию.");return}
+  r[WEBTEST_MODE_KEY]="actual_forced";
+  r._webTestForcedResidual=Number(solved.maxErr||0);
+  activeVertexId=null;
+  save();renderRoom();
+  showToast("Применено приблизительно. Можно вернуть «Геометрию эскиза».")
+}
 function applyFactualGeometry(){
   const r=curRoom();if(!r)return;
   const solved=solveFactualGeometry(r);
   if(!solved.ok){
-    showConfirm(solved.conflict?"Замеры конфликтуют":"Фактическая геометрия",solved.message,()=>{},"Понятно");
+    const canForce=!!cycleOrder(r)&&(r.edges||[]).every(e=>!!mm(e.mm));
+    if(canForce){
+      showConfirm(
+        solved.conflict?"Замеры конфликтуют":"Фактическая геометрия",
+        `${solved.message} Если нужно только посмотреть, как получится, можно применить приблизительное построение. Оно не считается точной фактической геометрией.`,
+        applyForcedFactualGeometry,
+        "Применить приблизительно"
+      )
+    }else{
+      showConfirm("Фактическая геометрия",solved.message,()=>{},"Понятно")
+    }
     return
   }
 
@@ -11234,6 +11278,7 @@ function applyFactualGeometry(){
   webTestCaptureSketch(r);
   if(!webTestApplySolvedPositions(r,solved)){showToast("Не удалось применить фактическую геометрию.");return}
   r[WEBTEST_MODE_KEY]="actual";
+  delete r._webTestForcedResidual;
   activeVertexId=null;save();renderRoom();
   showToast("Фактическая геометрия применена. Масштаб не сброшен.")
 }
