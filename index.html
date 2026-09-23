@@ -10402,7 +10402,7 @@ function pointSegmentDistance(px,py,a,b){
   const t=Math.max(0,Math.min(1,((px-a.x)*dx+(py-a.y)*dy)/d2));
   return Math.hypot(px-(a.x+dx*t),py-(a.y+dy*t))
 }
-function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null){
+function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0){
   const dx=b.x-a.x,dy=b.y-a.y;
   const L=Math.hypot(dx,dy)||1;
   const nx=-dy/L,ny=dx/L;
@@ -10435,6 +10435,15 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
       const box={x1:x-width/2,y1:y-height/2,x2:x+width/2,y2:y+height/2};
 
       let penalty=0;
+
+      // Keep every label fully inside the drawing canvas.
+      if(canvasW>0&&canvasH>0){
+        const margin=10*inv;
+        if(box.x1<margin)penalty+=(margin-box.x1)*8000;
+        if(box.y1<margin)penalty+=(margin-box.y1)*8000;
+        if(box.x2>canvasW-margin)penalty+=(box.x2-(canvasW-margin))*8000;
+        if(box.y2>canvasH-margin)penalty+=(box.y2-(canvasH-margin))*8000;
+      }
 
       // Never allow two number labels to occupy the same visual area.
       // 'boxes' now also includes wall-number boxes, so diagonal values cannot
@@ -10505,7 +10514,7 @@ function diagFanPreferredT(r,d){
   const n=group.length;
   // Spread a fan over a larger fraction of every diagonal. With five or more
   // diagonals this prevents three values from collecting near the same notch.
-  const fromHub=n<=1?.5:(.18+.64*(rank/Math.max(1,n-1)));
+  const fromHub=n<=1?.5:(.12+.76*(rank/Math.max(1,n-1)));
   return d.a===hub?fromHub:1-fromHub
 }
 
@@ -12664,7 +12673,7 @@ function svgGeometry(r){
 
     if(txt){
       const diagText=r.showAutoLetters===false?txt:`${diagLabel(r,d)} ${txt}`;
-      const place=pickDiagLabelPlacement(a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,r.diagList.length,diagFanPreferredT(r,d));
+      const place=pickDiagLabelPlacement(a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,r.diagList.length,diagFanPreferredT(r,d),W,H);
       const pose=labelPose(d);
       const dlx=pose.manual?pose.x:place.x,dly=pose.manual?pose.y:place.y;
       const angle=pose.angle;
