@@ -10505,129 +10505,140 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
     :(count<=1?.5:(.28+.46*(di/Math.max(1,count-1))));
   const diagAngle=readableDiagonalAngle(a,b);
 
-  const rawT=[preferred];
-  for(let t=.16;t<=.84+.001;t+=.04)rawT.push(+t.toFixed(2));
-  for(const d of [.06,.12,.18,.24])rawT.push(preferred-d,preferred+d);
-  const candidatesT=[...new Set(rawT
-    .map(v=>Math.max(.14,Math.min(.86,+v.toFixed(3))))
-    .filter(v=>Number.isFinite(v)))];
+  // Search almost the whole useful length of the diagonal.
+  const candidatesT=[];
+  for(let t=.14;t<=.86+.001;t+=.04)candidatesT.push(+t.toFixed(2));
+  candidatesT.push(preferred);
+  const uniqueT=[...new Set(candidatesT
+    .map(v=>Math.max(.12,Math.min(.88,+v.toFixed(3))))
+    .filter(Number.isFinite))];
 
-  const own=segments.find(seg=>seg.id===currentId)||{a,b};
-
-  function scoreCandidate(t,x,y,angle,kind,offsetAbs){
+  function score(t,x,y,angle,kind,offsetPx,anchorX,anchorY){
     const box=labelAabbAt(x,y,width,height,angle);
     let penalty=0;
     let valid=true;
 
-    if(canvasW>0&&canvasH>0){
-      const margin=10*inv;
-      if(box.x1<margin||box.y1<margin||box.x2>canvasW-margin||box.y2>canvasH-margin){
-        valid=false;
-        penalty+=2e8;
-        if(box.x1<margin)penalty+=(margin-box.x1)*20000;
-        if(box.y1<margin)penalty+=(margin-box.y1)*20000;
-        if(box.x2>canvasW-margin)penalty+=(box.x2-(canvasW-margin))*20000;
-        if(box.y2>canvasH-margin)penalty+=(box.y2-(canvasH-margin))*20000
-      }
-    }
-
-    let nearestLabel=Infinity;
+    // Hard collision with existing labels.
     for(const prev of boxes){
       if(rectsOverlap(box,prev,12*inv)){
         valid=false;
-        penalty+=3e8
+        penalty+=5e8
       }
-      nearestLabel=Math.min(nearestLabel,pointBoxDistance(x,y,prev))
     }
 
-    let vertexClear=Infinity;
-    for(const p of vertices)vertexClear=Math.min(vertexClear,Math.hypot(x-p.x,y-p.y));
-    const minVertex=(kind==="horizontal"?68:56)*inv;
-    if(vertexClear<minVertex){
+    // Stay inside the canvas.
+    if(canvasW>0&&canvasH>0){
+      const m=12*inv;
+      if(box.x1<m||box.y1<m||box.x2>canvasW-m||box.y2>canvasH-m){
+        valid=false;
+        penalty+=4e8
+      }
+    }
+
+    // Do not use narrowing corner zones.
+    let cornerClear=Infinity;
+    for(const p of vertices){
+      cornerClear=Math.min(cornerClear,Math.hypot(x-p.x,y-p.y))
+    }
+    const cornerMin=(kind==="free"?62:48)*inv;
+    if(cornerClear<cornerMin){
       valid=false;
-      penalty+=(minVertex-vertexClear)*35000+8e7
+      penalty+=(cornerMin-cornerClear)*45000+1e8
     }
 
+    // Keep enough air from walls.
     let wallClear=Infinity;
-    for(const wall of wallSegments)wallClear=Math.min(wallClear,pointSegmentDistance(x,y,wall.a,wall.b));
-    const minWall=(kind==="horizontal"?28:18)*inv;
-    if(wallClear<minWall){
+    for(const wall of wallSegments){
+      wallClear=Math.min(wallClear,pointSegmentDistance(x,y,wall.a,wall.b))
+    }
+    const wallMin=(kind==="free"?26:14)*inv;
+    if(wallClear<wallMin){
       valid=false;
-      penalty+=(minWall-wallClear)*30000+6e7
+      penalty+=(wallMin-wallClear)*42000+9e7
     }
 
-    const ownDist=pointSegmentDistance(x,y,own.a,own.b);
+    // Other diagonal strokes are obstacles for horizontal text.
     let otherClear=Infinity;
     for(const seg of segments){
       if(seg.id===currentId)continue;
       otherClear=Math.min(otherClear,pointSegmentDistance(x,y,seg.a,seg.b))
     }
-
-    if(kind==="horizontal"){
-      if(Number.isFinite(otherClear)&&otherClear+5*inv<ownDist){
-        valid=false;
-        penalty+=4e8
-      }
-      const minOther=30*inv;
-      if(otherClear<minOther){
-        valid=false;
-        penalty+=(minOther-otherClear)*36000+7e7
-      }
-      if(ownDist>44*inv){
-        valid=false;
-        penalty+=(ownDist-44*inv)*30000+7e7
-      }
-    }else{
-      const minOther=20*inv;
-      if(otherClear<minOther){
-        valid=false;
-        penalty+=(minOther-otherClear)*26000+4e7
-      }
-      penalty+=ownDist*50000
+    const otherMin=(kind==="free"?24:12)*inv;
+    if(otherClear<otherMin){
+      valid=false;
+      penalty+=(otherMin-otherClear)*32000+7e7
     }
 
-    let boundaryClear=Infinity;
-    if(canvasW>0&&canvasH>0)boundaryClear=Math.min(x,y,canvasW-x,canvasH-y);
+    // Reward genuinely open places. This now dominates the old "stay close
+    // to the diagonal" preference.
+    let labelClear=Infinity;
+    for(const prev of boxes){
+      labelClear=Math.min(labelClear,pointBoxDistance(x,y,prev))
+    }
+    let canvasClear=Infinity;
+    if(canvasW>0&&canvasH>0)canvasClear=Math.min(x,y,canvasW-x,canvasH-y);
+
     const openClear=Math.min(
-      vertexClear,wallClear,
+      cornerClear,
+      wallClear,
       Number.isFinite(otherClear)?otherClear:Infinity,
-      Number.isFinite(nearestLabel)?nearestLabel:Infinity,
-      boundaryClear
+      Number.isFinite(labelClear)?labelClear:Infinity,
+      canvasClear
     );
     const openPx=Number.isFinite(openClear)?openClear/Math.max(inv,.0001):180;
-    penalty-=Math.min(180,openPx)*1800;
-    penalty+=Math.abs(t-preferred)*1800;
-    penalty+=(offsetAbs/Math.max(inv,.0001))*24;
+    penalty-=Math.min(220,openPx)*4200;
 
-    return{x,y,box,angle,penalty,valid,kind,t,openPx}
+    // Weak costs only: free space should win.
+    penalty+=Math.abs(t-preferred)*700;
+    penalty+=Math.max(0,offsetPx-34)*45;
+
+    const leader=kind==="free"&&offsetPx>=54;
+    return{
+      x,y,box,angle,penalty,valid,kind,t,openPx,
+      anchorX,anchorY,leader
+    }
   }
 
-  const horizontal=[];
-  for(const t of candidatesT){
+  // Primary strategy: use the side of the diagonal that has the most room.
+  // Large offsets are allowed; a leader line will show which diagonal owns
+  // the value so it cannot be mistaken for a neighbouring line.
+  const free=[];
+  for(const t of uniqueT){
     const bx=a.x+dx*t,by=a.y+dy*t;
     for(const sign of [1,-1]){
-      for(const offsetPx of [28,38]){
+      for(const offsetPx of [26,38,54,72,96,124,152]){
         const off=offsetPx*inv;
-        horizontal.push(scoreCandidate(t,bx+nx*off*sign,by+ny*off*sign,0,"horizontal",off))
+        free.push(score(
+          t,
+          bx+nx*off*sign,
+          by+ny*off*sign,
+          0,
+          "free",
+          offsetPx,
+          bx,by
+        ))
       }
     }
   }
-  const goodHorizontal=horizontal.filter(x=>x.valid).sort((x,y)=>x.penalty-y.penalty);
-  if(goodHorizontal.length)return goodHorizontal[0];
+  const goodFree=free.filter(x=>x.valid).sort((x,y)=>x.penalty-y.penalty);
+  if(goodFree.length)return goodFree[0];
 
+  // Fallback: if no roomy horizontal position exists, place the number
+  // directly on its own diagonal and rotate it along the line.
   const rotated=[];
-  for(const t of candidatesT){
+  for(const t of uniqueT){
     const x=a.x+dx*t,y=a.y+dy*t;
-    rotated.push(scoreCandidate(t,x,y,diagAngle,"rotated",0))
+    rotated.push(score(t,x,y,diagAngle,"rotated",0,x,y))
   }
   const goodRotated=rotated.filter(x=>x.valid).sort((x,y)=>x.penalty-y.penalty);
   if(goodRotated.length)return goodRotated[0];
 
-  const all=[...rotated,...horizontal].sort((x,y)=>x.penalty-y.penalty);
-  return all[0]||{
+  // Extreme case: still choose the least-bad position rather than stacking.
+  return [...free,...rotated].sort((x,y)=>x.penalty-y.penalty)[0]||{
     x:(a.x+b.x)/2,y:(a.y+b.y)/2,
     box:labelAabbAt((a.x+b.x)/2,(a.y+b.y)/2,width,height,diagAngle),
-    angle:diagAngle,penalty:999999999,valid:false,kind:"rotated",t:.5
+    angle:diagAngle,penalty:999999999,valid:false,kind:"rotated",
+    t:.5,anchorX:(a.x+b.x)/2,anchorY:(a.y+b.y)/2,leader:false
   }
 }
 
@@ -12857,6 +12868,9 @@ function svgGeometry(r){
 
     const screenBw=rawW/inv,screenBh=rawH/inv;
     const hitW=screenBw+16,hitH=screenBh+12;
+    if(!pose.manual&&place.leader){
+      s+=`<line x1="${place.anchorX}" y1="${place.anchorY}" x2="${dlx}" y2="${dly}" stroke="#9aabb6" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" pointer-events="none"/>`
+    }
     const inner=`<rect data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="${-hitW/2}" y="${-hitH/2}" width="${hitW}" height="${hitH}" rx="8" fill="rgba(255,255,255,.001)" pointer-events="all"/>
       <text data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="0" y="0" dominant-baseline="middle" text-anchor="middle" fill="#4f687a" font-size="${20*size}" font-weight="850" pointer-events="all" style="paint-order:stroke;stroke:#fff;stroke-width:6;stroke-linejoin:round">${diagText}</text>
       ${labelSelectionSvg("diag",d.id,angle,screenBw,screenBh,size)}`;
