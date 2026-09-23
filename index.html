@@ -7533,7 +7533,18 @@ function bindPriceSummaryActions(){
 }
 
 function curOrder(){return db.orders.find(o=>o.id===orderId)}
-function curRoom(){const raw=curOrder()?.rooms?.find(r=>r.id===roomId);const r=raw?normRoom(raw):null;if(r){ensureRoomPricing(r);ensureRoomExtras(r)}return r}
+function curRoom(){
+  const o=curOrder();
+  if(!o)return null;
+  let raw=(o.rooms||[]).find(r=>r.id===roomId)||null;
+  if(!raw&&(o.rooms||[]).length){
+    raw=o.rooms[0];
+    roomId=raw.id
+  }
+  const r=raw?normRoom(raw):null;
+  if(r){ensureRoomPricing(r);ensureRoomExtras(r)}
+  return r
+}
 function newOrder(){
   const o={id:uid(),name:"",phone:"",address:"",status:"Замер",pricing:{canvas:0,baguette:0,insert:0},pricingMigratedV59:true,rooms:[makeRoom("Комната 1")]};
   db.orders.unshift(o);orderId=o.id;roomId=o.rooms[0].id;activeVertexId=null;undo=[];redo=[];save();render()
@@ -8305,6 +8316,31 @@ function clientMainEstimateHtml(){
 }
 
 function renderRoom(){
+  const area=$("#roomArea");
+  const previous=area?.innerHTML||"";
+  try{
+    return renderRoomUnsafe()
+  }catch(err){
+    console.error("renderRoom failed",err);
+    // Never leave the workspace blank because a secondary renderer failed.
+    // If a previous drawing is already visible, keep it. After a full-page
+    // rebuild show a compact recovery card instead of an empty white area.
+    if(area){
+      if(previous.trim()){
+        area.innerHTML=previous
+      }else{
+        area.innerHTML=`<section class="app-card drawing-card">
+          <div class="drawing-head"><div><span class="eyebrow">Чертёж</span><b>Не удалось обновить отображение</b></div></div>
+          <div class="help">Данные комнаты сохранены. Нажми другую комнату и вернись обратно. Ошибка отображения не удаляет чертёж.</div>
+        </section>`
+      }
+    }
+    try{showToast("Ошибка отображения. Чертёж сохранён.")}catch{}
+    return null
+  }
+}
+
+function renderRoomUnsafe(){
   const r=curRoom();if(!r)return;
 
   // Old/nearby endpoints can look closed on screen while still being
