@@ -10067,10 +10067,9 @@ function renderDrawToolsMenu(){
       }
       if(action==="layoutLabels"){
         push();
-        // The layout button must actually override previous manual positions.
-        // Reset BOTH wall and diagonal poses, then the renderer recalculates
-        // them against the current geometry and available free space.
-        webTestResetLabelLayout(room,{includeWalls:true,includeDiags:true});
+        // Never move wall dimensions with this tool. Only diagonal captions
+        // are reflowed; all wall/diagonal measurement values stay unchanged.
+        webTestResetLabelLayout(room,{includeWalls:false,includeDiags:true});
         save();
         renderRoom();
         if($("#drawToolsMenu")?.classList.contains("open"))renderDrawToolsMenu();
@@ -10558,11 +10557,20 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
     }
 
     // Other diagonal strokes are obstacles for horizontal text.
+    const ownDist=pointSegmentDistance(x,y,a,b);
     let otherClear=Infinity;
     for(const seg of segments){
       if(seg.id===currentId)continue;
       otherClear=Math.min(otherClear,pointSegmentDistance(x,y,seg.a,seg.b))
     }
+
+    // Ownership invariant: a displaced value may never be visually closer
+    // to another diagonal than to the diagonal it belongs to.
+    if(kind==="free"&&Number.isFinite(otherClear)&&otherClear<=ownDist+8*inv){
+      valid=false;
+      penalty+=7e8
+    }
+
     const otherMin=(kind==="free"?24:12)*inv;
     if(otherClear<otherMin){
       valid=false;
@@ -12868,7 +12876,9 @@ function svgGeometry(r){
 
     const screenBw=rawW/inv,screenBh=rawH/inv;
     const hitW=screenBw+16,hitH=screenBh+12;
-    if(!pose.manual&&place.leader){
+    if(!pose.manual&&place.kind==="free"){
+      // Always draw an ownership leader for an off-line value, even for a
+      // small offset. The number can never look attached to another diagonal.
       s+=`<line x1="${place.anchorX}" y1="${place.anchorY}" x2="${dlx}" y2="${dly}" stroke="#9aabb6" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" pointer-events="none"/>`
     }
     const inner=`<rect data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="${-hitW/2}" y="${-hitH/2}" width="${hitW}" height="${hitH}" rx="8" fill="rgba(255,255,255,.001)" pointer-events="all"/>
