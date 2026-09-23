@@ -10403,9 +10403,17 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
 
   // Fan-shaped diagonals get different preferred positions along their lines.
   const preferred=Number.isFinite(preferredOverride)?preferredOverride:(count<=1?.5:(.28+.46*(di/Math.max(1,count-1))));
-  const rawT=[preferred,preferred-.12,preferred+.12,.22,.36,.5,.64,.78,.86];
-  const candidatesT=[...new Set(rawT.map(v=>Math.max(.16,Math.min(.86,+v.toFixed(3)))))];
-  const candidatesSide=[1,-1,1.6,-1.6,2.25,-2.25,3,-3];
+  // TEST v185: when factual/approximate geometry compresses several diagonals
+  // into a narrow fan, the old candidate set was too small and numbers could
+  // pile up around the notch. Search much farther along and across the line.
+  const rawT=[
+    preferred,
+    preferred-.10,preferred+.10,
+    preferred-.20,preferred+.20,
+    .14,.22,.30,.38,.46,.54,.62,.70,.78,.86,.92
+  ];
+  const candidatesT=[...new Set(rawT.map(v=>Math.max(.10,Math.min(.92,+v.toFixed(3)))))];
+  const candidatesSide=[1,-1,1.6,-1.6,2.25,-2.25,3,-3,4,-4,5,-5,6,-6];
   let best=null;
 
   for(const t of candidatesT){
@@ -10419,22 +10427,32 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
       let penalty=0;
 
       // Never allow two number labels to occupy the same visual area.
+      // 'boxes' now also includes wall-number boxes, so diagonal values cannot
+      // sit on top of short-wall values such as 53 / 60 / 23.
       for(const prev of boxes){
-        if(rectsOverlap(box,prev,14*inv))penalty+=1000000;
+        if(rectsOverlap(box,prev,18*inv))penalty+=5000000;
         const pcx=(prev.x1+prev.x2)/2,pcy=(prev.y1+prev.y2)/2;
         const dist=Math.hypot(x-pcx,y-pcy);
-        if(dist<72*inv)penalty+=(72*inv-dist)*220
+        if(dist<86*inv)penalty+=(86*inv-dist)*1200
       }
 
       // Also keep a label away from OTHER diagonal strokes.
       for(const seg of segments){
         if(seg.id===currentId)continue;
         const dist=pointSegmentDistance(x,y,seg.a,seg.b);
-        const safe=42*inv;
-        if(dist<safe)penalty+=(safe-dist)*480
+        const safe=48*inv;
+        if(dist<safe)penalty+=(safe-dist)*900
       }
 
-      penalty+=Math.abs(t-preferred)*30;
+      // Keep the value away from both endpoints. This matters when several
+      // diagonals converge at one hub after factual reconstruction.
+      for(const p of [a,b]){
+        const dist=Math.hypot(x-p.x,y-p.y);
+        const safe=56*inv;
+        if(dist<safe)penalty+=(safe-dist)*1000
+      }
+
+      penalty+=Math.abs(t-preferred)*22;
       penalty+=(Math.abs(side)-1)*4;
 
       if(!best||penalty<best.penalty)best={x,y,box,penalty}
@@ -10475,7 +10493,9 @@ function diagFanPreferredT(r,d){
   // Distance from the shared hub is deliberately different for every diagonal.
   // This prevents 2–4 values from gathering in the same narrow zone.
   const n=group.length;
-  const fromHub=n<=1?.5:(.24+.50*(rank/Math.max(1,n-1)));
+  // Spread a fan over a larger fraction of every diagonal. With five or more
+  // diagonals this prevents three values from collecting near the same notch.
+  const fromHub=n<=1?.5:(.18+.64*(rank/Math.max(1,n-1)));
   return d.a===hub?fromHub:1-fromHub
 }
 
@@ -12597,7 +12617,8 @@ function svgGeometry(r){
     s+=labelGroupSvg("edge",item.e.id,x,y,angle,inv,inner)
   }
 
-  const diagLabelBoxes=[];
+  // Diagonal labels must avoid wall dimensions too, not only each other.
+  const diagLabelBoxes=[...wallLabelBoxes];
   const diagSegments=(r.diagList||[]).map(d=>({
     id:d.id,
     a:pointById(r,d.a),
