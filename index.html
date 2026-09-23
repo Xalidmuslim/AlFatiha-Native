@@ -7920,74 +7920,15 @@ function renderRooms(){
     const id=b.dataset.r;
     let timer=null;
     let longDone=false;
+    let suppressClick=false;
     let sx=0,sy=0;
 
     const clearRoomTimer=()=>{
       if(timer){clearTimeout(timer);timer=null}
     };
 
-    b.onpointerdown=e=>{
-      if(e.pointerType==="mouse"&&e.button!==0)return;
-
-      // Do not prevent the browser's native vertical pan here.
-      // touch-action: pan-y lets a swipe that starts on a room button scroll the page.
-      e.stopPropagation();
-
-      longDone=false;
-      sx=e.clientX;
-      sy=e.clientY;
-
-      try{b.setPointerCapture(e.pointerId)}catch{}
-
-      clearRoomTimer();
-      timer=setTimeout(()=>{
-        timer=null;
-        longDone=true;
-
-        // Select without rebuilding the room-button row.
-        roomId=id;
-        mode="draw";
-        activeVertexId=null;
-        startPlacementMode=false;
-        drawState=null;
-        diagDraw=null;
-        dragVertexId=null;
-        undo=[];redo=[];
-
-        $$("[data-r]",box).forEach(x=>{
-          x.classList.toggle("active",x.dataset.r===id)
-        });
-
-        renderRoom();
-
-        // Open only after renderRoom completed; the modal itself is outside roomArea.
-        requestAnimationFrame(()=>openRoomActions(id))
-      },LONG_PRESS_MS)
-    };
-
-    b.onpointermove=e=>{
-      if(longDone)return;
-      const dist=Math.hypot(e.clientX-sx,e.clientY-sy);
-      if(dist>22)clearRoomTimer()
-    };
-
-    b.onpointerup=e=>{
-      // A real vertical swipe is handled by the browser and normally arrives as
-      // pointercancel; a short tap still reaches this handler and switches room.
-      e.stopPropagation();
-
-      clearRoomTimer();
-
-      try{
-        if(b.hasPointerCapture?.(e.pointerId))b.releasePointerCapture(e.pointerId)
-      }catch{}
-
-      if(longDone){
-        longDone=false;
-        return
-      }
-
-      // One tap = switch only.
+    const selectRoom=()=>{
+      if(roomId===id)return;
       roomId=id;
       mode="draw";
       activeVertexId=null;
@@ -7995,16 +7936,74 @@ function renderRooms(){
       drawState=null;
       diagDraw=null;
       dragVertexId=null;
+      selectedLabel=null;
+      labelDrag=null;
+      labelRotate=null;
       undo=[];redo=[];
       renderRooms();
       renderRoom()
     };
 
-    b.onpointercancel=e=>{
+    b.onpointerdown=e=>{
+      if(e.pointerType==="mouse"&&e.button!==0)return;
+      longDone=false;
+      suppressClick=false;
+      sx=e.clientX;
+      sy=e.clientY;
       clearRoomTimer();
-      if(!longDone){
-        longDone=false
+
+      timer=setTimeout(()=>{
+        timer=null;
+        longDone=true;
+        suppressClick=true;
+
+        // Long press selects the room first, then opens its room menu.
+        roomId=id;
+        mode="draw";
+        activeVertexId=null;
+        startPlacementMode=false;
+        drawState=null;
+        diagDraw=null;
+        dragVertexId=null;
+        selectedLabel=null;
+        labelDrag=null;
+        labelRotate=null;
+        undo=[];redo=[];
+
+        $$("[data-r]",box).forEach(x=>{
+          x.classList.toggle("active",x.dataset.r===id)
+        });
+        renderRoom();
+        requestAnimationFrame(()=>openRoomActions(id))
+      },LONG_PRESS_MS)
+    };
+
+    b.onpointermove=e=>{
+      if(longDone)return;
+      if(Math.hypot(e.clientX-sx,e.clientY-sy)>14)clearRoomTimer()
+    };
+
+    b.onpointerup=()=>{
+      clearRoomTimer()
+    };
+
+    b.onpointercancel=()=>{
+      clearRoomTimer();
+      longDone=false
+    };
+
+    // Use the browser's normal click event for room switching.
+    // This is more reliable on Android Chrome than switching in pointerup,
+    // especially inside the vertically scrollable rooms grid.
+    b.onclick=e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      if(suppressClick||longDone){
+        suppressClick=false;
+        longDone=false;
+        return
       }
+      selectRoom()
     };
 
     b.oncontextmenu=e=>{
