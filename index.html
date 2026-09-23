@@ -10067,11 +10067,14 @@ function renderDrawToolsMenu(){
       }
       if(action==="layoutLabels"){
         push();
-        webTestResetLabelLayout(room,{includeWalls:false,includeDiags:true});
+        // The layout button must actually override previous manual positions.
+        // Reset BOTH wall and diagonal poses, then the renderer recalculates
+        // them against the current geometry and available free space.
+        webTestResetLabelLayout(room,{includeWalls:true,includeDiags:true});
         save();
         renderRoom();
         if($("#drawToolsMenu")?.classList.contains("open"))renderDrawToolsMenu();
-        showToast("Диагональные цифры разложены по своим линиям. Стены не переставлены.");
+        showToast("Цифры заново разложены по свободным местам.");
         return
       }
       if(action==="clear"){
