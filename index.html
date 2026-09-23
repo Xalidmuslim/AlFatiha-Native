@@ -13154,6 +13154,7 @@ function startDiagLongPress(id){
     const r=curRoom(),d=r?.diagList?.find(x=>x.id===id);if(!d)return;
     longPressFired=true;
     drawState=null;diagDraw=null;dragVertexId=null;
+    labelDrag=null;labelRotate=null;pending=null;
     openDiag(id)
   },LONG_PRESS_MS)
 }
@@ -13170,6 +13171,7 @@ function startEdgeLongPress(id){
     if(!e)return;
     longPressFired=true;
     drawState=null;diagDraw=null;dragVertexId=null;
+    labelDrag=null;labelRotate=null;pending=null;
     openWall(id)
   },LONG_PRESS_MS)
 }
@@ -13326,6 +13328,11 @@ function bindSvg(){
         labelDrag={kind:labelKind,id:labelId,start:w,baseX:labelX,baseY:labelY,angle:pose.angle,size:pose.size,changed:false};
         down.labelInteraction=true;
         down.blankScroll=false;
+
+        // Short drag = move the number. Hold = edit its measurement.
+        if(labelKind==="edge")startEdgeLongPress(labelId);
+        if(labelKind==="diag")startDiagLongPress(labelId);
+
         redrawOnly();
         return
       }
@@ -13374,11 +13381,6 @@ function bindSvg(){
       return
     }
 
-    if(r.geometryLocked&&!wallSequenceMode&&mode!=="labels")return;
-
-    // In label mode wall/diagonal lines themselves stay inert; only the number is draggable.
-    if(mode==="labels")return;
-
     // During sequential entry a normal tap on any wall selects that wall immediately.
     if(wallSequenceMode&&eid&&pointers.size===1){
       cancelVertexLongPress();
@@ -13389,11 +13391,19 @@ function bindSvg(){
       return
     }
 
-    if(vid&&pointers.size===1)startVertexLongPress(vid);
-
+    // Measurement editing is universal: hold a wall in any of the four modes
+    // (Wall / Points / Diagonal / Numbers) to enter its value. Diagonals work
+    // the same way with their own editor.
     const protectedCorner=!!vid&&(mode==="diag"||mode==="move");
     if(eid&&pointers.size===1&&!protectedCorner){startEdgeLongPress(eid);return}
     if(did&&pointers.size===1&&!protectedCorner){startDiagLongPress(did);return}
+
+    if(r.geometryLocked&&!wallSequenceMode&&mode!=="labels")return;
+
+    // Numbers mode has no geometry gesture after the universal long-press path.
+    if(mode==="labels")return;
+
+    if(vid&&pointers.size===1)startVertexLongPress(vid);
 
     if(mode==="move"&&vid){
       pending=clone(r);
@@ -13454,6 +13464,8 @@ function bindSvg(){
       if(item){
         const w=world(bp);
         const dx=w.x-labelDrag.start.x,dy=w.y-labelDrag.start.y;
+        const screenDist=Math.hypot(dx,dy)*Math.max(.45,r.view?.scale||1);
+        if(screenDist>8)cancelVertexLongPress();
         if(Math.hypot(dx,dy)>.5){
           const nx=labelDrag.baseX+dx,ny=labelDrag.baseY+dy;
           item.labelPose={manual:true,x:nx,y:ny,angle:labelDrag.angle,size:labelDrag.size};
