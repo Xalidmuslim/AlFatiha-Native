@@ -1346,6 +1346,29 @@ html,body{
   text-align:center!important;
 }
 
+/* TEST v185 — keep two-line tool captions fully visible. */
+.draw-tool{
+  height:60px!important;
+  min-height:60px!important;
+  padding:4px 3px 5px!important;
+}
+.draw-tool b{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-height:2.32em!important;
+  max-height:none!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:normal!important;
+  line-height:1.16!important;
+  text-align:center!important;
+}
+.draw-tool[data-draw-action="actualGeometry"] b{
+  font-size:10px!important;
+  line-height:1.14!important;
+}
+
 /* Zoom controls */
 .zoom-float .btn{
   width:50px!important;
