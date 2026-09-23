@@ -11052,6 +11052,39 @@ function webTestTryFactualBase(r,order,constraints,base){
     score:crossings*1e12+maxErr*1e8+(count?sumSq/count:0)
   }
 }
+
+function webTestCornerAngle(a,b,c){
+  if(!a||!b||!c)return null;
+  const ax=a.x-b.x,ay=a.y-b.y,bx=c.x-b.x,by=c.y-b.y;
+  const la=Math.hypot(ax,ay),lb=Math.hypot(bx,by);
+  if(la<1e-9||lb<1e-9)return null;
+  const cos=Math.max(-1,Math.min(1,(ax*bx+ay*by)/(la*lb)));
+  return Math.acos(cos)*180/Math.PI
+}
+function webTestSketchCompatibility(r,order,pos){
+  const bad=[];
+  for(let i=0;i<order.length;i++){
+    const prevId=order[(i-1+order.length)%order.length];
+    const id=order[i];
+    const nextId=order[(i+1)%order.length];
+
+    const sPrev=pointById(r,prevId),sCur=pointById(r,id),sNext=pointById(r,nextId);
+    const fPrev=pos.get(prevId),fCur=pos.get(id),fNext=pos.get(nextId);
+    const sketchAngle=webTestCornerAngle(sPrev,sCur,sNext);
+    const factualAngle=webTestCornerAngle(fPrev,fCur,fNext);
+    if(sketchAngle==null||factualAngle==null)continue;
+
+    // The sketch is not used as a metric constraint. It is only a qualitative
+    // guard: a clearly drawn corner must not silently collapse into an almost
+    // straight line or a needle-like fold.
+    const sketchHasClearCorner=sketchAngle>=55&&sketchAngle<=125;
+    const factualCollapsed=factualAngle>=145||factualAngle<=35;
+    if(sketchHasClearCorner&&factualCollapsed){
+      bad.push({id,sketchAngle,factualAngle})
+    }
+  }
+  return bad
+}
 function solveFactualGeometry(r){
   const order=cycleOrder(r);
   if(!order)return{ok:false,message:"Сначала стены должны образовать один замкнутый контур."};
@@ -11094,6 +11127,18 @@ function solveFactualGeometry(r){
   candidates.sort((a,b)=>a.score-b.score);
   const best=candidates[0];
   if(best.crossings)return{ok:false,message:"Измерения дают самопересекающийся контур. Эскиз не изменён."};
+
+  const shapeConflicts=webTestSketchCompatibility(r,order,best.pos);
+  if(shapeConflicts.length){
+    const details=shapeConflicts.slice(0,2).map(x=>{
+      const label=pointLabel(r,x.id);
+      return `угол ${label}: ≈${Math.round(x.sketchAngle)}° → ≈${Math.round(x.factualAngle)}°`
+    }).join("; ");
+    return{
+      ok:false,shapeConflict:true,
+      message:`Замеры дают форму, которая разрушает нарисованные углы (${details}). Фактическая геометрия не применена. Проверь измеренные диагонали и размеры стен.`
+    }
+  }
 
   if(best.maxErr>WEBTEST_FACTUAL_TOL){
     return{
