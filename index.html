@@ -10474,117 +10474,159 @@ function pointSegmentDistance(px,py,a,b){
   const t=Math.max(0,Math.min(1,((px-a.x)*dx+(py-a.y)*dy)/d2));
   return Math.hypot(px-(a.x+dx*t),py-(a.y+dy*t))
 }
+function labelAabbAt(cx,cy,w,h,angleDeg=0){
+  const rad=(Number(angleDeg)||0)*Math.PI/180;
+  const c=Math.abs(Math.cos(rad)),s=Math.abs(Math.sin(rad));
+  const aw=w*c+h*s,ah=w*s+h*c;
+  return{x1:cx-aw/2,y1:cy-ah/2,x2:cx+aw/2,y2:cy+ah/2}
+}
+function pointBoxDistance(x,y,box){
+  const dx=Math.max(box.x1-x,0,x-box.x2);
+  const dy=Math.max(box.y1-y,0,y-box.y2);
+  return Math.hypot(dx,dy)
+}
+function readableDiagonalAngle(a,b){
+  let deg=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+  while(deg>90)deg-=180;
+  while(deg<=-90)deg+=180;
+  return Math.round(deg*10)/10
+}
 function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0,wallSegments=[],vertices=[]){
   const dx=b.x-a.x,dy=b.y-a.y;
   const L=Math.hypot(dx,dy)||1;
   const nx=-dy/L,ny=dx/L;
-
-  // Real text is a little wider than the old estimate on Android.
   const width=Math.max(88*inv,textLen*(14.5*inv));
   const height=38*inv;
+  const preferred=Number.isFinite(preferredOverride)
+    ?preferredOverride
+    :(count<=1?.5:(.28+.46*(di/Math.max(1,count-1))));
+  const diagAngle=readableDiagonalAngle(a,b);
 
-  // Fan-shaped diagonals get different preferred positions along their lines.
-  const preferred=Number.isFinite(preferredOverride)?preferredOverride:(count<=1?.5:(.28+.46*(di/Math.max(1,count-1))));
-  // TEST v185: when factual/approximate geometry compresses several diagonals
-  // into a narrow fan, the old candidate set was too small and numbers could
-  // pile up around the notch. Search much farther along and across the line.
-  const rawT=[
-    preferred,
-    preferred-.06,preferred+.06,
-    preferred-.12,preferred+.12,
-    preferred-.18,preferred+.18,
-    .20,.24,.28,.32,.36,.40,.44,.48,.52,.56,.60,.64,.68,.72,.76,.80
-  ];
-  // Never place a diagonal value close to either end of the diagonal.
-  // This specifically prevents values such as 464 / 502 from sticking to corners.
-  const candidatesT=[...new Set(rawT.map(v=>Math.max(.20,Math.min(.80,+v.toFixed(3)))))];
-  // Keep every value visually attached to ITS OWN diagonal. Resolve collisions
-  // primarily by moving along that diagonal, never by jumping across the fan.
-  const candidatesSide=[1,-1,1.35,-1.35];
-  let best=null;
+  const rawT=[preferred];
+  for(let t=.16;t<=.84+.001;t+=.04)rawT.push(+t.toFixed(2));
+  for(const d of [.06,.12,.18,.24])rawT.push(preferred-d,preferred+d);
+  const candidatesT=[...new Set(rawT
+    .map(v=>Math.max(.14,Math.min(.86,+v.toFixed(3))))
+    .filter(v=>Number.isFinite(v)))];
 
+  const own=segments.find(seg=>seg.id===currentId)||{a,b};
+
+  function scoreCandidate(t,x,y,angle,kind,offsetAbs){
+    const box=labelAabbAt(x,y,width,height,angle);
+    let penalty=0;
+    let valid=true;
+
+    if(canvasW>0&&canvasH>0){
+      const margin=10*inv;
+      if(box.x1<margin||box.y1<margin||box.x2>canvasW-margin||box.y2>canvasH-margin){
+        valid=false;
+        penalty+=2e8;
+        if(box.x1<margin)penalty+=(margin-box.x1)*20000;
+        if(box.y1<margin)penalty+=(margin-box.y1)*20000;
+        if(box.x2>canvasW-margin)penalty+=(box.x2-(canvasW-margin))*20000;
+        if(box.y2>canvasH-margin)penalty+=(box.y2-(canvasH-margin))*20000
+      }
+    }
+
+    let nearestLabel=Infinity;
+    for(const prev of boxes){
+      if(rectsOverlap(box,prev,12*inv)){
+        valid=false;
+        penalty+=3e8
+      }
+      nearestLabel=Math.min(nearestLabel,pointBoxDistance(x,y,prev))
+    }
+
+    let vertexClear=Infinity;
+    for(const p of vertices)vertexClear=Math.min(vertexClear,Math.hypot(x-p.x,y-p.y));
+    const minVertex=(kind==="horizontal"?68:56)*inv;
+    if(vertexClear<minVertex){
+      valid=false;
+      penalty+=(minVertex-vertexClear)*35000+8e7
+    }
+
+    let wallClear=Infinity;
+    for(const wall of wallSegments)wallClear=Math.min(wallClear,pointSegmentDistance(x,y,wall.a,wall.b));
+    const minWall=(kind==="horizontal"?28:18)*inv;
+    if(wallClear<minWall){
+      valid=false;
+      penalty+=(minWall-wallClear)*30000+6e7
+    }
+
+    const ownDist=pointSegmentDistance(x,y,own.a,own.b);
+    let otherClear=Infinity;
+    for(const seg of segments){
+      if(seg.id===currentId)continue;
+      otherClear=Math.min(otherClear,pointSegmentDistance(x,y,seg.a,seg.b))
+    }
+
+    if(kind==="horizontal"){
+      if(Number.isFinite(otherClear)&&otherClear+5*inv<ownDist){
+        valid=false;
+        penalty+=4e8
+      }
+      const minOther=30*inv;
+      if(otherClear<minOther){
+        valid=false;
+        penalty+=(minOther-otherClear)*36000+7e7
+      }
+      if(ownDist>44*inv){
+        valid=false;
+        penalty+=(ownDist-44*inv)*30000+7e7
+      }
+    }else{
+      const minOther=20*inv;
+      if(otherClear<minOther){
+        valid=false;
+        penalty+=(minOther-otherClear)*26000+4e7
+      }
+      penalty+=ownDist*50000
+    }
+
+    let boundaryClear=Infinity;
+    if(canvasW>0&&canvasH>0)boundaryClear=Math.min(x,y,canvasW-x,canvasH-y);
+    const openClear=Math.min(
+      vertexClear,wallClear,
+      Number.isFinite(otherClear)?otherClear:Infinity,
+      Number.isFinite(nearestLabel)?nearestLabel:Infinity,
+      boundaryClear
+    );
+    const openPx=Number.isFinite(openClear)?openClear/Math.max(inv,.0001):180;
+    penalty-=Math.min(180,openPx)*1800;
+    penalty+=Math.abs(t-preferred)*1800;
+    penalty+=(offsetAbs/Math.max(inv,.0001))*24;
+
+    return{x,y,box,angle,penalty,valid,kind,t,openPx}
+  }
+
+  const horizontal=[];
   for(const t of candidatesT){
     const bx=a.x+dx*t,by=a.y+dy*t;
-    for(const side of candidatesSide){
-      const offset=(29*inv)+(Math.abs(side)-1)*(18*inv);
-      const x=bx+nx*offset*Math.sign(side);
-      const y=by+ny*offset*Math.sign(side);
-      const box={x1:x-width/2,y1:y-height/2,x2:x+width/2,y2:y+height/2};
-
-      let penalty=0;
-
-      // Keep every label fully inside the drawing canvas.
-      if(canvasW>0&&canvasH>0){
-        const margin=10*inv;
-        if(box.x1<margin)penalty+=(margin-box.x1)*8000;
-        if(box.y1<margin)penalty+=(margin-box.y1)*8000;
-        if(box.x2>canvasW-margin)penalty+=(box.x2-(canvasW-margin))*8000;
-        if(box.y2>canvasH-margin)penalty+=(box.y2-(canvasH-margin))*8000;
+    for(const sign of [1,-1]){
+      for(const offsetPx of [28,38]){
+        const off=offsetPx*inv;
+        horizontal.push(scoreCandidate(t,bx+nx*off*sign,by+ny*off*sign,0,"horizontal",off))
       }
-
-      // Never allow two number labels to occupy the same visual area.
-      // 'boxes' now also includes wall-number boxes, so diagonal values cannot
-      // sit on top of short-wall values such as 53 / 60 / 23.
-      for(const prev of boxes){
-        if(rectsOverlap(box,prev,18*inv))penalty+=5000000;
-        const pcx=(prev.x1+prev.x2)/2,pcy=(prev.y1+prev.y2)/2;
-        const dist=Math.hypot(x-pcx,y-pcy);
-        if(dist<86*inv)penalty+=(86*inv-dist)*1200
-      }
-
-      // A label belongs to exactly one diagonal. Keep it close to its own
-      // stroke and strongly reject positions that visually read as belonging
-      // to another diagonal.
-      const own=segments.find(seg=>seg.id===currentId);
-      if(own){
-        const ownDist=pointSegmentDistance(x,y,own.a,own.b);
-        const maxOwn=38*inv;
-        if(ownDist>maxOwn)penalty+=(ownDist-maxOwn)*20000
-      }
-      for(const seg of segments){
-        if(seg.id===currentId)continue;
-        const dist=pointSegmentDistance(x,y,seg.a,seg.b);
-        const safe=34*inv;
-        if(dist<safe)penalty+=(safe-dist)*4500
-      }
-
-      // Keep the value well away from ALL corners, not only its own endpoints.
-      // Use a screen-space safe zone so zoom does not change readability.
-      for(const p of vertices){
-        const dist=Math.hypot(x-p.x,y-p.y);
-        const safe=88*inv;
-        if(dist<safe)penalty+=(safe-dist)*3600
-      }
-      for(const p of [a,b]){
-        const dist=Math.hypot(x-p.x,y-p.y);
-        const safe=96*inv;
-        if(dist<safe)penalty+=(safe-dist)*5200
-      }
-
-      // Diagonal numbers should not sit against a wall stroke. Penalize all
-      // room walls independently from the wall-number boxes.
-      for(const wall of wallSegments){
-        const dist=pointSegmentDistance(x,y,wall.a,wall.b);
-        const safe=42*inv;
-        if(dist<safe)penalty+=(safe-dist)*2600
-      }
-
-      penalty+=Math.abs(t-preferred)*18;
-      penalty+=(Math.abs(side)-1)*4;
-
-      if(!best||penalty<best.penalty)best={x,y,box,penalty}
-      if(penalty<.01)return best
     }
   }
+  const goodHorizontal=horizontal.filter(x=>x.valid).sort((x,y)=>x.penalty-y.penalty);
+  if(goodHorizontal.length)return goodHorizontal[0];
 
-  return best||{
-    x:(a.x+b.x)/2,
-    y:(a.y+b.y)/2,
-    box:{x1:(a.x+b.x)/2-width/2,y1:(a.y+b.y)/2-height/2,x2:(a.x+b.x)/2+width/2,y2:(a.y+b.y)/2+height/2},
-    penalty:999999
+  const rotated=[];
+  for(const t of candidatesT){
+    const x=a.x+dx*t,y=a.y+dy*t;
+    rotated.push(scoreCandidate(t,x,y,diagAngle,"rotated",0))
+  }
+  const goodRotated=rotated.filter(x=>x.valid).sort((x,y)=>x.penalty-y.penalty);
+  if(goodRotated.length)return goodRotated[0];
+
+  const all=[...rotated,...horizontal].sort((x,y)=>x.penalty-y.penalty);
+  return all[0]||{
+    x:(a.x+b.x)/2,y:(a.y+b.y)/2,
+    box:labelAabbAt((a.x+b.x)/2,(a.y+b.y)/2,width,height,diagAngle),
+    angle:diagAngle,penalty:999999999,valid:false,kind:"rotated",t:.5
   }
 }
-
 
 function diagFanPreferredT(r,d){
   const list=r.diagList||[];
@@ -12773,33 +12815,51 @@ function svgGeometry(r){
   })).filter(x=>x.a&&x.b);
   const labelVertices=(r.points||[]).filter(p=>Number.isFinite(+p.x)&&Number.isFinite(+p.y));
 
-  for(let di=0;di<r.diagList.length;di++){
-    const d=r.diagList[di];
+
+  for(const d of r.diagList||[]){
     const a=pointById(r,d.a),b=pointById(r,d.b);if(!a||!b)continue;
-    const auto=autoDiagonal(r,d),txt=d.mm?`${fmtMm(+d.mm)}`:auto?`≈${fmtMm(auto)}`:"";
-
     s+=`<line data-diag-id="${d.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#6b879a" stroke-width="2" stroke-dasharray="8 6" vector-effect="non-scaling-stroke"/>`;
-    s+=`<line data-diag-id="${d.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#000" stroke-opacity=".001" stroke-width="54" vector-effect="non-scaling-stroke" pointer-events="stroke"/>`;
-
-    if(txt){
-      const diagText=r.showAutoLetters===false?txt:`${diagLabel(r,d)} ${txt}`;
-      const place=pickDiagLabelPlacement(a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,r.diagList.length,diagFanPreferredT(r,d),760,560,wallSegments,labelVertices);
-      const pose=labelPose(d);
-      const dlx=pose.manual?pose.x:place.x,dly=pose.manual?pose.y:place.y;
-      const angle=pose.angle;
-      const size=pose.size;
-      const baseW=place.box.x2-place.box.x1,baseH=place.box.y2-place.box.y1;
-      const bw=baseW*size,bh=baseH*size;
-      const box={x1:dlx-bw/2,y1:dly-bh/2,x2:dlx+bw/2,y2:dly+bh/2};
-      diagLabelBoxes.push(box);
-      const screenBw=bw/inv,screenBh=bh/inv;
-      const hitW=screenBw+16,hitH=screenBh+12;
-      const inner=`<rect data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="${-hitW/2}" y="${-hitH/2}" width="${hitW}" height="${hitH}" rx="8" fill="rgba(0,0,0,.001)" pointer-events="all"/>
-        <text data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="0" y="0" dominant-baseline="middle" text-anchor="middle" fill="#4f687a" font-size="${20*size}" font-weight="850" pointer-events="all" style="paint-order:stroke;stroke:#fff;stroke-width:6;stroke-linejoin:round">${diagText}</text>
-        ${labelSelectionSvg("diag",d.id,angle,screenBw,screenBh,size)}`;
-      s+=labelGroupSvg("diag",d.id,dlx,dly,angle,inv,inner)
-    }
+    s+=`<line data-diag-id="${d.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#000" stroke-opacity=".001" stroke-width="54" vector-effect="non-scaling-stroke" pointer-events="stroke"/>`
   }
+
+  const diagLabelItems=(r.diagList||[]).map(d=>{
+    const a=pointById(r,d.a),b=pointById(r,d.b);
+    if(!a||!b)return null;
+    const auto=autoDiagonal(r,d);
+    const txt=d.mm?`${fmtMm(+d.mm)}`:auto?`≈${fmtMm(auto)}`:"";
+    return txt?{d,a,b,txt,len:Math.hypot(b.x-a.x,b.y-a.y)}:null
+  }).filter(Boolean).sort((A,B)=>{
+    const dl=A.len-B.len;
+    if(Math.abs(dl)>.001)return dl;
+    return String(A.d.id).localeCompare(String(B.d.id))
+  });
+
+  for(let di=0;di<diagLabelItems.length;di++){
+    const {d,a,b,txt}=diagLabelItems[di];
+    const diagText=r.showAutoLetters===false?txt:`${diagLabel(r,d)} ${txt}`;
+    const place=pickDiagLabelPlacement(
+      a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,
+      diagLabelItems.length,diagFanPreferredT(r,d),760,560,wallSegments,labelVertices
+    );
+    const pose=labelPose(d);
+    const dlx=pose.manual?pose.x:place.x;
+    const dly=pose.manual?pose.y:place.y;
+    const angle=pose.manual?pose.angle:(place.angle||0);
+    const size=pose.size;
+
+    const rawW=Math.max(88*inv,diagText.length*(14.5*inv))*size;
+    const rawH=38*inv*size;
+    const box=labelAabbAt(dlx,dly,rawW,rawH,angle);
+    diagLabelBoxes.push(box);
+
+    const screenBw=rawW/inv,screenBh=rawH/inv;
+    const hitW=screenBw+16,hitH=screenBh+12;
+    const inner=`<rect data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="${-hitW/2}" y="${-hitH/2}" width="${hitW}" height="${hitH}" rx="8" fill="rgba(255,255,255,.001)" pointer-events="all"/>
+      <text data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="0" y="0" dominant-baseline="middle" text-anchor="middle" fill="#4f687a" font-size="${20*size}" font-weight="850" pointer-events="all" style="paint-order:stroke;stroke:#fff;stroke-width:6;stroke-linejoin:round">${diagText}</text>
+      ${labelSelectionSvg("diag",d.id,angle,screenBw,screenBh,size)}`;
+    s+=labelGroupSvg("diag",d.id,dlx,dly,angle,inv,inner)
+  }
+
 
   for(const p of r.points){
     const sel=p.id===activeVertexId;
