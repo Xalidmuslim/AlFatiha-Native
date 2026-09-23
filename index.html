@@ -10401,7 +10401,7 @@ function pointSegmentDistance(px,py,a,b){
   const t=Math.max(0,Math.min(1,((px-a.x)*dx+(py-a.y)*dy)/d2));
   return Math.hypot(px-(a.x+dx*t),py-(a.y+dy*t))
 }
-function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0){
+function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0,wallSegments=[],vertices=[]){
   const dx=b.x-a.x,dy=b.y-a.y;
   const L=Math.hypot(dx,dy)||1;
   const nx=-dy/L,ny=dx/L;
@@ -10417,12 +10417,14 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
   // pile up around the notch. Search much farther along and across the line.
   const rawT=[
     preferred,
-    preferred-.10,preferred+.10,
-    preferred-.20,preferred+.20,
-    .14,.22,.30,.38,.46,.54,.62,.70,.78,.86,.92
+    preferred-.08,preferred+.08,
+    preferred-.16,preferred+.16,
+    .22,.28,.34,.40,.46,.52,.58,.64,.70,.76,.80
   ];
-  const candidatesT=[...new Set(rawT.map(v=>Math.max(.10,Math.min(.92,+v.toFixed(3)))))];
-  const candidatesSide=[1,-1,1.6,-1.6,2.25,-2.25,3,-3,4,-4,5,-5,6,-6];
+  // Never place a diagonal value close to either end of the diagonal.
+  // This specifically prevents values such as 464 / 502 from sticking to corners.
+  const candidatesT=[...new Set(rawT.map(v=>Math.max(.20,Math.min(.80,+v.toFixed(3)))))];
+  const candidatesSide=[1,-1,1.6,-1.6,2.25,-2.25,3,-3,4,-4,5,-5,6,-6,7,-7,8,-8];
   let best=null;
 
   for(const t of candidatesT){
@@ -10462,15 +10464,28 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
         if(dist<safe)penalty+=(safe-dist)*900
       }
 
-      // Keep the value away from both endpoints. This matters when several
-      // diagonals converge at one hub after factual reconstruction.
+      // Keep the value well away from ALL corners, not only its own endpoints.
+      // Use a screen-space safe zone so zoom does not change readability.
+      for(const p of vertices){
+        const dist=Math.hypot(x-p.x,y-p.y);
+        const safe=88*inv;
+        if(dist<safe)penalty+=(safe-dist)*3600
+      }
       for(const p of [a,b]){
         const dist=Math.hypot(x-p.x,y-p.y);
-        const safe=56*inv;
-        if(dist<safe)penalty+=(safe-dist)*1000
+        const safe=96*inv;
+        if(dist<safe)penalty+=(safe-dist)*5200
       }
 
-      penalty+=Math.abs(t-preferred)*22;
+      // Diagonal numbers should not sit against a wall stroke. Penalize all
+      // room walls independently from the wall-number boxes.
+      for(const wall of wallSegments){
+        const dist=pointSegmentDistance(x,y,wall.a,wall.b);
+        const safe=42*inv;
+        if(dist<safe)penalty+=(safe-dist)*2600
+      }
+
+      penalty+=Math.abs(t-preferred)*18;
       penalty+=(Math.abs(side)-1)*4;
 
       if(!best||penalty<best.penalty)best={x,y,box,penalty}
@@ -10513,7 +10528,9 @@ function diagFanPreferredT(r,d){
   const n=group.length;
   // Spread a fan over a larger fraction of every diagonal. With five or more
   // diagonals this prevents three values from collecting near the same notch.
-  const fromHub=n<=1?.5:(.12+.76*(rank/Math.max(1,n-1)));
+  // Do not use the extreme ends of the fan. Even the first/last label stays
+  // around the middle 52% of its diagonal, away from both corner clusters.
+  const fromHub=n<=1?.5:(.24+.52*(rank/Math.max(1,n-1)));
   return d.a===hub?fromHub:1-fromHub
 }
 
@@ -12661,6 +12678,12 @@ function svgGeometry(r){
     a:pointById(r,d.a),
     b:pointById(r,d.b)
   })).filter(x=>x.a&&x.b);
+  const wallSegments=(r.edges||[]).map(e=>({
+    id:e.id,
+    a:pointById(r,e.a),
+    b:pointById(r,e.b)
+  })).filter(x=>x.a&&x.b);
+  const labelVertices=(r.points||[]).filter(p=>Number.isFinite(+p.x)&&Number.isFinite(+p.y));
 
   for(let di=0;di<r.diagList.length;di++){
     const d=r.diagList[di];
@@ -12672,7 +12695,7 @@ function svgGeometry(r){
 
     if(txt){
       const diagText=r.showAutoLetters===false?txt:`${diagLabel(r,d)} ${txt}`;
-      const place=pickDiagLabelPlacement(a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,r.diagList.length,diagFanPreferredT(r,d),760,560);
+      const place=pickDiagLabelPlacement(a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,r.diagList.length,diagFanPreferredT(r,d),760,560,wallSegments,labelVertices);
       const pose=labelPose(d);
       const dlx=pose.manual?pose.x:place.x,dly=pose.manual?pose.y:place.y;
       const angle=pose.angle;
