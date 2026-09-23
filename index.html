@@ -1531,6 +1531,20 @@ html,body{
   touch-action:manipulation;
 }
 
+/* TEST v185 — the “Ещё” panel is a floating palette, not a modal blocker.
+   Only the visible panel itself receives touches; the drawing remains fully
+   interactive around/behind it (zoom, pan, walls, points, diagonals, numbers). */
+#drawToolsMenu{
+  background:transparent!important;
+  pointer-events:none!important;
+}
+#drawToolsMenu.open{
+  pointer-events:none!important;
+}
+#drawToolsMenu .draw-tools-panel{
+  pointer-events:auto!important;
+}
+
 /* v54 — price calculator + room readiness */
 .rooms .room{
   position:relative!important;
@@ -14476,7 +14490,7 @@ $("#drawToolsNav").onclick=e=>{
   else openDrawToolsMenu()
 };
 $("#drawToolsClose").onclick=e=>{e.preventDefault();e.stopPropagation();closeDrawToolsMenu()};
-$("#drawToolsMenu").onclick=e=>{if(e.target===$("#drawToolsMenu"))closeDrawToolsMenu()};
+$("#drawToolsMenu").onclick=e=>{e.stopPropagation()};
 $("#globalUndo").onclick=globalBackAction;$("#globalRedo").onclick=redoDo;
 applyUiPrefs();startUiTypographyObserver();
 migrateLegacyUnitsToMm();migratePricingToRooms();migrateDefaultClientPricingV146();migrateInternalAllRoomsV157();migrateHideAutoLettersV64();migrateOtherRoomNamesV66();migrateHintsCollapsedV73();ensureDefaultPricing();ensureDefaultClientPricing();ensureHiddenDefaultPurchaseKeys();ensureHiddenDefaultClientKeys();ensureDefaultClientStandardMeta();ensureDefaultPurchaseCustomItems();ensureDefaultClientCustomItems();persistDbRaw();render();showHomeScreen();updateHistoryNav();ensureHistoryNavVisible();
