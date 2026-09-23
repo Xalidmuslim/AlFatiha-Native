@@ -12672,7 +12672,7 @@ function svgGeometry(r){
 
     if(txt){
       const diagText=r.showAutoLetters===false?txt:`${diagLabel(r,d)} ${txt}`;
-      const place=pickDiagLabelPlacement(a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,r.diagList.length,diagFanPreferredT(r,d),W,H);
+      const place=pickDiagLabelPlacement(a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,r.diagList.length,diagFanPreferredT(r,d),760,560);
       const pose=labelPose(d);
       const dlx=pose.manual?pose.x:place.x,dly=pose.manual?pose.y:place.y;
       const angle=pose.angle;
