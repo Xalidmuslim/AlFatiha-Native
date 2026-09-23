@@ -6918,8 +6918,10 @@ function roomValidation(r){
   if(missing.length)errors.push(`Не введены размеры стен: ${missing.map(e=>edgeLabel(r,e)).join(", ")}.`);
   if(closed&&!missing.length&&!calc.ok)errors.push(calc.message||"Геометрия не сходится по введённым размерам.");
 
-  const measuredDiags=(r.diagList||[]).filter(d=>mm(d.mm)).length;
+  const measuredDiags=(r.diagList||[]).filter(webTestIsMeasuredDiag).length;
+  const calculatedDiags=(r.diagList||[]).filter(d=>mm(d.mm)&&!webTestIsMeasuredDiag(d)).length;
   if(closed&&(r.points?.length||0)>=4&&!measuredDiags)warnings.push("Добавь хотя бы одну измеренную диагональ для независимой проверки геометрии.");
+  if(calculatedDiags)warnings.push(`Расчётных диагоналей: ${calculatedDiags}. Они не считаются фактическим замером.`);
   if(calc.closureAdjusted)warnings.push(`Небольшая невязка учтена автоматически: горизонталь ${fmtWallMeters(Math.abs(calc.closureErrX||0))} м, вертикаль ${fmtWallMeters(Math.abs(calc.closureErrY||0))} м.`);
   if(calc.measurementAdjusted)warnings.push(`Есть расхождение замеров до ${fmtWallMeters(calc.maxMeasureErr||0)} м. Площадь рассчитана с учётом этого расхождения.`);
 
@@ -10635,12 +10637,14 @@ function extendStraightWall(r,startId,endPoint,targetVertex){
 function diagBetween(r,a,b){return r.diagList.find(d=>(d.a===a&&d.b===b)||(d.a===b&&d.b===a))}
 function deleteEdge(id){
   const r=curRoom(),e=r.edges.find(x=>x.id===id);if(!e)return;push();
+  webTestDiscardFactualSession(r);
   r.edges=r.edges.filter(x=>x.id!==id);
   r.diagList=r.diagList.filter(d=>d.a!==e.a||d.b!==e.b);
   save();renderRoom()
 }
 function deleteVertex(id){
   const r=curRoom();if(!id)return;const label=pointLabel(r,id);showConfirm(`Удалить угол ${label}?`,`Все линии, связанные с углом ${label}, тоже будут удалены.`,()=>{push();
+  webTestDiscardFactualSession(r);
   r.edges=r.edges.filter(e=>e.a!==id&&e.b!==id);r.diagList=r.diagList.filter(d=>d.a!==id&&d.b!==id);r.points=r.points.filter(p=>p.id!==id);activeVertexId=null;save();renderRoom()})
 }
 
@@ -12933,6 +12937,7 @@ function startVertexLongPress(id){
 function deleteDiag(id){
   const r=curRoom(),d=r.diagList.find(x=>x.id===id);if(!d)return;
   push();
+  if(webTestIsMeasuredDiag(d))webTestMarkFactualDirty(r);
   r.diagList=r.diagList.filter(x=>x.id!==id);
   save();renderRoom()
 }
