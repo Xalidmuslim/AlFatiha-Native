@@ -9907,6 +9907,7 @@ function renderDrawToolsMenu(){
     <button class="draw-tool ${webTestGeometryMode(r)==="sketch"?"active":""}" data-draw-action="sketchGeometry" ${r.geometryLocked?"disabled":""} title="Эскиз остаётся таким, как его нарисовал замерщик. Цифры не наклоняют стены."><span>⌂</span><b>Геометрия эскиза</b></button>
     <button class="draw-tool ${["actual","actual_forced"].includes(webTestGeometryMode(r))?"active":""}" data-draw-action="actualGeometry" ${r.geometryLocked?"disabled":""} title="Строит форму только по измеренным стенам и измеренным диагоналям. При конфликте можно отдельно разрешить приблизительное построение."><span>△</span><b>${webTestGeometryMode(r)==="actual_dirty"?"Фактическая · обновить":webTestGeometryMode(r)==="actual_forced"?"Фактическая · приблизит.":"Фактическая геометрия"}</b></button>
     <button class="draw-tool" data-draw-action="autoDiags" ${r.geometryLocked?"disabled":""}><span>⌁</span><b>Авто диагонали</b></button>
+    <button class="draw-tool" data-draw-action="layoutLabels"><span>⇄</span><b>Разложить цифры</b></button>
     <button class="draw-tool" data-draw-action="validate"><span>✓</span><b>Проверить замер</b></button>
     <button class="draw-tool" data-draw-action="wallSequence" ${closed?"":"disabled"}><span>123</span><b>Размеры стен</b></button>
     <button class="draw-tool ${r.geometryLocked?"active":""}" data-draw-action="lock"><span>${r.geometryLocked?"🔒":"🔓"}</span><b>${r.geometryLocked?"Разблокировать":"Зафиксировать"}</b></button>
@@ -9990,6 +9991,15 @@ function renderDrawToolsMenu(){
       if(action==="autoDiags"){
         generateAutoDiagonals();
         if($("#drawToolsMenu")?.classList.contains("open"))renderDrawToolsMenu();
+        return
+      }
+      if(action==="layoutLabels"){
+        push();
+        webTestResetLabelLayout(room);
+        save();
+        renderRoom();
+        if($("#drawToolsMenu")?.classList.contains("open"))renderDrawToolsMenu();
+        showToast("Цифры разложены заново автоматически.");
         return
       }
       if(action==="clear"){
@@ -11198,6 +11208,23 @@ function webTestRestoreLabelAnchors(r,saved){
     item.labelPose.y=a.y+dy*s.t+ny*s.normal
   }
 }
+function webTestResetLabelLayout(r){
+  // Geometry changes can make previously hand-positioned labels stale.
+  // Return them to automatic collision-aware placement, while preserving
+  // any explicit font-size choice the user made.
+  for(const item of [...(r.edges||[]),...(r.diagList||[])]){
+    const old=item?.labelPose;
+    const size=normalizedLabelSize(old?.size);
+    if(Math.abs(size-1)>.001){
+      item.labelPose={manual:false,x:null,y:null,angle:0,size}
+    }else{
+      delete item.labelPose
+    }
+  }
+  selectedLabel=null;
+  labelDrag=null;
+  labelRotate=null
+}
 function webTestApplySolvedPositions(r,solved){
   const order=cycleOrder(r);if(!order||order.length<2)return false;
   const aId=order[0],bId=order[1];
@@ -11270,6 +11297,7 @@ function applyForcedFactualGeometry(){
   push();
   webTestCaptureSketch(r);
   if(!webTestApplySolvedPositions(r,solved)){showToast("Не удалось применить приблизительную геометрию.");return}
+  webTestResetLabelLayout(r);
   r[WEBTEST_MODE_KEY]="actual_forced";
   r._webTestForcedResidual=Number(solved.maxErr||0);
   activeVertexId=null;
@@ -11297,6 +11325,7 @@ function applyFactualGeometry(){
   push();
   webTestCaptureSketch(r);
   if(!webTestApplySolvedPositions(r,solved)){showToast("Не удалось применить фактическую геометрию.");return}
+  webTestResetLabelLayout(r);
   r[WEBTEST_MODE_KEY]="actual";
   delete r._webTestForcedResidual;
   activeVertexId=null;save();renderRoom();
