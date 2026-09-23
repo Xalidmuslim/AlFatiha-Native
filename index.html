@@ -10493,7 +10493,13 @@ function readableDiagonalAngle(a,b){
   while(deg<=-90)deg+=180;
   return Math.round(deg*10)/10
 }
-function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0,wallSegments=[],vertices=[]){
+function properSegmentIntersection(a,b,c,d){
+  const cross=(p,q,r)=>(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);
+  const o1=cross(a,b,c),o2=cross(a,b,d),o3=cross(c,d,a),o4=cross(c,d,b);
+  const eps=1e-6;
+  return ((o1>eps&&o2<-eps)||(o1<-eps&&o2>eps))&&((o3>eps&&o4<-eps)||(o3<-eps&&o4>eps))
+}
+function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0,wallSegments=[],vertices=[],leaderSegments=[]){
   const dx=b.x-a.x,dy=b.y-a.y;
   const L=Math.hypot(dx,dy)||1;
   const nx=-dy/L,ny=dx/L;
@@ -10516,6 +10522,25 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
     const box=labelAabbAt(x,y,width,height,angle);
     let penalty=0;
     let valid=true;
+
+    // Ownership corridor: a displaced value must reach its own diagonal
+    // without crossing any other diagonal or another ownership leader.
+    if(kind==="free"){
+      const leaderA={x:anchorX,y:anchorY},leaderB={x,y};
+      for(const seg of segments){
+        if(seg.id===currentId)continue;
+        if(properSegmentIntersection(leaderA,leaderB,seg.a,seg.b)){
+          valid=false;
+          penalty+=9e8
+        }
+      }
+      for(const seg of leaderSegments){
+        if(properSegmentIntersection(leaderA,leaderB,seg.a,seg.b)){
+          valid=false;
+          penalty+=7e8
+        }
+      }
+    }
 
     // Hard collision with existing labels.
     for(const prev of boxes){
@@ -12856,12 +12881,14 @@ function svgGeometry(r){
     return String(A.d.id).localeCompare(String(B.d.id))
   });
 
+  const diagLeaderSegments=[];
+
   for(let di=0;di<diagLabelItems.length;di++){
     const {d,a,b,txt}=diagLabelItems[di];
     const diagText=r.showAutoLetters===false?txt:`${diagLabel(r,d)} ${txt}`;
     const place=pickDiagLabelPlacement(
       a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,
-      diagLabelItems.length,diagFanPreferredT(r,d),760,560,wallSegments,labelVertices
+      diagLabelItems.length,diagFanPreferredT(r,d),760,560,wallSegments,labelVertices,diagLeaderSegments
     );
     const pose=labelPose(d);
     const dlx=pose.manual?pose.x:place.x;
@@ -12877,9 +12904,10 @@ function svgGeometry(r){
     const screenBw=rawW/inv,screenBh=rawH/inv;
     const hitW=screenBw+16,hitH=screenBh+12;
     if(!pose.manual&&place.kind==="free"){
-      // Always draw an ownership leader for an off-line value, even for a
-      // small offset. The number can never look attached to another diagonal.
-      s+=`<line x1="${place.anchorX}" y1="${place.anchorY}" x2="${dlx}" y2="${dly}" stroke="#9aabb6" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" pointer-events="none"/>`
+      // Always draw an ownership leader for an off-line value. This leader is
+      // also reserved as geometry so later labels cannot cross it.
+      s+=`<line x1="${place.anchorX}" y1="${place.anchorY}" x2="${dlx}" y2="${dly}" stroke="#9aabb6" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+      diagLeaderSegments.push({a:{x:place.anchorX,y:place.anchorY},b:{x:dlx,y:dly},id:d.id})
     }
     const inner=`<rect data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="${-hitW/2}" y="${-hitH/2}" width="${hitW}" height="${hitH}" rx="8" fill="rgba(255,255,255,.001)" pointer-events="all"/>
       <text data-label-kind="diag" data-label-id="${d.id}" data-diag-id="${d.id}" x="0" y="0" dominant-baseline="middle" text-anchor="middle" fill="#4f687a" font-size="${20*size}" font-weight="850" pointer-events="all" style="paint-order:stroke;stroke:#fff;stroke-width:6;stroke-linejoin:round">${diagText}</text>
