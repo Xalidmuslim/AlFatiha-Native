@@ -8322,7 +8322,7 @@ function renderRoom(){
   <section class="app-card drawing-card collapsible-card ${isUiCollapsed("drawing")?"collapsed":""}" data-collapse-block="drawing">
     <div class="drawing-head collapse-head">
       <div>
-        <span class="eyebrow">Чертёж</span>
+        <span class="eyebrow">Чертёж · TEST v185</span>
         <b>${esc(r.name)}</b>
       </div>
       <div class="collapse-head-actions drawing-head-actions">
@@ -8416,10 +8416,11 @@ function statusText(r,calc){
   if(drawState)return"Рисуется новая стена.";
   if(diagDraw)return"Веди диагональ к нужному углу.";
   if(cycleOrder(r)){
+    const gMode=webTestGeometryMode(r);
+    if(gMode==="actual_dirty")return"Фактическая геометрия требует обновления после изменения замеров.";
+    if(gMode==="actual")return"Контур замкнут · фактическая геометрия по замерам.";
     if(!calc.ok)return calc.message;
-    return calc.exact
-      ?"Контур замкнут. Площадь рассчитана."
-      :"Контур замкнут. Площадь рассчитана с учётом расхождений замеров."
+    return"Контур замкнут · геометрия эскиза. Размеры не меняют форму."
   }
   if(activeVertexId&&mode==="draw"){
     return "Начальная точка выбрана."
@@ -9900,8 +9901,8 @@ function renderDrawToolsMenu(){
     <button class="draw-tool ${magnet?"active":""}" data-draw-action="magnet" ${r.geometryLocked?"disabled":""}><span>⌁</span><b>45°/90° стены</b></button>
     <button class="draw-tool ${r.point90Magnet!==false?"active":""}" data-draw-action="point90" ${r.geometryLocked?"disabled":""}><span>∟</span><b>90° точки</b></button>
     <button class="draw-tool ${r.showAutoLetters===false?"":"active"}" data-draw-action="letters"><span>A</span><b>${r.showAutoLetters===false?"Показать":"Скрыть"} буквы</b></button>
-    <button class="draw-tool" data-draw-action="autoGeometry" ${r.geometryLocked?"disabled":""} title="Сохраняет нарисованную форму и уточняет её по стенам и диагоналям"><span>↗</span><b>По размерам</b></button>
-    <button class="draw-tool" data-draw-action="auto90" ${r.geometryLocked?"disabled":""}><span>∟</span><b>Авто 90°</b></button>
+    <button class="draw-tool ${webTestGeometryMode(r)==="sketch"?"active":""}" data-draw-action="sketchGeometry" ${r.geometryLocked?"disabled":""} title="Эскиз остаётся таким, как его нарисовал замерщик. Цифры не наклоняют стены."><span>⌂</span><b>Геометрия эскиза</b></button>
+    <button class="draw-tool ${webTestGeometryMode(r)==="actual"?"active":""}" data-draw-action="actualGeometry" ${r.geometryLocked?"disabled":""} title="Строит форму только по измеренным стенам и измеренным диагоналям."><span>△</span><b>${webTestGeometryMode(r)==="actual_dirty"?"Фактическая · обновить":"Фактическая геометрия"}</b></button>
     <button class="draw-tool" data-draw-action="autoDiags" ${r.geometryLocked?"disabled":""}><span>⌁</span><b>Авто диагонали</b></button>
     <button class="draw-tool" data-draw-action="validate"><span>✓</span><b>Проверить замер</b></button>
     <button class="draw-tool" data-draw-action="wallSequence" ${closed?"":"disabled"}><span>123</span><b>Размеры стен</b></button>
@@ -9973,13 +9974,13 @@ function renderDrawToolsMenu(){
         if($("#drawToolsMenu")?.classList.contains("open"))renderDrawToolsMenu();
         return
       }
-      if(action==="autoGeometry"){
-        applyAutoGeometry();
+      if(action==="sketchGeometry"){
+        applySketchGeometry();
         if($("#drawToolsMenu")?.classList.contains("open"))renderDrawToolsMenu();
         return
       }
-      if(action==="auto90"){
-        applyOrthogonalGeometry();
+      if(action==="actualGeometry"){
+        applyFactualGeometry();
         if($("#drawToolsMenu")?.classList.contains("open"))renderDrawToolsMenu();
         return
       }
@@ -9997,6 +9998,7 @@ function renderDrawToolsMenu(){
             ()=>{
               const rr=curRoom();if(!rr)return;
               push();
+              webTestDiscardFactualSession(rr);
               rr.points=[];rr.edges=[];rr.diagList=[];rr.extraQty.light=0;rr.extraQty.pipe=0;rr.geometryLocked=false;
               activeVertexId=null;
               selectedLabel=null;
@@ -12144,7 +12146,7 @@ function roomCalc(r){
     }
   }
 
-  const solved=solveFreeGeometry(r);
+  const solved=webTestGeometryMode(r)==="actual"?solveFactualGeometry(r):solveFreeGeometry(r);
   if(!solved.ok){
     return{ok:false,area:0,perimeter,perimeterComplete:true,exact:false,message:solved.message}
   }
@@ -13941,6 +13943,7 @@ function saveWall(){
   if(wallSequenceMode&&!units){showToast("Введите размер стены");return}
 
   e.mm=units?String(units):"";
+  webTestMarkFactualDirty(r);
   const next=wallSequenceMode&&e.mm?nextUnmeasuredWall(r,currentId):null;
   save();
   renderRoom();
@@ -14027,9 +14030,10 @@ function openDiag(id){
   const r=curRoom(),d=r.diagList.find(x=>x.id===id);if(!d)return;diagEditId=id;
   const auto=autoDiagonal(r,d);
   $("#diagTitle").textContent=r.showAutoLetters===false?"Диагональ":`Диагональ ${diagLabel(r,d)}`;
-  $("#diagAuto").textContent=auto?`${fmtMm(auto)} мм`:"Недостаточно размеров стен";
+  $("#diagAuto").textContent=auto?`${fmtMm(auto)} мм · расчётное, не замер`:"Недостаточно размеров стен";
   $("#diagValue").value=String(d.mm||"0");
   $("#diagUseAuto").disabled=!auto;
+  $("#diagUseAuto").textContent="Подставить расчётное (не замер)";
   armKeypadGuard();
   smoothOpenOverlay($("#diagSheet"))
 }
@@ -14037,11 +14041,16 @@ function closeDiag(){diagEditId=null;keypadGuardUntil=0;smoothCloseOverlay($("#d
 function saveDiag(){
   const r=curRoom(),d=r.diagList.find(x=>x.id===diagEditId);if(!d)return closeDiag();
   const v=$("#diagValue").value.trim();if(v&&!/^\d+$/.test(v)){showToast("Введите диагональ в миллиметрах, например 4120");return}
-  d.mm=(v==="0"?"":v);save();closeDiag();renderRoom()
+  d.mm=(v==="0"?"":v);
+  if(d.mm)webTestMarkDiagMeasured(d);
+  webTestMarkFactualDirty(r);
+  save();closeDiag();renderRoom()
 }
 function useAuto(){
   const r=curRoom(),d=r.diagList.find(x=>x.id===diagEditId);if(!d)return;const a=autoDiagonal(r,d);if(!a)return;
-  d.mm=String(Math.round(a));save();closeDiag();renderRoom()
+  d.mm=String(Math.round(a));
+  webTestMarkDiagAuto(d);
+  save();closeDiag();renderRoom()
 }
 $("#diagDeleteFromKeypad").onpointerdown=e=>{e.stopPropagation()};
 $("#diagDeleteFromKeypad").onclick=e=>{
