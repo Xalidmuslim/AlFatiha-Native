@@ -10067,11 +10067,11 @@ function renderDrawToolsMenu(){
       }
       if(action==="layoutLabels"){
         push();
-        webTestResetLabelLayout(room);
+        webTestResetLabelLayout(room,{includeWalls:false,includeDiags:true});
         save();
         renderRoom();
         if($("#drawToolsMenu")?.classList.contains("open"))renderDrawToolsMenu();
-        showToast("Цифры разложены заново автоматически.");
+        showToast("Диагональные цифры разложены по своим линиям. Стены не переставлены.");
         return
       }
       if(action==="clear"){
@@ -10490,14 +10490,17 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
   // pile up around the notch. Search much farther along and across the line.
   const rawT=[
     preferred,
-    preferred-.08,preferred+.08,
-    preferred-.16,preferred+.16,
-    .22,.28,.34,.40,.46,.52,.58,.64,.70,.76,.80
+    preferred-.06,preferred+.06,
+    preferred-.12,preferred+.12,
+    preferred-.18,preferred+.18,
+    .20,.24,.28,.32,.36,.40,.44,.48,.52,.56,.60,.64,.68,.72,.76,.80
   ];
   // Never place a diagonal value close to either end of the diagonal.
   // This specifically prevents values such as 464 / 502 from sticking to corners.
   const candidatesT=[...new Set(rawT.map(v=>Math.max(.20,Math.min(.80,+v.toFixed(3)))))];
-  const candidatesSide=[1,-1,1.6,-1.6,2.25,-2.25,3,-3,4,-4,5,-5,6,-6,7,-7,8,-8];
+  // Keep every value visually attached to ITS OWN diagonal. Resolve collisions
+  // primarily by moving along that diagonal, never by jumping across the fan.
+  const candidatesSide=[1,-1,1.35,-1.35];
   let best=null;
 
   for(const t of candidatesT){
@@ -10529,12 +10532,20 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
         if(dist<86*inv)penalty+=(86*inv-dist)*1200
       }
 
-      // Also keep a label away from OTHER diagonal strokes.
+      // A label belongs to exactly one diagonal. Keep it close to its own
+      // stroke and strongly reject positions that visually read as belonging
+      // to another diagonal.
+      const own=segments.find(seg=>seg.id===currentId);
+      if(own){
+        const ownDist=pointSegmentDistance(x,y,own.a,own.b);
+        const maxOwn=38*inv;
+        if(ownDist>maxOwn)penalty+=(ownDist-maxOwn)*20000
+      }
       for(const seg of segments){
         if(seg.id===currentId)continue;
         const dist=pointSegmentDistance(x,y,seg.a,seg.b);
-        const safe=48*inv;
-        if(dist<safe)penalty+=(safe-dist)*900
+        const safe=34*inv;
+        if(dist<safe)penalty+=(safe-dist)*4500
       }
 
       // Keep the value well away from ALL corners, not only its own endpoints.
@@ -11306,11 +11317,15 @@ function webTestRestoreLabelAnchors(r,saved){
     item.labelPose.y=a.y+dy*s.t+ny*s.normal
   }
 }
-function webTestResetLabelLayout(r){
-  // Geometry changes can make previously hand-positioned labels stale.
-  // Return them to automatic collision-aware placement, while preserving
-  // any explicit font-size choice the user made.
-  for(const item of [...(r.edges||[]),...(r.diagList||[])]){
+function webTestResetLabelLayout(r,{includeWalls=true,includeDiags=true}={}){
+  // Reset only the requested label families. The manual “Разложить цифры”
+  // action keeps wall labels attached to their current walls and only
+  // reflows diagonals; geometry rebuilds can still reset both families.
+  const items=[
+    ...(includeWalls?(r.edges||[]):[]),
+    ...(includeDiags?(r.diagList||[]):[])
+  ];
+  for(const item of items){
     const old=item?.labelPose;
     const size=normalizedLabelSize(old?.size);
     if(Math.abs(size-1)>.001){
