@@ -10499,7 +10499,7 @@ function properSegmentIntersection(a,b,c,d){
   const eps=1e-6;
   return ((o1>eps&&o2<-eps)||(o1<-eps&&o2>eps))&&((o3>eps&&o4<-eps)||(o3<-eps&&o4>eps))
 }
-function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0,wallSegments=[],vertices=[],leaderSegments=[],roomPoly=null){
+function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentId="",count=1,preferredOverride=null,canvasW=0,canvasH=0,wallSegments=[],vertices=[],leaderSegments=[],roomPoly=null,tMin=.14,tMax=.86){
   const dx=b.x-a.x,dy=b.y-a.y;
   const L=Math.hypot(dx,dy)||1;
   const nx=-dy/L,ny=dx/L;
@@ -10510,12 +10510,15 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
     :(count<=1?.5:(.28+.46*(di/Math.max(1,count-1))));
   const diagAngle=readableDiagonalAngle(a,b);
 
-  // Search almost the whole useful length of the diagonal.
+  // Search ONLY the open/start side. The narrowing hub side is a hard
+  // exclusion zone and never enters the candidate list.
+  const lo=Math.min(tMin,tMax),hi=Math.max(tMin,tMax);
   const candidatesT=[];
-  for(let t=.14;t<=.86+.001;t+=.04)candidatesT.push(+t.toFixed(2));
-  candidatesT.push(preferred);
+  const step=Math.max(.035,(hi-lo)/9);
+  for(let t=lo;t<=hi+.0001;t+=step)candidatesT.push(+t.toFixed(3));
+  candidatesT.push(Math.max(lo,Math.min(hi,preferred)));
   const uniqueT=[...new Set(candidatesT
-    .map(v=>Math.max(.12,Math.min(.88,+v.toFixed(3))))
+    .map(v=>Math.max(lo,Math.min(hi,+v.toFixed(3))))
     .filter(Number.isFinite))];
 
   function score(t,x,y,angle,kind,offsetPx,anchorX,anchorY){
@@ -10649,7 +10652,7 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
         if(!pointInPolygon(p,roomPoly))continue;
 
         const proj=segmentProjectionInfo(p,a,b);
-        if(!proj||proj.t<.10||proj.t>.90)continue;
+        if(!proj||proj.t<lo||proj.t>hi)continue;
 
         const ownDist=pointSegmentDistance(gx,gy,a,b);
         let otherDist=Infinity;
@@ -10707,44 +10710,45 @@ function pickDiagLabelPlacement(a,b,di,textLen,inv,boxes=[],segments=[],currentI
   if(goodRotated.length)return goodRotated[0];
 
   // Extreme case: still choose the least-bad position rather than stacking.
+  const fallbackT=Math.max(lo,Math.min(hi,preferred));
+  const fallbackX=a.x+dx*fallbackT,fallbackY=a.y+dy*fallbackT;
   return [...free,...rotated].sort((x,y)=>x.penalty-y.penalty)[0]||{
-    x:(a.x+b.x)/2,y:(a.y+b.y)/2,
-    box:labelAabbAt((a.x+b.x)/2,(a.y+b.y)/2,width,height,diagAngle),
+    x:fallbackX,y:fallbackY,
+    box:labelAabbAt(fallbackX,fallbackY,width,height,diagAngle),
     angle:diagAngle,penalty:999999999,valid:false,kind:"rotated",
-    t:.5,anchorX:(a.x+b.x)/2,anchorY:(a.y+b.y)/2,leader:false
+    t:fallbackT,anchorX:fallbackX,anchorY:fallbackY,leader:false
   }
 }
 
-function diagFanPreferredT(r,d){
+function diagOpenSideWindow(r,d){
   const list=r.diagList||[];
   const degree=id=>list.reduce((n,x)=>n+(x.a===id||x.b===id?1:0),0);
   const da=degree(d.a),db=degree(d.b);
-  const hub=(Math.max(da,db)>=2)?(da>=db?d.a:d.b):null;
-  if(!hub)return null;
 
-  const hp=pointById(r,hub);
-  if(!hp)return null;
+  // A shared endpoint used by multiple diagonals is the narrowing hub.
+  // Labels are categorically forbidden on the hub side.
+  let hub=null;
+  if(Math.max(da,db)>=2&&da!==db)hub=da>db?d.a:d.b;
+  else if(Math.max(da,db)>=3)hub=da>=db?d.a:d.b;
 
-  const group=list
-    .filter(x=>x.a===hub||x.b===hub)
-    .map(x=>{
-      const other=pointById(r,x.a===hub?x.b:x.a);
-      return{x,angle:other?Math.atan2(other.y-hp.y,other.x-hp.x):0}
-    })
-    .sort((a,b)=>a.angle-b.angle);
+  if(!hub){
+    // No clear fan: still keep the value in the broad middle/start zone.
+    return{min:.18,max:.58,preferred:.34,hub:null,start:null}
+  }
 
-  const rank=group.findIndex(x=>x.x.id===d.id);
-  if(rank<0)return null;
+  const start=hub===d.a?d.b:d.a;
 
-  // Distance from the shared hub is deliberately different for every diagonal.
-  // This prevents 2–4 values from gathering in the same narrow zone.
-  const n=group.length;
-  // Spread a fan over a larger fraction of every diagonal. With five or more
-  // diagonals this prevents three values from collecting near the same notch.
-  // Do not use the extreme ends of the fan. Even the first/last label stays
-  // around the middle 52% of its diagonal, away from both corner clusters.
-  const fromHub=n<=1?.5:(.24+.52*(rank/Math.max(1,n-1)));
-  return d.a===hub?fromHub:1-fromHub
+  // Only the first ~44% measured from the OPEN/start endpoint may be used.
+  // The converging/hub half is never eligible, even if a scoring function
+  // thinks there is room there.
+  if(start===d.a){
+    return{min:.16,max:.48,preferred:.30,hub,start}
+  }
+  return{min:.52,max:.84,preferred:.70,hub,start}
+}
+
+function diagFanPreferredT(r,d){
+  return diagOpenSideWindow(r,d).preferred
 }
 
 function unitVec(dx,dy){
@@ -12927,9 +12931,11 @@ function svgGeometry(r){
   for(let di=0;di<diagLabelItems.length;di++){
     const {d,a,b,txt}=diagLabelItems[di];
     const diagText=r.showAutoLetters===false?txt:`${diagLabel(r,d)} ${txt}`;
+    const placementWindow=diagOpenSideWindow(r,d);
     const place=pickDiagLabelPlacement(
       a,b,di,diagText.length,inv,diagLabelBoxes,diagSegments,d.id,
-      diagLabelItems.length,diagFanPreferredT(r,d),760,560,wallSegments,labelVertices,diagLeaderSegments,labelRoomPoly
+      diagLabelItems.length,placementWindow.preferred,760,560,wallSegments,labelVertices,diagLeaderSegments,labelRoomPoly,
+      placementWindow.min,placementWindow.max
     );
     const pose=labelPose(d);
     const dlx=pose.manual?pose.x:place.x;
