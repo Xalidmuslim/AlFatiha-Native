@@ -1,0 +1,11 @@
+{
+  "name":"Азкар — утро и вечер",
+  "short_name":"Азкар",
+  "description":"Утренние и вечерние азкары с русским переводом, источниками и разъяснениями.",
+  "start_url":"/",
+  "scope":"/",
+  "display":"standalone",
+  "background_color":"#f4f0e7",
+  "theme_color":"#f4f0e7",
+  "icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
