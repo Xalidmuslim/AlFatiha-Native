@@ -1,0 +1,77 @@
+name: Azkar Phase 2 Golden Screen
+
+on:
+  push:
+    branches:
+      - azkar-native-phase2-golden-reading-2026-09-29
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Compile Compose/Kotlin
+        run: ./gradlew :app:compileDebugKotlin --stacktrace
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Lint affected module
+        run: ./gradlew :app:lintDebug --stacktrace
+
+      - name: Native screenshot and instrumentation evidence
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            set -euo pipefail
+            mkdir -p phase2-evidence
+            adb shell wm density 160
+            adb shell settings put system font_scale 1.0
+
+            capture() {
+              SIZE="$1"
+              TEST="$2"
+              FILE="$3"
+              adb shell wm size "$SIZE"
+              sleep 2
+              ./gradlew :app:connectedDebugAndroidTest                 -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#$TEST"                 --stacktrace
+              adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/$FILE" "phase2-evidence/$FILE"
+              test -s "phase2-evidence/$FILE"
+            }
+
+            capture "360x800" "capture360Light" "azkar_360x800_light.png"
+            capture "393x873" "capture393Light" "azkar_393x873_light.png"
+            capture "412x915" "capture412Light" "azkar_412x915_light.png"
+            capture "393x873" "capture393Dark" "azkar_393x873_dark.png"
+            capture "393x873" "capture393LongExistingDhikr" "azkar_393x873_long_baqarah.png"
+
+            sha256sum phase2-evidence/*.png
+            adb shell wm size reset
+            adb shell wm density reset
+
+      - name: Upload Phase 2 screenshot evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: azkar-phase2-native-screenshots
+          path: phase2-evidence/*.png
+          if-no-files-found: error
+          retention-days: 30
