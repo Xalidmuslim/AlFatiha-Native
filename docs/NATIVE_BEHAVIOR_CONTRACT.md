@@ -1,6 +1,6 @@
 # Native Behavior Contract — Azkar
 
-Phase: **0.5 — Canonical Behavior Audit**
+Phase: **0.5 forensic audit + 0.6 approved canonical behavior**
 
 Source under audit:
 - repository: `Xalidmuslim/AlFatiha-Native`
@@ -477,18 +477,44 @@ Native must **not** copy the following defects:
 
 ---
 
-## 11. Native Phase-1 readiness gate
+## 11. Phase 0.6 resolution of the Phase-1 behavior blocker
 
-**NOT READY for Phase 1.**
+Phase 0.5 concluded that Phase 1 could not safely begin from web-runtime inference alone because:
 
-Reason:
-- the exact current behavior source is non-executable;
-- the two interaction implementations disagree materially on swipe and history/back;
-- source order alone is not sufficient to promote the late implementation to approved native behavior;
-- Phase 1 would require guessing whether the history-aware or late scroll-reset/no-history behavior is intended.
+- `app-core.js` does not parse;
+- duplicate interaction implementations conflict;
+- swipe/back/history/scroll semantics could not be selected from source order without guessing.
 
-Before Phase 1, one of these must happen outside this Phase-0.5 audit:
-1. the web Golden Master source is repaired and a valid canonical revision is identified; or
-2. the project owner explicitly selects the intended behavior for swipe/back/history/scroll from the conflicting implementations.
+Phase 0.6 resolves **that behavioral specification blocker** through explicit project-owner approval.
 
-Phase 0.5 stops here. No web source, Android source, build, APK, deployment, Render/Webflow/Floot, or screenshot automation is modified or executed.
+The authoritative native behavior is now defined in:
+
+`docs/NATIVE_CANONICAL_BEHAVIOR.md`
+
+In particular, Phase 0.6 now canonically defines:
+
+- «По одному» as the default one-dhikr reader;
+- stable outer layout with vertical scrolling inside the active reading area;
+- new dhikr opening at reading scroll `0`;
+- horizontal swipe threshold/dominance and gesture-safety requirements;
+- Android system-edge Back ownership;
+- Back priority: sheet → previous dhikr history → standard Android navigation;
+- Contents, Settings, and Explanation as bottom sheets;
+- the 620ms directional slide/fade target with reduced-motion support;
+- native state and persistence semantics;
+- Morning/Evening switching semantics;
+- explicit WEB_BUG behaviors that must not be copied.
+
+This does **not** execute or start Phase 1. It only removes the specific ambiguity identified by Phase 0.5.
+
+Phase 0.6 remains documentation-only:
+
+- no `azkar-web` changes;
+- no `app-core.js` repair;
+- no Android implementation changes;
+- no Android code;
+- no builds;
+- no APK;
+- no Render/Webflow/Floot.
+
+Phase 0.5 diagnostic material above remains preserved for audit history, but it is subordinate to the Phase 0.6 approved canonical behavior for future native implementation decisions.
