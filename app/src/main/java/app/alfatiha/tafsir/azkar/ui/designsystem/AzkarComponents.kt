@@ -22,8 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.asFrameworkPaint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -37,7 +35,7 @@ private fun Modifier.azkarShadow(
     if (layers.isEmpty()) return@drawBehind
     val radiusPx = cornerRadius.toPx()
     drawIntoCanvas { canvas ->
-        val paint = Paint().asFrameworkPaint()
+        val paint = FrameworkPaint()
         layers.forEach { layer ->
             paint.reset()
             paint.style = FrameworkPaint.Style.FILL
