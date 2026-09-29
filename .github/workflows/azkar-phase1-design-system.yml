@@ -1,0 +1,33 @@
+name: Azkar Phase 1 Design System
+
+on:
+  push:
+    branches:
+      - azkar-native-phase1-design-system-2026-09-29
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Compile Compose/Kotlin
+        run: ./gradlew :app:compileDebugKotlin --stacktrace
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Lint affected module
+        run: ./gradlew :app:lintDebug --stacktrace
