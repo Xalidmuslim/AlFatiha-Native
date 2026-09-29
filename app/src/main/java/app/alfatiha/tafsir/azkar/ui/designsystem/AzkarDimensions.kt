@@ -11,6 +11,7 @@ object AzkarSpacing {
     val topBarHorizontal = 2.dp
     val topBarVertical = 10.dp
     val brandGap = 10.dp
+    val brandSubtitleTop = 4.dp
     val sourceNoteVertical = 10.dp
     val sourceNoteHorizontal = 11.dp
     val periodTop = 12.dp
@@ -21,8 +22,10 @@ object AzkarSpacing {
     val progressHorizontal = 12.dp
     val progressBottom = 10.dp
     val progressHeaderBottom = 9.dp
+    val progressHeaderGap = 8.dp
     val readingToolbarGap = 8.dp
     val readingToolbarPadding = 6.dp
+    val toolbarButtonHorizontal = 10.dp
     val readingToolbarBottom = 10.dp
     val cardListGap = 10.dp
     val cardTop = 15.dp
@@ -51,6 +54,8 @@ object AzkarSpacing {
     val pagerGap = 8.dp
     val pagerTop = 10.dp
     val pagerPadding = 8.dp
+    val pagerCenterHorizontalGap = 4.dp
+    val pagerHelperTop = 2.dp
     val footerTop = 18.dp
     val footerHorizontal = 8.dp
     val footerBottom = 4.dp
@@ -139,6 +144,7 @@ object AzkarRadius {
 object AzkarBorders {
     val thin = 1.dp
     val completedStrip = 3.dp
+    const val dashedSegmentMultiplier = 3f
 }
 
 @Immutable
@@ -204,6 +210,9 @@ object AzkarDimensions {
     val switchThumb = 13.dp
     val themeSelectMaxWidth = 120.dp
     val responsiveBreakpoint = 370.dp
+    const val brandIconGlyphSp = 23f
+    const val settingsIconGlyphSp = 19f
+    const val compactIconGlyphSp = 16f
     const val defaultArabicSizeSp = 32f
     const val defaultRussianSizeSp = 17f
     const val defaultReaderLineHeight = 1.65f
