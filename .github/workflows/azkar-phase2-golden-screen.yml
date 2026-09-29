@@ -33,6 +33,75 @@ jobs:
       - name: Lint affected module
         run: ./gradlew :app:lintDebug --stacktrace
 
+      - name: Prepare Phase 2 instrumentation diagnostic script
+        shell: bash
+        run: |
+          mkdir -p phase2-diagnostics phase2-evidence
+          printf 'diagnostics prepared\n' > phase2-diagnostics/ci-diagnostics-prepared.txt
+          cat > phase2-instrumentation-diagnostics.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -u
+
+          mkdir -p phase2-diagnostics phase2-evidence
+
+          adb wait-for-device
+          adb shell getprop sys.boot_completed
+          adb devices -l
+
+          adb shell pm list instrumentation | tee phase2-diagnostics/instrumentation-list-before.txt || true
+          adb shell pm path app.alfatiha.tafsir | tee phase2-diagnostics/package-path-before.txt || true
+
+          adb shell wm density 160
+          adb shell settings put system font_scale 1.0
+          adb shell wm size 360x800
+          sleep 2
+
+          adb logcat -c
+
+          set +e
+          ./gradlew :app:connectedDebugAndroidTest             -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#capture360Light"             --stacktrace --info
+          TEST_EXIT=$?
+          set -e
+
+          printf '%s\n' "$TEST_EXIT" | tee phase2-diagnostics/test-exit.txt
+
+          adb logcat -d -v threadtime > phase2-diagnostics/logcat.txt || true
+          adb shell pm list instrumentation > phase2-diagnostics/instrumentation-list.txt || true
+          adb shell dumpsys package app.alfatiha.tafsir > phase2-diagnostics/package-dump.txt || true
+
+          if [ -d app/build/reports/androidTests/connected/debug ]; then
+            mkdir -p phase2-diagnostics/androidTests-report
+            cp -a app/build/reports/androidTests/connected/debug/. phase2-diagnostics/androidTests-report/ || true
+          fi
+
+          if [ -d app/build/outputs/androidTest-results/connected ]; then
+            mkdir -p phase2-diagnostics/androidTest-results
+            cp -a app/build/outputs/androidTest-results/connected/. phase2-diagnostics/androidTest-results/ || true
+          fi
+
+          if [ -d app/build/outputs/managed_device_android_test_additional_output ]; then
+            mkdir -p phase2-diagnostics/managed-device-additional-output
+            cp -a app/build/outputs/managed_device_android_test_additional_output/. phase2-diagnostics/managed-device-additional-output/ || true
+          fi
+
+          adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/azkar_360x800_light.png"             "phase2-evidence/azkar_360x800_light.png" || true
+
+          echo "===== instrumentation list after test ====="
+          cat phase2-diagnostics/instrumentation-list.txt || true
+
+          echo "===== Phase 2 logcat root-cause extraction ====="
+          grep -n -E -C 8             'FATAL EXCEPTION|AndroidRuntime|Process:|Caused by:|ClassNotFoundException|NoClassDefFoundError|Unable to instantiate|Unable to start|INSTRUMENTATION_FAILED|INSTRUMENTATION_STATUS|androidx\.test|AndroidJUnitRunner|TestActivity|app\.alfatiha\.tafsir'             phase2-diagnostics/logcat.txt || true
+
+          echo "===== Phase 2 instrumentation report extraction ====="
+          grep -RInE -C 5             'FATAL EXCEPTION|AndroidRuntime|Process:|Caused by:|ClassNotFoundException|NoClassDefFoundError|Unable to instantiate|Unable to start|INSTRUMENTATION_FAILED|INSTRUMENTATION_STATUS|androidx\.test|AndroidJUnitRunner|TestActivity|app\.alfatiha\.tafsir|Process crashed'             phase2-diagnostics/androidTests-report             phase2-diagnostics/androidTest-results 2>/dev/null || true
+
+          adb shell wm size reset || true
+          adb shell wm density reset || true
+
+          exit "$TEST_EXIT"
+          EOF
+          chmod +x phase2-instrumentation-diagnostics.sh
+
       - name: Diagnose Phase 2 instrumentation crash
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -41,69 +110,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            set -eu
-            mkdir -p phase2-evidence phase2-diagnostics
-
-            adb wait-for-device
-            adb shell getprop sys.boot_completed
-            adb devices -l
-            adb shell pm list instrumentation
-            adb shell pm path app.alfatiha.tafsir || true
-
-            adb shell wm density 160
-            adb shell settings put system font_scale 1.0
-            adb shell wm size 360x800
-            sleep 2
-
-            adb logcat -c
-
-            set +e
-            ./gradlew :app:connectedDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#capture360Light" \
-              --stacktrace --info
-            TEST_EXIT=$?
-            set -e
-
-            printf '%s\n' "$TEST_EXIT" | tee phase2-diagnostics/test-exit.txt
-
-            adb logcat -d -v threadtime > phase2-diagnostics/logcat.txt || true
-            adb shell pm list instrumentation > phase2-diagnostics/instrumentation-list.txt || true
-            adb shell dumpsys package app.alfatiha.tafsir > phase2-diagnostics/package-dump.txt || true
-
-            if [ -d app/build/reports/androidTests/connected/debug ]; then
-              mkdir -p phase2-diagnostics/androidTests-report
-              cp -a app/build/reports/androidTests/connected/debug/. phase2-diagnostics/androidTests-report/ || true
-            fi
-
-            if [ -d app/build/outputs/androidTest-results/connected ]; then
-              mkdir -p phase2-diagnostics/androidTest-results
-              cp -a app/build/outputs/androidTest-results/connected/. phase2-diagnostics/androidTest-results/ || true
-            fi
-
-            if [ -d app/build/outputs/managed_device_android_test_additional_output ]; then
-              mkdir -p phase2-diagnostics/managed-device-additional-output
-              cp -a app/build/outputs/managed_device_android_test_additional_output/. phase2-diagnostics/managed-device-additional-output/ || true
-            fi
-
-            adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/azkar_360x800_light.png" \
-              "phase2-evidence/azkar_360x800_light.png" || true
-
-            echo "===== Phase 2 instrumentation root-cause extraction ====="
-            grep -n -E -C 8 \
-              'FATAL EXCEPTION|AndroidRuntime|Process:|Caused by:|ClassNotFoundException|NoClassDefFoundError|Unable to instantiate|Unable to start|INSTRUMENTATION_FAILED|INSTRUMENTATION_STATUS|androidx\.test|AndroidJUnitRunner|TestActivity|app\.alfatiha\.tafsir' \
-              phase2-diagnostics/logcat.txt || true
-
-            echo "===== Phase 2 instrumentation report extraction ====="
-            grep -RInE -C 5 \
-              'FATAL EXCEPTION|AndroidRuntime|Process:|Caused by:|ClassNotFoundException|NoClassDefFoundError|Unable to instantiate|Unable to start|INSTRUMENTATION_FAILED|INSTRUMENTATION_STATUS|androidx\.test|AndroidJUnitRunner|TestActivity|app\.alfatiha\.tafsir|Process crashed' \
-              phase2-diagnostics/androidTests-report \
-              phase2-diagnostics/androidTest-results 2>/dev/null || true
-
-            adb shell wm size reset || true
-            adb shell wm density reset || true
-
-            exit "$TEST_EXIT"
+          script: bash phase2-instrumentation-diagnostics.sh
 
       - name: Upload Phase 2 instrumentation diagnostics
         if: always()
@@ -116,5 +123,5 @@ jobs:
             app/build/outputs/androidTest-results/**
             app/build/outputs/managed_device_android_test_additional_output/**
             phase2-evidence/**
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
