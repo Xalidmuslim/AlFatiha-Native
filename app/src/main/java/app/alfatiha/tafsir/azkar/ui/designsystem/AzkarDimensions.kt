@@ -182,6 +182,7 @@ object AzkarDimensions {
     val periodButtonMinHeight = 42.dp
     val progressTrackHeight = 5.dp
     val readingToolbarStickyTopBase = 5.dp
+    val readingToolbarBackdropBlur = 12.dp
     val toolbarButtonMinHeight = 36.dp
     val dhikrScrollMarginTop = 62.dp
     val pagedViewportReservedHeight = 172.dp
@@ -213,6 +214,7 @@ object AzkarDimensions {
     const val brandIconGlyphSp = 23f
     const val settingsIconGlyphSp = 19f
     const val compactIconGlyphSp = 16f
+    const val disabledControlAlpha = 0.38f
     const val defaultArabicSizeSp = 32f
     const val defaultRussianSizeSp = 17f
     const val defaultReaderLineHeight = 1.65f
