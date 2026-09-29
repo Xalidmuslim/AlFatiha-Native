@@ -47,22 +47,35 @@ jobs:
             adb shell wm density 160
             adb shell settings put system font_scale 1.0
 
-            capture() {
-              SIZE="$1"
-              TEST="$2"
-              FILE="$3"
-              adb shell wm size "$SIZE"
-              sleep 2
-              ./gradlew :app:connectedDebugAndroidTest                 -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#$TEST"                 --stacktrace
-              adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/$FILE" "phase2-evidence/$FILE"
-              test -s "phase2-evidence/$FILE"
-            }
+            adb shell wm size 360x800
+            sleep 2
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#capture360Light" --stacktrace
+            adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/azkar_360x800_light.png" "phase2-evidence/azkar_360x800_light.png"
+            test -s "phase2-evidence/azkar_360x800_light.png"
 
-            capture "360x800" "capture360Light" "azkar_360x800_light.png"
-            capture "393x873" "capture393Light" "azkar_393x873_light.png"
-            capture "412x915" "capture412Light" "azkar_412x915_light.png"
-            capture "393x873" "capture393Dark" "azkar_393x873_dark.png"
-            capture "393x873" "capture393LongExistingDhikr" "azkar_393x873_long_baqarah.png"
+            adb shell wm size 393x873
+            sleep 2
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#capture393Light" --stacktrace
+            adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/azkar_393x873_light.png" "phase2-evidence/azkar_393x873_light.png"
+            test -s "phase2-evidence/azkar_393x873_light.png"
+
+            adb shell wm size 412x915
+            sleep 2
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#capture412Light" --stacktrace
+            adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/azkar_412x915_light.png" "phase2-evidence/azkar_412x915_light.png"
+            test -s "phase2-evidence/azkar_412x915_light.png"
+
+            adb shell wm size 393x873
+            sleep 2
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#capture393Dark" --stacktrace
+            adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/azkar_393x873_dark.png" "phase2-evidence/azkar_393x873_dark.png"
+            test -s "phase2-evidence/azkar_393x873_dark.png"
+
+            adb shell wm size 393x873
+            sleep 2
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="app.alfatiha.tafsir.azkar.ui.reading.AzkarGoldenReadingScreenshotTest#capture393LongExistingDhikr" --stacktrace
+            adb pull "/sdcard/Android/data/app.alfatiha.tafsir/files/phase2-evidence/azkar_393x873_long_baqarah.png" "phase2-evidence/azkar_393x873_long_baqarah.png"
+            test -s "phase2-evidence/azkar_393x873_long_baqarah.png"
 
             sha256sum phase2-evidence/*.png
             adb shell wm size reset
