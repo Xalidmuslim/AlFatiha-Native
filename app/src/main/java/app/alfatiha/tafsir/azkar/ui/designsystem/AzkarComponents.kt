@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 
-private fun Modifier.azkarShadow(
+internal fun Modifier.azkarShadow(
     layers: List<AzkarShadowLayer>,
     cornerRadius: Dp,
 ): Modifier = drawBehind {
