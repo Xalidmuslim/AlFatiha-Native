@@ -1,19 +1,19 @@
 # Native Screen Matrix — Azkar
 
-Source: current `azkar-web` golden master. This matrix enumerates existing screens/states only; it does not add new native flows.
+Source: current `azkar-web` golden master. This matrix enumerates structural screens/states represented by the source and data; it does not add new native flows.\n\n**Phase-0.5 runtime note:** current `azkar-web/app-core.js` has a confirmed syntax error at lines 383–386, so none of its runtime screen/navigation behavior currently executes. Structural screen inventory remains useful, but interaction rows must be read together with `docs/NATIVE_BEHAVIOR_CONTRACT.md`. The broken/non-rendering state is `WEB_BUG` and is not a native requirement.
 
 ## 1. Primary surfaces
 
 | ID | Surface/state | Entry | Required content | Main actions | Exit/back behavior to preserve |
 |---|---|---|---|---|---|
-| S01 | Main — Morning — Cards | App launch when local hour is 04:00–15:59, or tap “Утро” | Topbar, source note, period tabs, progress card, sticky reading toolbar, one dhikr card, pager, footer | Settings, contents, reset, count, insight, prev/next, horizontal swipe | Browser history-aware implementation records period/card changes |
-| S02 | Main — Evening — Cards | App launch when local hour is 16:00–03:59, or tap “Вечер” | Same structure as S01 with evening-filtered data and evening text variants where present | Same as S01 | Same as S01 |
+| S01 | Main — Morning — Cards | Source intends local hour 04:00–15:59, or tap “Утро” | Topbar, source note, period tabs, progress card, sticky reading toolbar, one dhikr card, pager, footer | Settings, contents, reset, count, insight, prev/next, horizontal swipe | **No active runtime currently (WEB_BUG).** History-aware behavior is not canonical. |
+| S02 | Main — Evening — Cards | Source intends local hour 16:00–03:59, or tap “Вечер” | Same structure as S01 with evening-filtered data and evening text variants where present | Same as S01 | **No active runtime currently (WEB_BUG).** |
 | S03 | Main — Morning — List | Choose “Список” from Contents while morning active | All 14 morning-visible dhikrs, no pager | Settings, contents, reset, count, insight, vertical scroll | View mode is persisted |
 | S04 | Main — Evening — List | Choose “Список” from Contents while evening active | All 13 evening-visible dhikrs, no pager | Same as S03 | View mode is persisted |
-| S05 | Contents bottom sheet — Cards mode | Reading toolbar → “Содержание” | Header, mode switch, one row per visible item, active item highlighting, completion checkmarks | Switch cards/list, jump to item, close | History-aware block pushes modal state; close uses back when applicable |
+| S05 | Contents bottom sheet — Cards mode | Reading toolbar → “Содержание” | Header, mode switch, one row per visible item, active item highlighting, completion checkmarks | Switch cards/list, jump to item, close | **No active runtime currently.** The earlier pushState/Back path is overridden in a minimally repaired file and is not canonical. |
 | S06 | Contents bottom sheet — List mode | Same, while list mode active | Same list; no “active current card” state unless cards mode is selected | Switch mode, jump, close | Jump in list mode renders then smooth-scrolls target into view |
 | S07 | Settings bottom sheet | Topbar or reading toolbar settings button | Live preview, Russian fonts, Arabic fonts, three sliders, reader style, 3 visibility toggles, theme selector | Change font/size/line-height/style/toggles/theme, close | Changes save immediately |
-| S08 | Insight bottom sheet | “Разъяснение · история · слова учёных” | Sheet header + meaning + optional context + scholar notes + references | Close | Selected item id is part of modal state in history-aware block |
+| S08 | Insight bottom sheet | “Разъяснение · история · слова учёных” | Sheet header + meaning + optional context + scholar notes + references | Close | **No active runtime currently.** `selectedId` is represented in source state, but history-aware modal behavior is not canonical. |
 
 ## 2. Card-state matrix
 
@@ -102,20 +102,36 @@ Progress storage key is date-scoped:
 
 ## 6. Navigation/gesture states
 
-| ID | Interaction | Existing web behavior to preserve/verify |
+### Exact current runtime
+
+Because `app-core.js` fails to parse, **none of N01–N12 is currently active browser behavior from this script**. This non-running state is `WEB_BUG`, not a native requirement.
+
+### Diagnostic result after removing only the parse blocker
+
+This table records which late implementation would win under JavaScript declaration rules. It is diagnostic and must not be promoted to native behavior without an explicit canonical decision.
+
+| ID | Interaction | Late winning implementation after minimal parse repair |
 |---|---|---|
-| N01 | Pager “Назад” | Previous card; disabled at first item |
-| N02 | Pager “Далее” | Next card; disabled at last item |
-| N03 | Swipe left | Next card if horizontal threshold passes |
-| N04 | Swipe right | Previous card if horizontal threshold passes |
-| N05 | Vertical swipe inside paged card | Scroll card vertically |
-| N06 | Left-edge touch (<28px) in primary history-aware block | Reserved; does not trigger card swipe |
-| N07 | Contents jump in cards mode | Sets active card and direction |
-| N08 | Contents jump in list mode | Closes sheet, renders, smooth-scrolls selected card |
-| N09 | Open modal | History-aware block pushes state |
-| N10 | Back from modal | History-aware block backs out of modal before leaving prior UI state |
-| N11 | Back after card navigation | History-aware block can restore prior active index/direction |
-| N12 | System color-scheme change in auto theme | Later block has a listener that re-renders when auto is active |
+| N01 | Pager “Назад” | Calls late `goTo(activeIndex-1)`; first-page button is disabled |
+| N02 | Pager “Далее” | Calls late `goTo(activeIndex+1)`; last-page button is disabled |
+| N03 | Swipe left | Next card when `abs(dx)>=55` and `abs(dx)>abs(dy)*1.15` |
+| N04 | Swipe right | Previous card under the same threshold |
+| N05 | Vertical swipe inside paged card | Long card scroll remains browser/card scroll; late handler has no touchmove interception |
+| N06 | Left-edge touch | **No edge reservation in the late winning `bindEvents`**; the earlier 28px reservation is overwritten |
+| N07 | Contents jump in cards mode | Calls late `goTo(i)`; no history state write |
+| N08 | Contents jump in list mode | Closes modal, renders, smooth-scrolls selected card into view |
+| N09 | Open modal | Late handler sets modal directly; **no pushState** |
+| N10 | Browser/system Back from modal | No matching modal history entry is created by late handler; reliable close-on-Back is absent |
+| N11 | Browser/system Back after card navigation | Late `goTo` does not push state; no reliable previous-dhikr history chain |
+| N12 | System color-scheme change in auto theme | One top-level listener exists in source, but current parse error prevents registration |
+
+Additional late-swipe facts:
+- no `touchmove` handler;
+- no `preventDefault()`;
+- no `touchcancel` cleanup;
+- no 28px left-edge guard;
+- card change calls `scrollToReading(false)` before updating index, scrolling the **document/window** toward the reading toolbar;
+- long dhikr content in cards mode scrolls inside `.dhikr-card`; list mode scrolls with the document.
 
 ## 7. Theme matrix
 
@@ -149,8 +165,21 @@ CSS defines one explicit responsive breakpoint.
 | M05 | Toggle thumb | 200ms |
 | M06 | Reduced motion | All animation/transition disabled; scroll behavior auto |
 
-## 10. Phase-0 source risk to carry forward
+## 10. Phase-0.5 canonical behavior result
 
-`app-core.js` contains duplicated implementations of core rendering and event functions, with a newer history-aware/back-aware block followed by an older duplicated block. There is also a fragment around the duplicate boundary that must be treated as a golden-master source anomaly.
+Confirmed:
+- `app-core.js` has a syntax error at lines 383–386, so the exact current script has no runtime behavior;
+- 9 function names are duplicated;
+- in a syntactically valid version, later function declarations would override earlier declarations;
+- the late `bindEvents` / `goTo` path differs materially from the earlier history-aware/edge-aware path;
+- source-order overwrite is **not** evidence of user-approved product behavior.
 
-Phase 0 does not modify it. Before native Phase 1 behavior is frozen, the effective browser behavior must be verified against the actual golden master rather than selecting one duplicate implementation by assumption.
+Therefore:
+- do not copy the blank/non-running web state;
+- do not copy duplicate architecture;
+- do not treat the earlier history-aware path as active;
+- do not treat the later no-history/no-edge path as approved merely because it would win after a minimal parse repair.
+
+The authoritative Phase-0.5 interaction analysis is `docs/NATIVE_BEHAVIOR_CONTRACT.md`.
+
+**Phase 1 is blocked until a valid canonical web revision or an explicit behavior decision resolves swipe/back/history/scroll semantics.**
