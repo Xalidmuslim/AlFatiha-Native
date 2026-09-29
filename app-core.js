@@ -207,7 +207,31 @@ function bindEvents() {
   document.querySelector('[data-action="next"]')?.addEventListener('click',()=>goTo(state.activeIndex+1));
 
   document.querySelectorAll('[data-font-key]').forEach(b=>b.onclick=()=>{state.settings[b.dataset.fontKey]=b.dataset.fontValue;save();render();});
-  document.querySelectorAll('[data-range]').forEach(r=>r.oninput=()=>{state.settings[r.dataset.range]=Number(r.value);save();render();});
+  document.querySelectorAll('[data-range]').forEach(r=>{
+    const applyRange=()=>{
+      const key=r.dataset.range;
+      const value=Number(r.value);
+      state.settings[key]=value;
+      if(key==='arabicSize') document.documentElement.style.setProperty('--arabic-size',value+'px');
+      if(key==='russianSize') document.documentElement.style.setProperty('--russian-size',value+'px');
+      if(key==='lineHeight') document.documentElement.style.setProperty('--reader-line-height',value);
+      const label=r.parentElement?.querySelector('div > span');
+      if(label) label.textContent=key==='lineHeight'?value.toFixed(2):value+' px';
+      const ar=document.querySelector('.preview-ar');
+      const ru=document.querySelector('.live-preview > div:nth-child(2)');
+      if(ar){
+        ar.style.fontSize=Math.min(state.settings.arabicSize,24)+'px';
+        ar.style.lineHeight=state.settings.lineHeight;
+      }
+      if(ru){
+        ru.style.fontSize=Math.min(state.settings.russianSize,15)+'px';
+        ru.style.lineHeight=state.settings.lineHeight;
+      }
+      save();
+    };
+    r.oninput=applyRange;
+    r.onchange=applyRange;
+  });
   document.querySelectorAll('[data-toggle]').forEach(t=>t.onchange=()=>{state.settings[t.dataset.toggle]=t.checked;save();render();});
   document.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{state.settings.readerStyle=b.dataset.style;save();render();});
   document.querySelector('[data-setting="theme"]')?.addEventListener('change',e=>{state.settings.theme=e.target.value;save();render();});
