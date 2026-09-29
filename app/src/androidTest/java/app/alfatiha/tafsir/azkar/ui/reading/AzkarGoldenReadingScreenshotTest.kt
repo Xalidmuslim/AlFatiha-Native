@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -113,12 +112,12 @@ class AzkarGoldenReadingScreenshotTest {
 
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("azkar-reading-screen").assertIsDisplayed()
-        composeRule.onNodeWithTag("azkar-arabic").assertExists()
-        composeRule.onNodeWithTag("azkar-translation").assertExists()
-        composeRule.onNodeWithTag("azkar-source").assertExists()
-        composeRule.onNodeWithTag("azkar-note").assertExists()
+        composeRule.onNodeWithTag("azkar-arabic").fetchSemanticsNode()
+        composeRule.onNodeWithTag("azkar-translation").fetchSemanticsNode()
+        composeRule.onNodeWithTag("azkar-source").fetchSemanticsNode()
+        composeRule.onNodeWithTag("azkar-note").fetchSemanticsNode()
         if (expectDisputed) {
-            composeRule.onNodeWithTag("azkar-disputed").assertExists()
+            composeRule.onNodeWithTag("azkar-disputed").fetchSemanticsNode()
         }
 
         val instrumentation = InstrumentationRegistry.getInstrumentation()
