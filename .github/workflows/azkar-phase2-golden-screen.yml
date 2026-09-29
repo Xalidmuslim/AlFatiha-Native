@@ -102,6 +102,16 @@ jobs:
           EOF
           chmod +x phase2-instrumentation-diagnostics.sh
 
+      - name: Enable KVM
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+            ls -l /dev/kvm
+          else
+            echo "/dev/kvm is not available"
+            exit 1
+          fi
+
       - name: Diagnose Phase 2 instrumentation crash
         uses: reactivecircus/android-emulator-runner@v2
         with:
