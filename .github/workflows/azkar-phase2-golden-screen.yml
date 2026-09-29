@@ -42,7 +42,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            set -euo pipefail
+            set -eu
             mkdir -p phase2-evidence
             adb shell wm density 160
             adb shell settings put system font_scale 1.0
