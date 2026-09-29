@@ -1,4 +1,70 @@
-plugins { id 'com.android.application' }
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+def azkarGoogleFontsCommit = '23e54b51ddffbc7713c583748e3bd86f62b1fa4a'
+def azkarGeneratedFontRes = layout.buildDirectory.dir('generated/azkar-fonts/res').get().asFile
+def azkarFontSpecs = [
+    [file: 'literata_variable.ttf', path: 'ofl/literata/Literata%5Bopsz%2Cwght%5D.ttf', gitBlobSha: '0a81b4984a4a4eb101e0ddc28babc85bb137efef', size: 955132L],
+    [file: 'pt_serif_regular.ttf', path: 'ofl/ptserif/PT_Serif-Web-Regular.ttf', gitBlobSha: '5310691a999658437d6db608b9447d606598753e', size: 359048L],
+    [file: 'pt_serif_bold.ttf', path: 'ofl/ptserif/PT_Serif-Web-Bold.ttf', gitBlobSha: '0483e59fa9d9669c5e98a2b2a1b7cd059db98888', size: 339996L],
+    [file: 'inter_variable.ttf', path: 'ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf', gitBlobSha: '047c92f6e2212473dc436020afed689527076d44', size: 876576L],
+    [file: 'manrope_variable.ttf', path: 'ofl/manrope/Manrope%5Bwght%5D.ttf', gitBlobSha: '75274da58537d6123b14f2cd0c355ad4681fc2b3', size: 164700L],
+    [file: 'noto_naskh_arabic_variable.ttf', path: 'ofl/notonaskharabic/NotoNaskhArabic%5Bwght%5D.ttf', gitBlobSha: 'a8d2867262dc7bb28492ad746de5d56235735c8b', size: 307592L],
+    [file: 'noto_sans_arabic_variable.ttf', path: 'ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf', gitBlobSha: 'f1d01edce4ebaedcbe9a06fc75fec07b304ec3df', size: 844676L],
+    [file: 'amiri_regular.ttf', path: 'ofl/amiri/Amiri-Regular.ttf', gitBlobSha: '14dfa0d6c80db50460d23daa306a7ac92e74676f', size: 431116L],
+    [file: 'amiri_bold.ttf', path: 'ofl/amiri/Amiri-Bold.ttf', gitBlobSha: '017afa9adb8ce417b08796d22d9204569ad211c7', size: 413480L],
+    [file: 'scheherazade_new_regular.ttf', path: 'ofl/scheherazadenew/ScheherazadeNew-Regular.ttf', gitBlobSha: '80e1be589d5d687b0764904bf5a37627587d9bd6', size: 331504L],
+    [file: 'scheherazade_new_medium.ttf', path: 'ofl/scheherazadenew/ScheherazadeNew-Medium.ttf', gitBlobSha: 'e33ce7b15d1b7979f3db2802a0613607d4f39354', size: 582492L],
+    [file: 'scheherazade_new_semibold.ttf', path: 'ofl/scheherazadenew/ScheherazadeNew-SemiBold.ttf', gitBlobSha: 'f7931e17f91613426229962e854c74e75f6a3a35', size: 589896L],
+    [file: 'scheherazade_new_bold.ttf', path: 'ofl/scheherazadenew/ScheherazadeNew-Bold.ttf', gitBlobSha: '2a00cce1d5b318cc7e5e347375a758a862d6e7eb', size: 593472L],
+]
+
+def gitBlobSha1 = { File file ->
+    def digest = java.security.MessageDigest.getInstance('SHA-1')
+    digest.update(("blob " + file.length() + "\u0000").getBytes('UTF-8'))
+    file.withInputStream { input ->
+        byte[] buffer = new byte[64 * 1024]
+        int read
+        while ((read = input.read(buffer)) != -1) {
+            digest.update(buffer, 0, read)
+        }
+    }
+    digest.digest().encodeHex().toString()
+}
+
+tasks.register('prepareAzkarFonts') {
+    def outputDir = new File(azkarGeneratedFontRes, 'font')
+    outputs.dir(outputDir)
+
+    doLast {
+        outputDir.mkdirs()
+        azkarFontSpecs.each { spec ->
+            File target = new File(outputDir, spec.file)
+            boolean validExisting = target.isFile() &&
+                target.length() == spec.size &&
+                gitBlobSha1(target) == spec.gitBlobSha
+
+            if (!validExisting) {
+                target.delete()
+                String url = "https://raw.githubusercontent.com/google/fonts/${azkarGoogleFontsCommit}/${spec.path}"
+                def connection = new java.net.URL(url).openConnection()
+                connection.connectTimeout = 15000
+                connection.readTimeout = 60000
+                connection.inputStream.withCloseable { input ->
+                    target.withOutputStream { output -> output << input }
+                }
+            }
+
+            if (target.length() != spec.size || gitBlobSha1(target) != spec.gitBlobSha) {
+                target.delete()
+                throw new GradleException("Azkar font verification failed: ${spec.file}")
+            }
+        }
+    }
+}
 
 android {
     namespace 'app.alfatiha.tafsir'
@@ -18,4 +84,40 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    buildFeatures {
+        compose true
+    }
+
+    sourceSets {
+        main {
+            res.srcDir azkarGeneratedFontRes
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('prepareAzkarFonts')
+}
+
+dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.10.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.animation:animation-core'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.core:core-ktx:1.15.0'
+
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+
+    testImplementation 'junit:junit:4.13.2'
 }
