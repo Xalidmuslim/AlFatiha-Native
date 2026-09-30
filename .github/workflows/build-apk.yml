@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, alfatiha-native-content-audit-2026-09-30 ]
   workflow_dispatch:
 
 jobs:
