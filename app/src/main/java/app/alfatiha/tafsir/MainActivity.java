@@ -761,29 +761,103 @@ public class MainActivity extends Activity {
         page.post(()->page.animate().alpha(1f).translationY(0f).setDuration(155).start());
     }
 
+    private TextView chromeText(String value,float size,int color,boolean bold){
+        TextView t=new TextView(this);
+        t.setText(value==null?"":value);
+        // App chrome is intentionally independent from reading font scale and font mode.
+        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(size));
+        t.setTextColor(color);
+        t.setTypeface(Typeface.create("sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));
+        t.setIncludeFontPadding(false);
+        t.setSingleLine(true);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        t.setPadding(0,0,0,0);
+        return t;
+    }
+
+    private Button chromeMiniButton(String label){
+        Button b=new Button(this);
+        b.setText(label);
+        b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp("Aa".equals(label)?15:19));
+        b.setTextColor(ink());
+        b.setAllCaps(false);
+        b.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL));
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(0,0,0,0);
+        b.setMinWidth(0);b.setMinimumWidth(0);
+        b.setMinHeight(0);b.setMinimumHeight(0);
+        b.setBackground(surfaceBg(
+                dark?Color.rgb(43,50,46):Color.rgb(251,249,244),
+                dark?Color.rgb(39,46,42):Color.rgb(247,244,237),
+                15,line()));
+        b.setElevation(dp(1));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(42),dp(42));
+        lp.setMargins(dp(5),0,0,0);
+        b.setLayoutParams(lp);
+        return b;
+    }
+
     private void appTop(){
-        LinearLayout top=newSurface(dark?Color.rgb(36,43,39):Color.rgb(252,250,245),26,12,5);
-        top.setOrientation(LinearLayout.HORIZONTAL); top.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,-2); tlp.setMargins(0,0,0,dp(10));
+        LinearLayout top=newSurface(dark?Color.rgb(36,43,39):Color.rgb(252,250,245),24,10,5);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+
+        // Fixed chrome height: reading font size must never expand this card.
+        LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,dp(78));
+        tlp.setMargins(0,0,0,dp(10));
         page.addView(top,tlp);
 
-        TextView mark=text("ف",26,dark?blend(C_SAGE,Color.WHITE,.48f):C_SAGE,true); mark.setGravity(Gravity.CENTER); mark.setTypeface(Typeface.create("serif",Typeface.BOLD));
-        mark.setBackground(surfaceBg(dark?Color.rgb(45,63,54):Color.rgb(233,241,236),dark?Color.rgb(42,58,50):Color.rgb(242,246,241),16,dark?Color.rgb(67,88,77):Color.rgb(204,219,210)));
-        top.addView(mark,new LinearLayout.LayoutParams(dp(54),dp(54)));
+        TextView mark=chromeText("ف",24,dark?blend(C_SAGE,Color.WHITE,.48f):C_SAGE,true);
+        mark.setGravity(Gravity.CENTER);
+        mark.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        mark.setBackground(surfaceBg(
+                dark?Color.rgb(45,63,54):Color.rgb(233,241,236),
+                dark?Color.rgb(42,58,50):Color.rgb(242,246,241),
+                15,
+                dark?Color.rgb(67,88,77):Color.rgb(204,219,210)));
+        top.addView(mark,new LinearLayout.LayoutParams(dp(46),dp(46)));
 
-        LinearLayout titles=new LinearLayout(this); titles.setOrientation(LinearLayout.VERTICAL); titles.setPadding(dp(12),0,dp(5),0);
-        titles.addView(text("Аль-Фатиха",20,ink(),false));
-        titles.addView(text("Изучение Аль-Фатихи",12.5f,muted(),false));
-        top.addView(titles,new LinearLayout.LayoutParams(0,-2,1));
+        LinearLayout titles=new LinearLayout(this);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        titles.setGravity(Gravity.CENTER_VERTICAL);
+        titles.setPadding(dp(10),0,dp(2),0);
 
-        Button search=miniButton("⌕");search.setContentDescription("Поиск по приложению");search.setOnClickListener(v->renderSearch(true));top.addView(search);
-        Button theme=miniButton(dark?"☀":"☾");
+        TextView title=chromeText("Аль-Фатиха",17,ink(),false);
+        title.setSingleLine(true);
+        title.setTextScaleX(.96f);
+        titles.addView(title,new LinearLayout.LayoutParams(-1,dp(24)));
+
+        TextView sub=chromeText("Изучение",11.2f,muted(),false);
+        sub.setSingleLine(true);
+        titles.addView(sub,new LinearLayout.LayoutParams(-1,dp(18)));
+
+        top.addView(titles,new LinearLayout.LayoutParams(0,dp(52),1));
+
+        Button search=chromeMiniButton("⌕");
+        search.setContentDescription("Поиск по приложению");
+        search.setOnClickListener(v->renderSearch(true));
+        top.addView(search);
+
+        Button theme=chromeMiniButton(dark?"☀":"☾");
         theme.setContentDescription(dark?"Светлая тема":"Тёмная тема");
-        theme.setOnClickListener(v->{Screen s=current;s.scrollY=scroll==null?0:scroll.getScrollY();dark=!dark;prefs.edit().putBoolean("dark",dark).apply();buildShell();restore(s);current.scrollY=s.scrollY;scroll.post(()->scroll.scrollTo(0,s.scrollY));});
+        theme.setOnClickListener(v->{
+            Screen s=current;
+            s.scrollY=scroll==null?0:scroll.getScrollY();
+            dark=!dark;
+            prefs.edit().putBoolean("dark",dark).apply();
+            buildShell();
+            restore(s);
+            current.scrollY=s.scrollY;
+            scroll.post(()->scroll.scrollTo(0,s.scrollY));
+        });
         top.addView(theme);
-        Button aa=miniButton("Aa"); aa.setContentDescription("Настройки текста"); aa.setOnClickListener(v->renderSettings(true)); top.addView(aa);
 
-        if(!"home".equals(current.type)) return;
+        Button aa=chromeMiniButton("Aa");
+        aa.setContentDescription("Настройки текста");
+        aa.setOnClickListener(v->renderSettings(true));
+        top.addView(aa);
+
+        if(!"home".equals(current.type))return;
         addCourseDots();
     }
 
