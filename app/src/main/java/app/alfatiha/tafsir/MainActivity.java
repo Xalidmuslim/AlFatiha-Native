@@ -1269,7 +1269,7 @@ public class MainActivity extends Activity {
 
         LinearLayout box=card(lavSoft());
         box.addView(kicker("ПОЛНЫЙ РАЗБОР СЛОВ",Color.rgb(112,96,134)));
-        box.addView(text("Нажмите на слово или фразу, чтобы открыть подробный смысл, реальный пример и применение. Нажмите повторно — разбор скроется.",13.4f,muted(),false));
+        box.addView(text("Нажмите на слово или фразу, чтобы открыть подробный смысл, учебный пример и применение. Примеры составлены для объяснения и не являются цитатами из источника.",13.4f,muted(),false));
 
         for(int i=0;i<words.length();i++){
             JSONObject w=words.optJSONObject(i);if(w==null)continue;
@@ -1294,7 +1294,7 @@ public class MainActivity extends Activity {
 
             String example=w.optString("example");
             if(!example.isEmpty()){
-                TextView t2=text("Реальный пример",13,Color.rgb(145,104,42),true);t2.setPadding(0,dp(10),0,dp(2));detail.addView(t2);
+                TextView t2=text("Реальный пример · учебное объяснение",13,Color.rgb(145,104,42),true);t2.setPadding(0,dp(10),0,dp(2));detail.addView(t2);
                 detail.addView(text(example,14.4f,ink(),false));
             }
 
@@ -3765,7 +3765,7 @@ public class MainActivity extends Activity {
         clearActiveFlow();clear("profile","",push);currentSection="profile";appTop();
         header("Прогресс обучения","Что уже пройдено, где остаются слабые места и как меняется результат по материалам приложения.");
         KnowledgeAnalytics model=analytics();KnowledgeAnalytics.Summary s=model.summary();final int rating=s.rating;
-        LinearLayout hero=card(panel());hero.addView(kicker("УРОВЕНЬ ЗНАНИЙ",C_SAGE));TextView level=text(s.level,28,ink(),true);level.setGravity(Gravity.CENTER);hero.addView(level);
+        LinearLayout hero=card(panel());hero.addView(kicker("ОСВОЕНИЕ МАТЕРИАЛА",C_SAGE));TextView level=text(s.level,28,ink(),true);level.setGravity(Gravity.CENTER);hero.addView(level);
         View ring=new View(this){
             @Override protected void onDraw(android.graphics.Canvas canvas){
                 super.onDraw(canvas);
@@ -3837,13 +3837,30 @@ public class MainActivity extends Activity {
 
     private void showSectionsDialog(){
         final Dialog d=new Dialog(this);KnowledgeAnalytics model=analytics();KnowledgeAnalytics.Summary s=model.summary();
-        LinearLayout shell=newSurface(dark?Color.rgb(34,41,37):panel(),28,14,8);LinearLayout head=new LinearLayout(this);head.setOrientation(LinearLayout.HORIZONTAL);head.setGravity(Gravity.CENTER_VERTICAL);head.addView(text("Разделы",21,ink(),true),new LinearLayout.LayoutParams(0,-2,1));Button close=outline("×");close.setTextSize(sz(20));close.setMinWidth(0);close.setMinimumWidth(0);head.addView(close,new LinearLayout.LayoutParams(dp(38),dp(38)));shell.addView(head);
-        LinearLayout course=newSurface(sageSoft(),20,13,2);course.addView(kicker("ГЛАВНЫЙ КУРС",C_SAGE));course.addView(text("Осознанное чтение",20,ink(),true));course.addView(text("Разбор, связи аятов и состояние сердца",13,muted(),false));course.addView(text(mindCourseResumeLine(),13.5f,C_SAGE,true));LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.setMargins(0,dp(8),0,dp(8));shell.addView(course,cp);course.setOnClickListener(v->{d.dismiss();continueMindCourse();});
-        LinearLayout prayerCourse=newSurface(sandSoft(),20,13,2);prayerCourse.addView(kicker("ОТДЕЛЬНЫЙ КУРС",Color.rgb(145,104,42)));prayerCourse.addView(text("Тайны молитвы",20,ink(),true));prayerCourse.addView(text("Действия, слова и состояния сердца по порядку намаза",13,muted(),false));prayerCourse.addView(text(prayerSecretResumeLine(),13.5f,Color.rgb(145,104,42),true));LinearLayout.LayoutParams pcp=new LinearLayout.LayoutParams(-1,-2);pcp.setMargins(0,0,0,dp(8));shell.addView(prayerCourse,pcp);prayerCourse.setOnClickListener(v->{d.dismiss();continuePrayerSecrets();});
-        LinearLayout row1=new LinearLayout(this);row1.setOrientation(LinearLayout.HORIZONTAL);LinearLayout learn=sectionDialogCard("Учиться","Все режимы обучения","Пройдено "+s.answered+" из "+s.total,C_SAGE);learn.setOnClickListener(v->{d.dismiss();renderHome(true);});row1.addView(learn,new LinearLayout.LayoutParams(0,dp(112),1));LinearLayout repeat=sectionDialogCard("Повторение","Ошибки и закрепление",model.reviewNowCount()+" заданий сейчас",Color.rgb(145,104,42));repeat.setOnClickListener(v->{d.dismiss();renderRepeatHub(true);});LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(0,dp(112),1);rp.setMargins(dp(7),0,0,0);row1.addView(repeat,rp);shell.addView(row1);
-        LinearLayout row2=new LinearLayout(this);row2.setOrientation(LinearLayout.HORIZONTAL);LinearLayout exam=sectionDialogCard("Экзамен","Проверка знаний",model.lastExamPercent()<0?"Экзамен ещё не проходился":"Последний результат "+model.lastExamPercent()+"%",C_BLUE);exam.setOnClickListener(v->{d.dismiss();renderExamCenter(true);});row2.addView(exam,new LinearLayout.LayoutParams(0,dp(112),1));LinearLayout profile=sectionDialogCard("Профиль","Прогресс и аналитика","Точность "+s.accuracy+"%",Color.rgb(112,96,134));profile.setOnClickListener(v->{d.dismiss();renderProfile(true);});LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(0,dp(112),1);pp.setMargins(dp(7),0,0,0);row2.addView(profile,pp);LinearLayout.LayoutParams r2p=new LinearLayout.LayoutParams(-1,-2);r2p.setMargins(0,dp(7),0,0);shell.addView(row2,r2p);
-        close.setOnClickListener(v->d.dismiss());d.setContentView(shell);d.show();Window w=d.getWindow();if(w!=null){w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));w.setDimAmount(.36f);w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);WindowManager.LayoutParams a=w.getAttributes();a.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;a.width=(int)(getResources().getDisplayMetrics().widthPixels*.96f);a.height=WindowManager.LayoutParams.WRAP_CONTENT;a.y=dp(8);w.setAttributes(a);}
+        LinearLayout shell=newSurface(dark?Color.rgb(34,41,37):panel(),28,14,8);
+        LinearLayout head=new LinearLayout(this);head.setOrientation(LinearLayout.HORIZONTAL);head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(text("Разделы",21,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
+        Button close=outline("×");close.setTextSize(sz(20));close.setMinWidth(0);close.setMinimumWidth(0);head.addView(close,new LinearLayout.LayoutParams(dp(38),dp(38)));shell.addView(head);
+
+        LinearLayout course=newSurface(sageSoft(),20,13,2);course.addView(kicker("ГЛАВНЫЙ КУРС",C_SAGE));course.addView(text("Осознанное чтение",20,ink(),true));course.addView(text(mindCourseResumeLine(),13.5f,C_SAGE,true));
+        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.setMargins(0,dp(8),0,dp(8));shell.addView(course,cp);course.setOnClickListener(v->{d.dismiss();continueMindCourse();});
+
+        LinearLayout prayerCourse=newSurface(sandSoft(),20,13,2);prayerCourse.addView(kicker("ТАЙНЫ МОЛИТВЫ",Color.rgb(145,104,42)));prayerCourse.addView(text("Слова и состояния сердца",20,ink(),true));prayerCourse.addView(text(prayerSecretResumeLine(),13.5f,Color.rgb(145,104,42),true));
+        LinearLayout.LayoutParams pcp=new LinearLayout.LayoutParams(-1,-2);pcp.setMargins(0,0,0,dp(8));shell.addView(prayerCourse,pcp);prayerCourse.setOnClickListener(v->{d.dismiss();continuePrayerSecrets();});
+
+        LinearLayout row1=new LinearLayout(this);row1.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout search=sectionDialogCard("Поиск","Слова и смыслы","По обоим курсам",Color.rgb(112,96,134));search.setOnClickListener(v->{d.dismiss();renderSearch(true);});row1.addView(search,new LinearLayout.LayoutParams(0,dp(112),1));
+        LinearLayout repeat=sectionDialogCard("Повторение","Ошибки и закрепление",model.reviewNowCount()+" сейчас",C_SAGE);repeat.setOnClickListener(v->{d.dismiss();renderRepeatHub(true);});LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(0,dp(112),1);rp.setMargins(dp(7),0,0,0);row1.addView(repeat,rp);shell.addView(row1);
+
+        LinearLayout row2=new LinearLayout(this);row2.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout exam=sectionDialogCard("Экзамен","Итоговые проверки",model.lastExamPercent()<0?"Ещё не проходился":"Последний "+model.lastExamPercent()+"%",C_BLUE);exam.setOnClickListener(v->{d.dismiss();renderExamCenter(true);});row2.addView(exam,new LinearLayout.LayoutParams(0,dp(112),1));
+        LinearLayout profile=sectionDialogCard("Прогресс","Результаты по материалу","Точность "+s.accuracy+"%",Color.rgb(112,96,134));profile.setOnClickListener(v->{d.dismiss();renderProfile(true);});LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(0,dp(112),1);pp.setMargins(dp(7),0,0,0);row2.addView(profile,pp);
+        LinearLayout.LayoutParams r2p=new LinearLayout.LayoutParams(-1,-2);r2p.setMargins(0,dp(7),0,0);shell.addView(row2,r2p);
+
+        close.setOnClickListener(v->d.dismiss());d.setContentView(shell);d.show();
+        Window w=d.getWindow();if(w!=null){w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));w.setDimAmount(.36f);w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);WindowManager.LayoutParams a=w.getAttributes();a.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;a.width=(int)(getResources().getDisplayMetrics().widthPixels*.96f);a.height=WindowManager.LayoutParams.WRAP_CONTENT;a.y=dp(8);w.setAttributes(a);}
     }
+
 
     private LinearLayout sectionDialogCard(String title,String sub,String detail,int accent){LinearLayout c=newSurface(panel(),18,11,1);c.addView(text(title,16,ink(),true));c.addView(text(sub,11.8f,muted(),false));c.addView(text(detail,11.8f,accent,true));return c;}
 
