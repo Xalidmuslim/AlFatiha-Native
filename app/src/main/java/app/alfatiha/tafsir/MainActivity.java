@@ -1049,6 +1049,15 @@ public class MainActivity extends Activity {
         Button eb=action("Разобрать ошибки",C_BAD);eb.setOnClickListener(v->renderPrayerErrorsHub(true));errs.addView(eb);
         errs.setOnClickListener(v->renderPrayerErrorsHub(true));
 
+        int qa=prayerCheckAnsweredCount(),qt=arr("prayer_check.json").length();
+        LinearLayout check=card(lavSoft());
+        check.addView(kicker("ПРОВЕРКА ПОНИМАНИЯ",Color.rgb(112,96,134)));
+        check.addView(text("Что происходит с сердцем?",20,ink(),true));
+        check.addView(text("12 ситуационных вопросов: распознать потерю смысла, выбрать правильное внутреннее состояние и понять почему.",14,muted(),false));
+        check.addView(text("Пройдено "+qa+" из "+qt,13,Color.rgb(112,96,134),true));
+        Button cb=action(qa>0?"Продолжить проверку":"Начать проверку",Color.rgb(112,96,134));cb.setOnClickListener(v->continuePrayerCheck());check.addView(cb);
+        check.setOnClickListener(v->continuePrayerCheck());
+
         int seen=seenPrayerSecretCount(),total=data.length();
         LinearLayout progress=card(sandSoft());
         progress.addView(kicker("ПРОГРЕСС",Color.rgb(145,104,42)));
@@ -1149,6 +1158,131 @@ public class MainActivity extends Activity {
         Button next=action("Выбрать мысль для следующего намаза",C_SAGE);
         int idx=Math.max(0,Math.min(arr("prayer_secrets.json").length()-1,prefs.getInt("prayer_focus_idx",0)));
         next.setOnClickListener(v->renderPrayerFocus(idx,true));page.addView(next);
+    }
+
+    private int prayerCheckAnsweredCount(){
+        return prefs.getStringSet("prayer_check_answered",new HashSet<>()).size();
+    }
+
+    private int prayerCheckCorrectCount(){
+        return prefs.getStringSet("prayer_check_correct",new HashSet<>()).size();
+    }
+
+    private int nextPrayerCheckIndex(){
+        JSONArray a=arr("prayer_check.json");
+        Set<String> answered=prefs.getStringSet("prayer_check_answered",new HashSet<>());
+        for(int i=0;i<a.length();i++){
+            JSONObject q=a.optJSONObject(i);if(q!=null&&!answered.contains(q.optString("id")))return i;
+        }
+        return a.length()>0?Math.max(0,Math.min(a.length()-1,prefs.getInt("prayer_check_last_idx",0))):0;
+    }
+
+    private void continuePrayerCheck(){
+        JSONArray a=arr("prayer_check.json");if(a.length()==0){toast("Нет данных");return;}
+        if(prayerCheckAnsweredCount()>=a.length())renderPrayerCheckResult(true);
+        else renderPrayerCheck(nextPrayerCheckIndex(),true);
+    }
+
+    private void recordPrayerCheck(JSONObject q,boolean ok,int idx){
+        HashSet<String> answered=new HashSet<>(prefs.getStringSet("prayer_check_answered",new HashSet<>()));
+        HashSet<String> correct=new HashSet<>(prefs.getStringSet("prayer_check_correct",new HashSet<>()));
+        String id=q.optString("id",String.valueOf(idx));
+        answered.add(id);
+        if(ok)correct.add(id);else correct.remove(id);
+        prefs.edit().putStringSet("prayer_check_answered",answered).putStringSet("prayer_check_correct",correct).putInt("prayer_check_last_idx",idx).apply();
+    }
+
+    private void renderPrayerCheck(int idx,boolean push){
+        JSONArray a=arr("prayer_check.json");if(a.length()==0)return;
+        if(idx<0||idx>=a.length())idx=0;
+        clear("prayerCheck",String.valueOf(idx),push);currentSection="prayerSecrets";appTop();
+        JSONObject q=a.optJSONObject(idx);if(q==null)return;
+
+        LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.HORIZONTAL);meta.setGravity(Gravity.CENTER_VERTICAL);
+        meta.addView(kicker(q.optString("format","ПРОВЕРКА"),Color.rgb(112,96,134)),new LinearLayout.LayoutParams(0,-2,1));
+        meta.addView(text((idx+1)+" / "+a.length(),13,muted(),true));
+        page.addView(meta);
+        LinearLayout.LayoutParams plp=new LinearLayout.LayoutParams(-1,dp(8));plp.setMargins(0,dp(8),0,dp(10));
+        page.addView(progressBar((idx+1)*100/a.length(),Color.rgb(112,96,134)),plp);
+
+        LinearLayout qc=card(panel());
+        qc.addView(text(q.optString("question"),20.5f,ink(),false));
+        JSONArray opts=q.optJSONArray("options");
+        final int correct=q.optInt("correct",-1);
+        ArrayList<ChoiceView> choices=new ArrayList<>();
+        final boolean[] locked={false};
+
+        for(int i=0;i<(opts==null?0:opts.length());i++){
+            ChoiceView cv=choice(i,opts.optString(i),false);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(6),0,dp(6));qc.addView(cv.root,lp);
+            choices.add(cv);final int ix=i;final int questionIdx=idx;
+            cv.root.setOnClickListener(v->{
+                if(locked[0])return;
+                locked[0]=true;
+                boolean ok=ix==correct;
+                for(ChoiceView x:choices){
+                    renderChoice(x,x.index==ix,x.index==correct,x.index==ix&&!ok);
+                    x.root.setOnClickListener(null);
+                }
+                recordPrayerCheck(q,ok,questionIdx);
+                addPrayerCheckExplanation(q,ix,correct,questionIdx,a.length());
+            });
+        }
+        page.addView(qc);
+    }
+
+    private void addPrayerCheckExplanation(JSONObject q,int selected,int correct,int idx,int total){
+        LinearLayout result=card(selected==correct?(dark?Color.rgb(36,60,48):C_GOOD_BG):(dark?Color.rgb(68,42,42):C_BAD_BG));
+        result.addView(kicker(selected==correct?"ВЕРНО":"НУЖНО УТОЧНИТЬ",selected==correct?C_GOOD:C_BAD));
+        JSONArray opts=q.optJSONArray("options"),ex=q.optJSONArray("explanations");
+        if(opts!=null&&correct>=0&&correct<opts.length())result.addView(text("Правильный ответ: "+opts.optString(correct),16,ink(),true));
+
+        LinearLayout details=card(panel());
+        details.addView(kicker("РАЗБОР ВСЕХ ВАРИАНТОВ",C_BLUE));
+        if(opts!=null){
+            for(int i=0;i<opts.length();i++){
+                LinearLayout item=newSurface(i==correct?sageSoft():panel(),16,12,1);
+                item.addView(text((i==correct?"✓ ":"")+(i+1)+". "+opts.optString(i),14.8f,ink(),i==correct));
+                if(ex!=null&&i<ex.length())item.addView(text(ex.optString(i),13.6f,muted(),false));
+                LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(5),0,dp(5));details.addView(item,lp);
+            }
+        }
+
+        String src=q.optString("source");
+        if(!src.isEmpty())sectionCard("Источник",src,panel(),C_SAGE);
+
+        Button next=action(idx<total-1?"Следующий вопрос":"Показать результат",Color.rgb(112,96,134));
+        final int ni=idx+1;
+        next.setOnClickListener(v->{if(ni<total)renderPrayerCheck(ni,true);else renderPrayerCheckResult(true);});
+        page.addView(next);
+    }
+
+    private void renderPrayerCheckResult(boolean push){
+        JSONArray a=arr("prayer_check.json");
+        clear("prayerCheckResult","",push);currentSection="prayerSecrets";appTop();
+        int answered=prayerCheckAnsweredCount(),correct=prayerCheckCorrectCount(),total=a.length();
+        int pct=answered==0?0:correct*100/answered;
+        header("Проверка понимания","Результат нужен не для оценки молитвы, а чтобы понять, какие смыслы курса ещё стоит повторить.");
+        LinearLayout score=card(sageSoft());
+        score.addView(kicker("ИТОГ",C_SAGE));
+        score.addView(text(correct+" из "+answered+" верно",27,ink(),true));
+        score.addView(text("Точность по отвеченным вопросам: "+pct+"%",14,muted(),false));
+
+        if(answered<total){
+            Button cont=action("Продолжить · осталось "+(total-answered),Color.rgb(112,96,134));
+            cont.setOnClickListener(v->renderPrayerCheck(nextPrayerCheckIndex(),true));page.addView(cont);
+        }else{
+            LinearLayout done=card(panel());
+            done.addView(text("Все "+total+" ситуаций пройдены.",17,ink(),true));
+            done.addView(text("Если какой-то вопрос оказался трудным, лучше вернуться к соответствующему этапу курса, а не просто запоминать правильную кнопку.",13.8f,muted(),false));
+        }
+
+        Button errors=outline("Повторить «Ошибки сердца»");
+        errors.setOnClickListener(v->renderPrayerErrorsHub(true));page.addView(errors,new LinearLayout.LayoutParams(-1,dp(54)));
+
+        Button reset=outline("Пройти проверку заново");
+        reset.setOnClickListener(v->{prefs.edit().remove("prayer_check_answered").remove("prayer_check_correct").remove("prayer_check_last_idx").apply();renderPrayerCheck(0,true);});
+        page.addView(reset,new LinearLayout.LayoutParams(-1,dp(54)));
     }
 
     private int seenPrayerErrorCount(){
@@ -3594,7 +3728,7 @@ public class MainActivity extends Activity {
     private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("quiz"))renderQuizHub(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else renderHome(true);}
     private void goBack(){if(!history.isEmpty()){Screen s=history.pop();restore(s);}else renderHome(false);}
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerPracticeHub":renderPrayerPracticeHub(false);break;case"prayerBefore":renderPrayerBefore(false);break;case"prayerFocus":renderPrayerFocus(Integer.parseInt(s.arg),false);break;case"prayerAfter":renderPrayerAfter(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindHeart(Integer.parseInt(s.arg),false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindPractice":String[]p=s.arg.split(":");renderMindPractice(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindFocus":renderMindFocus(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerPracticeHub":renderPrayerPracticeHub(false);break;case"prayerBefore":renderPrayerBefore(false);break;case"prayerFocus":renderPrayerFocus(Integer.parseInt(s.arg),false);break;case"prayerAfter":renderPrayerAfter(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindHeart(Integer.parseInt(s.arg),false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindPractice":String[]p=s.arg.split(":");renderMindPractice(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindFocus":renderMindFocus(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @Override public void onBackPressed(){goBack();}
 
