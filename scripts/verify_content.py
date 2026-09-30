@@ -82,7 +82,41 @@ for name in source_datasets:
         if not ok:
             fail(f"{name}[{i}]: missing source")
 
-# 5. Removed UX patterns must not reappear in user-visible code/data.
+# 5. Audited core sources must not fall back to vague placeholders.
+audited_core = [
+    "mind_qayyim_deep.json", "mind_connections.json", "mind_mistakes.json",
+    "mind_life.json", "mind_check.json", "mind_exam.json",
+    "prayer_secrets.json", "prayer_heart_errors.json", "prayer_check.json",
+]
+vague_source_phrases = [
+    "материалы курса", "Завк ас-саля", "смысл построен",
+    "практический вывод курса", "общий замысел",
+]
+for name in audited_core:
+    raw = (ASSETS / name).read_text(encoding="utf-8")
+    low = raw.lower()
+    for phrase in vague_source_phrases:
+        if phrase.lower() in low:
+            fail(f"{name}: vague source phrase remains: {phrase!r}")
+
+# 6. Single-choice checks should not teach a fixed answer position.
+for name in ["mind_check.json", "mind_exam.json", "prayer_check.json"]:
+    counts = [0, 0, 0, 0]
+    total_single = 0
+    for item in parsed.get(name, []):
+        if not isinstance(item, dict):
+            continue
+        answer = item.get("a", item.get("correct"))
+        opts = item.get("opts", item.get("options"))
+        if isinstance(answer, int) and isinstance(opts, list) and len(opts) == 4:
+            if 0 <= answer < 4:
+                counts[answer] += 1
+                total_single += 1
+    if total_single >= 8 and max(counts) > (total_single + 1) // 2:
+        fail(f"{name}: correct-answer position is too predictable: {counts}")
+
+# 7. Removed UX patterns must not reappear in user-visible code/data.
+
 
 forbidden = [
     "Одна мысль на намаз",
@@ -97,7 +131,7 @@ for path in search_files:
         if phrase in text:
             fail(f"{path.relative_to(ROOT)}: stale UX phrase {phrase!r}")
 
-# 6. Literal screens passed to clear() must be restorable via Back.
+# 8. Literal screens passed to clear() must be restorable via Back.
 src = MAIN.read_text(encoding="utf-8")
 cleared = set(re.findall(r'clear\("([A-Za-z0-9_]+)"', src))
 restored = set(re.findall(r'case"([A-Za-z0-9_]+)"\s*:', src))
@@ -107,7 +141,7 @@ missing_restore = sorted(cleared - restored - exempt)
 if missing_restore:
     fail("MainActivity.java: screens missing from restore(): " + ", ".join(missing_restore))
 
-# 7. Deleted prayer practice screens must stay deleted.
+# 9. Deleted prayer practice screens must stay deleted.
 for symbol in ["renderPrayerPracticeHub", "renderPrayerBefore", "renderPrayerFlowPractice", "renderPrayerAfter", "renderMindPractice"]:
     if symbol in src:
         fail(f"MainActivity.java: stale removed symbol {symbol}")
