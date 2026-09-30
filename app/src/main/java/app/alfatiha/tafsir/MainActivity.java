@@ -1034,11 +1034,6 @@ public class MainActivity extends Activity {
         preface.addView(text("Молитва как чтение, стояние, руку‘, суджуд и зикр — и какое поклонение сердца соответствует каждому из этих состояний.",14,muted(),false));
         preface.setOnClickListener(v->renderPrayerIntro(true));
 
-        LinearLayout intro=card(sageSoft());
-        intro.addView(kicker("КАК ПРОХОДИТЬ КУРС",C_SAGE));
-        intro.addView(text("Не пытайтесь удержать все смыслы сразу",20,ink(),true));
-        intro.addView(text("Каждый шаг даёт одну главную мысль для ближайшего намаза. Цель — постепенно связать движение языка и тела с поклонением сердца.",14.2f,muted(),false));
-
         LinearLayout practice=card(blueSoft());
         practice.addView(kicker("ПРАКТИКА",C_BLUE));
         practice.addView(text("Тренировка присутствия сердца",20,ink(),true));
