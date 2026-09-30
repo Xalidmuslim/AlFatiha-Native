@@ -1000,6 +1000,15 @@ public class MainActivity extends Activity {
         String sub=o.optString("subtitle");if(!sub.isEmpty())b.append("\n").append(sub);
         String actionText=o.optString("action");if(!actionText.isEmpty())b.append("\n\nДействие:\n").append(actionText);
         String words=o.optString("words");if(!words.isEmpty())b.append("\n\nСлова:\n").append(words);
+        JSONArray wm=o.optJSONArray("word_map");
+        if(wm!=null&&wm.length()>0){
+            b.append("\n\nРазбор слов:");
+            for(int i=0;i<wm.length();i++){
+                JSONObject w=wm.optJSONObject(i);if(w==null)continue;
+                b.append("\n• ").append(w.optString("phrase")).append(" — ").append(w.optString("meaning"));
+                String h=w.optString("heart");if(!h.isEmpty())b.append("\n  Сердце: ").append(h);
+            }
+        }
         String meaning=o.optString("meaning");if(!meaning.isEmpty())b.append("\n\nСмысл:\n").append(meaning);
         String heart=o.optString("heart");if(!heart.isEmpty())b.append("\n\nСостояние сердца:\n").append(heart);
         String calls=o.optString("calls_to");if(!calls.isEmpty())b.append("\n\nК чему призывает:\n").append(calls);
@@ -1037,6 +1046,42 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void addPrayerWordMap(JSONObject o){
+        JSONArray words=o.optJSONArray("word_map");
+        if(words==null||words.length()==0)return;
+        LinearLayout box=card(lavSoft());
+        box.addView(kicker("ПОСЛОВНЫЙ РАЗБОР",Color.rgb(112,96,134)));
+        box.addView(text("Не переводите всё заново во время намаза. Разберите смысл заранее, чтобы знакомые слова сами возвращали сердце к нужному состоянию.",13.3f,muted(),false));
+        Button toggle=outline("Разобрать слова глубже   ↓");toggle.setTextSize(sz(13.5f));box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
+        LinearLayout holder=newSurface(dark?Color.rgb(44,40,49):Color.rgb(249,247,251),18,13,1);holder.setVisibility(View.GONE);
+        for(int i=0;i<words.length();i++){
+            JSONObject w=words.optJSONObject(i);if(w==null)continue;
+            LinearLayout item=newSurface(panel(),16,12,1);
+            item.addView(text(w.optString("phrase"),17,ink(),true));
+            item.addView(text(w.optString("meaning"),14.2f,ink(),false));
+            String heart=w.optString("heart");
+            if(!heart.isEmpty()){
+                TextView h=text("Сердце: "+heart,13.7f,dark?blend(C_SAGE,Color.WHITE,.35f):C_SAGE,false);
+                h.setPadding(0,dp(6),0,0);item.addView(h);
+            }
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(5),0,dp(5));holder.addView(item,lp);
+        }
+        box.addView(holder);
+        toggle.setOnClickListener(v->toggleInline(holder,toggle,"Разобрать слова глубже   ↓","Скрыть пословный разбор   ↑"));
+    }
+
+    private void addPrayerEvidence(JSONObject o){
+        JSONArray ev=o.optJSONArray("evidence");
+        if(ev==null||ev.length()==0)return;
+        LinearLayout box=card(panel());
+        box.addView(kicker("ПРОВЕРКА ФОРМУЛЫ",C_BLUE));
+        Button toggle=outline("Хадисная опора и примечания   ↓");toggle.setTextSize(sz(13.3f));box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
+        LinearLayout holder=newSurface(blueSoft(),18,13,1);holder.setVisibility(View.GONE);
+        for(int i=0;i<ev.length();i++)holder.addView(text("• "+ev.optString(i),13.8f,ink(),false));
+        box.addView(holder);
+        toggle.setOnClickListener(v->toggleInline(holder,toggle,"Хадисная опора и примечания   ↓","Скрыть источники   ↑"));
+    }
+
     private void renderPrayerSecretLesson(int idx,boolean push){
         JSONArray data=arr("prayer_secrets.json");
         if(data.length()==0)return;
@@ -1054,6 +1099,7 @@ public class MainActivity extends Activity {
         sectionCard("Что происходит",o.optString("action"),blueSoft(),C_BLUE);
         String words=o.optString("words");
         if(!words.isEmpty())sectionCard("Слова и смысл",words,panel(),Color.rgb(112,96,134));
+        addPrayerWordMap(o);
         sectionCard("Внутренний смысл",o.optString("meaning"),sandSoft(),Color.rgb(145,104,42));
         sectionCard("Состояние сердца",o.optString("heart"),sageSoft(),C_SAGE);
         sectionCard("К чему это призывает",o.optString("calls_to"),panel(),Color.rgb(112,96,134));
@@ -1065,7 +1111,8 @@ public class MainActivity extends Activity {
         today.addView(text("Возьмите только эту одну мысль. Когда наступит соответствующий момент молитвы — верните к ней сердце.",13.2f,muted(),false));
 
         sectionCard("Типичная потеря смысла",o.optString("mistake"),dark?Color.rgb(61,43,43):C_BAD_BG,C_BAD);
-        sectionCard("Источник",o.optString("source"),panel(),C_SAGE);
+        sectionCard("Основной источник",o.optString("source"),panel(),C_SAGE);
+        addPrayerEvidence(o);
 
         if(o.optBoolean("open_fatiha",false)){
             Button f=action("Открыть полный разбор Аль-Фатихи",C_SAGE);
