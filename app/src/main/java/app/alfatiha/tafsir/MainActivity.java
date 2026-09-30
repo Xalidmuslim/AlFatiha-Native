@@ -629,6 +629,7 @@ public class MainActivity extends Activity {
 
 
     private boolean isMindMode(String m){return "mind_quick".equals(m)||"mind_exam".equals(m);}
+    private boolean isPrayerQuizMode(String m){return "prayer_medium".equals(m)||"prayer_hard".equals(m);}
     private JSONArray quickMindArray(){JSONArray all=arr("mind_exam.json"),out=new JSONArray();Set<Integer> legacy=new HashSet<>(Arrays.asList(1,2,3,4,5,6,7,8,9,11,12,13,14,15,20));for(int i=0;i<all.length();i++){JSONObject q=all.optJSONObject(i);if(q!=null&&legacy.contains(q.optInt("id",-1)))out.put(q);}JSONArray extra=arr("mind_check.json");for(int i=0;i<extra.length();i++)out.put(extra.opt(i));return out;}
     private int savedSetCount(String key){return prefs.getStringSet(key,new HashSet<>()).size();}
     private void markSavedSet(String key,String value){HashSet<String>s=new HashSet<>(prefs.getStringSet(key,new HashSet<>()));s.add(value);prefs.edit().putStringSet(key,s).apply();}
@@ -683,6 +684,15 @@ public class MainActivity extends Activity {
             if("heart".equals(cat))return KnowledgeAnalytics.AREA_HEART;
             if("practice".equals(cat))return KnowledgeAnalytics.AREA_PRACTICE;
             if("errors".equals(cat))return KnowledgeAnalytics.AREA_ERRORS;
+            return KnowledgeAnalytics.AREA_MEANING;
+        }
+        if(isPrayerQuizMode(mode)){
+            String type=q.optString("error_type");
+            if("evidence_strength".equals(type))return KnowledgeAnalytics.AREA_HADITH;
+            if("terminology".equals(type))return KnowledgeAnalytics.AREA_ARABIC;
+            if("heart_state".equals(type))return KnowledgeAnalytics.AREA_HEART;
+            if("practice".equals(type))return KnowledgeAnalytics.AREA_PRACTICE;
+            if("verse_links".equals(type))return KnowledgeAnalytics.AREA_CONNECTIONS;
             return KnowledgeAnalytics.AREA_MEANING;
         }
         if("hadith".equals(mode))return KnowledgeAnalytics.AREA_HADITH;
@@ -1106,6 +1116,12 @@ public class MainActivity extends Activity {
         gap(12);TextView prayer=text("САМА МОЛИТВА",12,C_SAGE,true);prayer.setLetterSpacing(.07f);add(prayer);
         for(int i=3;i<data.length();i++){JSONObject o=data.optJSONObject(i);if(o==null)continue;final int idx=i;int accent=i%3==0?C_SAGE:i%3==1?C_BLUE:Color.rgb(112,96,134);courseStep(String.format(Locale.ROOT,"%02d",i),o.optString("title"),o.optString("subtitle"),accent,()->renderPrayerSecretLesson(idx,true),false);}
 
+        LinearLayout quiz=card(lavSoft());
+        quiz.addView(kicker("ВИКТОРИНА",Color.rgb(112,96,134)));
+        quiz.addView(text("Средний и сложный уровни",20,ink(),true));
+        quiz.addView(text((modeCount("prayer_medium")+modeCount("prayer_hard"))+" вопросов · в сложном уровне варианты намеренно близкие и требуют различать источник, смысл и границу вывода.",14,muted(),false));
+        Button qb=action("Открыть викторину",Color.rgb(112,96,134));qb.setOnClickListener(v->renderPrayerQuizHub(true));quiz.addView(qb);
+
         LinearLayout errs=card(dark?Color.rgb(61,43,43):C_BAD_BG);
         errs.addView(kicker("ОШИБКИ СЕРДЦА",C_BAD));
         errs.addView(text("Когда тело молится, а смысл теряется",20,ink(),true));
@@ -1118,6 +1134,17 @@ public class MainActivity extends Activity {
         check.addView(text("Что происходит с сердцем?",20,ink(),true));
         check.addView(text("12 ситуационных вопросов после изучения материала · пройдено "+qa+" из "+qt,14,muted(),false));
         Button cb=action(qa>0?"Продолжить проверку":"Начать проверку",C_BLUE);cb.setOnClickListener(v->continuePrayerCheck());check.addView(cb);
+    }
+
+    private void renderPrayerQuizHub(boolean push){
+        clearActiveFlow();clear("prayerQuizHub","",push);currentSection="prayerSecrets";appTop();
+        header("Викторина · Тайны молитвы","Два уровня. Средний проверяет устойчивое понимание уроков; сложный — тонкие различия между прямым доказательством, разбором Ибн аль-Каййима и учебным применением.");
+        modeCard("СРЕДНИЙ","Средний уровень",modeCount("prayer_medium")+" вопросов · слова, положения, хадисы и состояние сердца","prayer_medium",C_SAGE,sageSoft());
+        modeCard("СЛОЖНЫЙ","Сложный уровень",modeCount("prayer_hard")+" вопросов · близкие варианты без очевидных подсказок","prayer_hard",Color.rgb(112,96,134),lavSoft());
+
+        LinearLayout note=card(panel());
+        note.addView(kicker("ПРИНЦИП СЛОЖНОСТИ",C_BLUE));
+        note.addView(text("Правильный ответ определяется точностью: что прямо установлено Кораном или хадисом, что является смысловым разбором учёного, а что — учебным примером приложения. Хорошо звучащий, но более широкий вывод считается неточным.",13.8f,muted(),false));
     }
 
 
@@ -2224,13 +2251,14 @@ public class MainActivity extends Activity {
     }
 
     private void renderQuizHub(boolean push){
-        clearActiveFlow();clear("quizHub","",push);currentSection="quiz";appTop();header("Викторина по Аль-Фатихе","Проверка знаний по тафсиру: от классических вопросов до тонких экспертных различий.");
+        clearActiveFlow();clear("quizHub","",push);currentSection="quiz";appTop();header("Викторина по Аль-Фатихе","Три уровня сложности плюс отдельные режимы: от закрепления смысла до тонких различий в тафсире и доказательствах.");
         modeCard("БАЗОВЫЙ","Классическая викторина",modeCount("classic")+" вопросов · 4 близких варианта","classic",C_BLUE,blueSoft());
+        modeCard("СРЕДНИЙ","Средний уровень",modeCount("alfatiha_medium")+" вопросов · смысл, связи аятов и хадисные опоры","alfatiha_medium",C_SAGE,sageSoft());
         modeCard("2 ИЗ 5","Два правильных",modeCount("multi")+" заданий · выбрать все верные варианты","multi",C_SAGE,sageSoft());
         modeCard("СОПОСТАВЛЕНИЕ","Термин ↔ смысл",modeCount("match")+" заданий","match",Color.rgb(112,96,134),lavSoft());
         modeCard("ХАДИС → СМЫСЛ","Хадис → смысл Аль-Фатихи",modeCount("hadith")+" заданий","hadith",Color.rgb(150,111,80),sandSoft());
         modeCard("БЕЗ ВАРИАНТОВ","Самостоятельный ответ",modeCount("free")+" заданий","free",Color.rgb(91,123,109),sageSoft());
-        modeCard("АНАЛИЗ","Эксперт",modeCount("expert")+" сложных вопросов","expert",Color.rgb(82,104,125),blueSoft());
+        modeCard("СЛОЖНЫЙ","Эксперт",modeCount("expert")+" сложных вопросов · близкие формулировки","expert",Color.rgb(82,104,125),blueSoft());
     }
 
     private int modeCount(String mode){return quizArray(mode).length();}
@@ -2240,7 +2268,7 @@ public class MainActivity extends Activity {
         int saved=nextUnanswered(mode);c.addView(text(saved<0?"Все задания пройдены":"Продолжить с задания "+(saved+1),12.5f,muted(),false));Button b=action(saved<0?"Все вопросы":"Продолжить",color);b.setOnClickListener(v->continueQuiz(mode));c.addView(b);c.setOnClickListener(v->continueQuiz(mode));
     }
 
-    private JSONArray quizArray(String mode){switch(mode){case"classic":return arr("quiz_data.json");case"multi":return arr("multi_data.json");case"match":return arr("match_data.json");case"hadith":return arr("hadith_data.json");case"free":return arr("free_data.json");case"expert":return arr("expert_data.json");case"mind_quick":return quickMindArray();case"mind_exam":return arr("mind_exam.json");case"mind_mistakes":return arr("mind_mistakes.json");case"mind_life":return arr("mind_life.json");default:return new JSONArray();}}
+    private JSONArray quizArray(String mode){switch(mode){case"classic":return arr("quiz_data.json");case"alfatiha_medium":return arr("alfatiha_medium.json");case"multi":return arr("multi_data.json");case"match":return arr("match_data.json");case"hadith":return arr("hadith_data.json");case"free":return arr("free_data.json");case"expert":return arr("expert_data.json");case"prayer_medium":return arr("prayer_medium.json");case"prayer_hard":return arr("prayer_hard.json");case"mind_quick":return quickMindArray();case"mind_exam":return arr("mind_exam.json");case"mind_mistakes":return arr("mind_mistakes.json");case"mind_life":return arr("mind_life.json");default:return new JSONArray();}}
 
     private void renderNativeQuiz(String mode,int idx,boolean push){
         JSONArray a=quizArray(mode);
@@ -2258,7 +2286,7 @@ public class MainActivity extends Activity {
                 push
         );
 
-        currentSection=isMindMode(mode)?"mind":"quiz";
+        currentSection=isPrayerQuizMode(mode)?"prayerSecrets":isMindMode(mode)?"mind":"quiz";
 
         SharedPreferences.Editor qe=
                 prefs.edit().putInt("idx_"+mode,idx);
@@ -3061,7 +3089,7 @@ public class MainActivity extends Activity {
         );
     }
 
-    private String modeTitle(String m){switch(m){case"classic":return"Классическая викторина";case"multi":return"Два правильных";case"match":return"Сопоставление";case"hadith":return"Хадис → смысл";case"free":return"Без вариантов";case"expert":return"Эксперт";case"mind_quick":return"Проверка понимания";case"mind_exam":return"Итоговый экзамен";case"mind_mistakes":return"Ошибки осознанного чтения";case"mind_life":return"Жизненные ситуации";}return"Викторина";}
+    private String modeTitle(String m){switch(m){case"classic":return"Классическая викторина";case"alfatiha_medium":return"Аль-Фатиха · средний";case"multi":return"Два правильных";case"match":return"Сопоставление";case"hadith":return"Хадис → смысл";case"free":return"Без вариантов";case"expert":return"Эксперт";case"prayer_medium":return"Тайны молитвы · средний";case"prayer_hard":return"Тайны молитвы · сложный";case"mind_quick":return"Проверка понимания";case"mind_exam":return"Итоговый экзамен";case"mind_mistakes":return"Ошибки осознанного чтения";case"mind_life":return"Жизненные ситуации";}return"Викторина";}
     private String qText(JSONObject q,String mode){if(mode.equals("hadith"))return q.optString("hadith")+"\n\n"+q.optString("question");if(isMindMode(mode))return q.optString("q");return q.optString("question");}
 
     private JSONArray optionsAsArray(JSONObject q,String mode){
@@ -3707,7 +3735,7 @@ public class MainActivity extends Activity {
         toast("Материал этой версии не найден");
     }
 
-    private static final String[] QUIZ_MODES={"classic","multi","match","hadith","free","expert","mind_quick","mind_exam"};
+    private static final String[] QUIZ_MODES={"classic","alfatiha_medium","multi","match","hadith","free","expert","prayer_medium","prayer_hard","mind_quick","mind_exam"};
 
     private int nextUnanswered(String mode){
         JSONArray data=quizArray(mode);
@@ -3874,8 +3902,21 @@ public class MainActivity extends Activity {
     private int parseInt(String value){try{return Integer.parseInt(value);}catch(Exception e){return 0;}}
 
     private void renderQuizResult(String mode,boolean push){
-        int correct=prefs.getInt("quiz_result_correct",0),total=prefs.getInt("quiz_result_total",0),first=prefs.getInt("quiz_result_first",0);boolean repeated=prefs.getBoolean("quiz_result_repeat",false);int pct=total==0?0:correct*100/total;
-        clear("quizResult",mode,push);currentSection="quiz";appTop();header("Результат · "+modeTitle(mode),"Текущая попытка учитывается в общем профиле и очереди повторения.");LinearLayout hero=card(blueSoft());TextView score=text(pct+"%",44,C_BLUE,true);score.setGravity(Gravity.CENTER);hero.addView(score);TextView count=text(correct+" верно из "+total,20,ink(),true);count.setGravity(Gravity.CENTER);hero.addView(count);if(repeated){TextView old=text("Первая завершённая попытка: "+first+"%",13.5f,muted(),false);old.setGravity(Gravity.CENTER);hero.addView(old);}addGlobalResultCard(total-correct);if(total-correct>0){Button repeat=action("Повторить ошибки",C_SAGE);repeat.setOnClickListener(v->repeatMistakes());page.addView(repeat);}Button profile=outline("Открыть профиль");profile.setOnClickListener(v->renderProfile(true));page.addView(profile,new LinearLayout.LayoutParams(-1,dp(50)));Button learn=outline("Продолжить обучение");learn.setOnClickListener(v->renderHome(true));page.addView(learn,new LinearLayout.LayoutParams(-1,dp(50)));
+        int correct=prefs.getInt("quiz_result_correct",0),total=prefs.getInt("quiz_result_total",0),first=prefs.getInt("quiz_result_first",0);
+        boolean repeated=prefs.getBoolean("quiz_result_repeat",false),prayerMode=isPrayerQuizMode(mode);
+        int pct=total==0?0:correct*100/total;
+        clear("quizResult",mode,push);currentSection=prayerMode?"prayerSecrets":"quiz";appTop();
+        header("Результат · "+modeTitle(mode),"Текущая попытка учитывается в общем профиле и очереди повторения.");
+        LinearLayout hero=card(prayerMode?lavSoft():blueSoft());
+        TextView score=text(pct+"%",44,prayerMode?Color.rgb(112,96,134):C_BLUE,true);score.setGravity(Gravity.CENTER);hero.addView(score);
+        TextView count=text(correct+" верно из "+total,20,ink(),true);count.setGravity(Gravity.CENTER);hero.addView(count);
+        if(repeated){TextView old=text("Первая завершённая попытка: "+first+"%",13.5f,muted(),false);old.setGravity(Gravity.CENTER);hero.addView(old);}
+        addGlobalResultCard(total-correct);
+        if(total-correct>0){Button repeat=action("Повторить ошибки",C_SAGE);repeat.setOnClickListener(v->repeatMistakes());page.addView(repeat);}
+        Button profile=outline("Открыть профиль");profile.setOnClickListener(v->renderProfile(true));page.addView(profile,new LinearLayout.LayoutParams(-1,dp(50)));
+        Button learn=outline(prayerMode?"Вернуться к Тайнам молитвы":"Продолжить обучение");
+        learn.setOnClickListener(v->{if(prayerMode)renderPrayerSecretsHub(true);else renderHome(true);});
+        page.addView(learn,new LinearLayout.LayoutParams(-1,dp(50)));
     }
 
     private void addGlobalResultCard(int newErrors){
@@ -3995,7 +4036,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
