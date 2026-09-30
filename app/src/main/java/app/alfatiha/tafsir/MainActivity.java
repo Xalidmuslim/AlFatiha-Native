@@ -1125,7 +1125,8 @@ public class MainActivity extends Activity {
         LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);
         Button prev=outline("← Другая");final int pi=(idx-1+a.length())%a.length();prev.setOnClickListener(v->renderPrayerFocus(pi,true));nav.addView(prev,new LinearLayout.LayoutParams(0,dp(54),1));
         Button next=outline("Следующая →");final int ni=(idx+1)%a.length();next.setOnClickListener(v->renderPrayerFocus(ni,true));LinearLayout.LayoutParams nlp=new LinearLayout.LayoutParams(0,dp(54),1);nlp.setMargins(dp(8),0,0,0);nav.addView(next,nlp);page.addView(nav);
-        Button lesson=action("Открыть полный разбор этого этапа",C_BLUE);lesson.setOnClickListener(v->renderPrayerSecretLesson(idx,true));page.addView(lesson);
+        final int lessonIdx=idx;
+        Button lesson=action("Открыть полный разбор этого этапа",C_BLUE);lesson.setOnClickListener(v->renderPrayerSecretLesson(lessonIdx,true));page.addView(lesson);
     }
 
     private void renderPrayerAfter(boolean push){
