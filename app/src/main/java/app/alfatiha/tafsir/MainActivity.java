@@ -1042,6 +1042,13 @@ public class MainActivity extends Activity {
         Button pb=action("Открыть практику",C_BLUE);pb.setOnClickListener(v->renderPrayerPracticeHub(true));practice.addView(pb);
         practice.setOnClickListener(v->renderPrayerPracticeHub(true));
 
+        LinearLayout errs=card(dark?Color.rgb(61,43,43):C_BAD_BG);
+        errs.addView(kicker("ОШИБКИ СЕРДЦА",C_BAD));
+        errs.addView(text("Когда тело молится, а смысл теряется",20,ink(),true));
+        errs.addView(text("Практические ситуации: как распознать скрытую потерю смысла и что вернуть в сердце.",14,muted(),false));
+        Button eb=action("Разобрать ошибки",C_BAD);eb.setOnClickListener(v->renderPrayerErrorsHub(true));errs.addView(eb);
+        errs.setOnClickListener(v->renderPrayerErrorsHub(true));
+
         int seen=seenPrayerSecretCount(),total=data.length();
         LinearLayout progress=card(sandSoft());
         progress.addView(kicker("ПРОГРЕСС",Color.rgb(145,104,42)));
@@ -1142,6 +1149,68 @@ public class MainActivity extends Activity {
         Button next=action("Выбрать мысль для следующего намаза",C_SAGE);
         int idx=Math.max(0,Math.min(arr("prayer_secrets.json").length()-1,prefs.getInt("prayer_focus_idx",0)));
         next.setOnClickListener(v->renderPrayerFocus(idx,true));page.addView(next);
+    }
+
+    private int seenPrayerErrorCount(){
+        return prefs.getStringSet("prayer_errors_seen",new HashSet<>()).size();
+    }
+
+    private void markPrayerErrorSeen(int idx){
+        HashSet<String> seen=new HashSet<>(prefs.getStringSet("prayer_errors_seen",new HashSet<>()));
+        seen.add(String.valueOf(idx));
+        prefs.edit().putStringSet("prayer_errors_seen",seen).putInt("prayer_error_last_idx",idx).apply();
+    }
+
+    private void renderPrayerErrorsHub(boolean push){
+        clearActiveFlow();clear("prayerErrorsHub","",push);currentSection="prayerSecrets";appTop();
+        JSONArray a=arr("prayer_heart_errors.json");
+        header("Ошибки сердца в молитве","Это не список для самоуничижения. Цель — заметить, где внешнее действие оторвалось от внутреннего смысла, и спокойно вернуть сердце.");
+        LinearLayout intro=card(sageSoft());
+        intro.addView(kicker("ТРИ НАПРАВЛЕНИЯ",C_SAGE));
+        intro.addView(text("Что именно нужно возвращать",19,ink(),true));
+        intro.addView(text("1. Беречь сердце от страстей, васваса и беспорядочных мыслей.\n\n2. Обращаться к Аллаху с муракаба (осознанием Его наблюдения).\n\n3. Обращаться к смыслам речи Аллаха и каждого действия молитвы.",14.4f,ink(),false));
+        intro.addView(text("Ибн аль-Каййим, «Асрар ас-саля»: три степени обращения в молитве.",12.8f,muted(),false));
+
+        int seen=seenPrayerErrorCount();
+        LinearLayout progress=card(panel());
+        progress.addView(kicker("ПРОГРЕСС",C_BAD));
+        progress.addView(text(seen+" из "+a.length()+" ситуаций разобрано",16,ink(),true));
+        progress.addView(progressBar(a.length()==0?0:Math.min(100,seen*100/a.length()),C_BAD),new LinearLayout.LayoutParams(-1,dp(9)));
+
+        for(int i=0;i<a.length();i++){
+            JSONObject o=a.optJSONObject(i);if(o==null)continue;
+            final int idx=i;
+            courseStep(String.format(Locale.ROOT,"%02d",i+1),o.optString("title"),o.optString("stage"),C_BAD,()->renderPrayerError(idx,true),false);
+        }
+    }
+
+    private void renderPrayerError(int idx,boolean push){
+        JSONArray a=arr("prayer_heart_errors.json");if(a.length()==0)return;
+        if(idx<0||idx>=a.length())idx=0;
+        markPrayerErrorSeen(idx);
+        clear("prayerError",String.valueOf(idx),push);currentSection="prayerSecrets";appTop();
+        JSONObject o=a.optJSONObject(idx);if(o==null)return;
+        add(kicker("СИТУАЦИЯ "+(idx+1)+" ИЗ "+a.length(),C_BAD));
+        header(o.optString("title"),o.optString("stage"));
+
+        sectionCard("Внешне",o.optString("outward"),panel(),C_BLUE);
+        sectionCard("Что потерялось внутри",o.optString("hidden"),dark?Color.rgb(61,43,43):C_BAD_BG,C_BAD);
+        sectionCard("Почему это важно",o.optString("why"),sandSoft(),Color.rgb(145,104,42));
+        sectionCard("Как распознать",o.optString("notice"),blueSoft(),C_BLUE);
+        sectionCard("Что вернуть в сердце",o.optString("return_to"),sageSoft(),C_SAGE);
+
+        LinearLayout p=card(sageSoft());
+        p.addView(kicker("ОДНА ПРАКТИКА",C_SAGE));
+        p.addView(text(o.optString("practice"),16,ink(),true));
+        p.addView(text("Не пытайтесь исправлять все ошибки одновременно. Возьмите эту одну ситуацию в ближайший намаз.",13.2f,muted(),false));
+
+        sectionCard("Источник",o.optString("source"),panel(),C_SAGE);
+
+        LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);nav.setPadding(0,dp(8),0,0);
+        if(idx>0){Button prev=outline("← Предыдущая");final int pi=idx-1;prev.setOnClickListener(v->renderPrayerError(pi,true));nav.addView(prev,new LinearLayout.LayoutParams(0,dp(54),1));}
+        Button next=outline(idx<a.length()-1?"Следующая →":"К списку");final int ni=idx+1;
+        next.setOnClickListener(v->{if(ni<a.length())renderPrayerError(ni,true);else renderPrayerErrorsHub(true);});
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(54),1);lp.setMargins(idx>0?dp(8):0,0,0,0);nav.addView(next,lp);page.addView(nav);
     }
 
     private void addPrayerWordMap(JSONObject o){
@@ -3525,7 +3594,7 @@ public class MainActivity extends Activity {
     private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("quiz"))renderQuizHub(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else renderHome(true);}
     private void goBack(){if(!history.isEmpty()){Screen s=history.pop();restore(s);}else renderHome(false);}
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerPracticeHub":renderPrayerPracticeHub(false);break;case"prayerBefore":renderPrayerBefore(false);break;case"prayerFocus":renderPrayerFocus(Integer.parseInt(s.arg),false);break;case"prayerAfter":renderPrayerAfter(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindHeart(Integer.parseInt(s.arg),false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindPractice":String[]p=s.arg.split(":");renderMindPractice(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindFocus":renderMindFocus(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerPracticeHub":renderPrayerPracticeHub(false);break;case"prayerBefore":renderPrayerBefore(false);break;case"prayerFocus":renderPrayerFocus(Integer.parseInt(s.arg),false);break;case"prayerAfter":renderPrayerAfter(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindHeart(Integer.parseInt(s.arg),false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindPractice":String[]p=s.arg.split(":");renderMindPractice(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindFocus":renderMindFocus(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @Override public void onBackPressed(){goBack();}
 
