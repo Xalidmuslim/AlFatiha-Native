@@ -53,7 +53,8 @@ public class MainActivity extends Activity {
 
     static class Screen {
         String type, arg;
-        Screen(String t, String a) { type=t; arg=a==null?"":a; }
+        int scrollY;
+        Screen(String t, String a) { type=t; arg=a==null?"":a; scrollY=0; }
     }
 
     static class ChoiceView {
@@ -750,7 +751,10 @@ public class MainActivity extends Activity {
     private String answerText(JSONObject q,String mode,int correct){StringBuilder b=new StringBuilder(questionText(q,mode));JSONArray a=optionsAsArray(q,mode);if(correct>=0&&correct<a.length())b.append("\n\nПравильный ответ: ").append(correct+1).append(". ").append(a.optString(correct));String e=explanation(q,mode,correct);if(!e.isEmpty())b.append("\n\nРазбор:\n").append(e);String src=sources(q);if(!src.isEmpty())b.append("\n\nИсточник: ").append(src);return b.toString();}
 
     private void clear(String type,String arg,boolean push){
-        if(push && current!=null && (!current.type.equals(type)||!current.arg.equals(arg))) history.push(current);
+        if(push && current!=null && (!current.type.equals(type)||!current.arg.equals(arg))){
+            current.scrollY=scroll==null?0:scroll.getScrollY();
+            history.push(current);
+        }
         current=new Screen(type,arg);
         page.removeAllViews(); page.setBackgroundColor(bg()); scroll.scrollTo(0,0);
         page.setAlpha(0f); page.setTranslationY(dp(7));
@@ -774,7 +778,7 @@ public class MainActivity extends Activity {
 
         Button theme=miniButton(dark?"☀":"☾");
         theme.setContentDescription(dark?"Светлая тема":"Тёмная тема");
-        theme.setOnClickListener(v->{Screen s=current;dark=!dark;prefs.edit().putBoolean("dark",dark).apply();buildShell();restore(s);});
+        theme.setOnClickListener(v->{Screen s=current;s.scrollY=scroll==null?0:scroll.getScrollY();dark=!dark;prefs.edit().putBoolean("dark",dark).apply();buildShell();restore(s);current.scrollY=s.scrollY;scroll.post(()->scroll.scrollTo(0,s.scrollY));});
         top.addView(theme);
         Button aa=miniButton("Aa"); aa.setContentDescription("Настройки текста"); aa.setOnClickListener(v->renderSettings(true)); top.addView(aa);
 
@@ -1228,7 +1232,6 @@ public class MainActivity extends Activity {
                 addPrayerCheckExplanation(q,ix,correct,questionIdx,a.length());
             });
         }
-        page.addView(qc);
     }
 
     private void addPrayerCheckExplanation(JSONObject q,int selected,int correct,int idx,int total){
@@ -3726,7 +3729,14 @@ public class MainActivity extends Activity {
     private LinearLayout sectionDialogCard(String title,String sub,String detail,int accent){LinearLayout c=newSurface(panel(),18,11,1);c.addView(text(title,16,ink(),true));c.addView(text(sub,11.8f,muted(),false));c.addView(text(detail,11.8f,accent,true));return c;}
 
     private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("quiz"))renderQuizHub(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else renderHome(true);}
-    private void goBack(){if(!history.isEmpty()){Screen s=history.pop();restore(s);}else renderHome(false);}
+    private void goBack(){
+        if(!history.isEmpty()){
+            Screen s=history.pop();
+            restore(s);
+            current.scrollY=s.scrollY;
+            scroll.post(()->scroll.scrollTo(0,s.scrollY));
+        }else renderHome(false);
+    }
 
     private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerPracticeHub":renderPrayerPracticeHub(false);break;case"prayerBefore":renderPrayerBefore(false);break;case"prayerFocus":renderPrayerFocus(Integer.parseInt(s.arg),false);break;case"prayerAfter":renderPrayerAfter(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindHeart(Integer.parseInt(s.arg),false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindPractice":String[]p=s.arg.split(":");renderMindPractice(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindFocus":renderMindFocus(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
