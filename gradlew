@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-GRADLE_VERSION=8.9
+GRADLE_VERSION=8.11.1
 BASE="$HOME/.gradle/manual-dists/gradle-$GRADLE_VERSION"
 ZIP="$HOME/.gradle/manual-dists/gradle-$GRADLE_VERSION-bin.zip"
 mkdir -p "$HOME/.gradle/manual-dists"
