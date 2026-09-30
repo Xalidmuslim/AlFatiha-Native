@@ -158,7 +158,7 @@ public class MainActivity extends Activity {
     private void buildBottom(){
         bottom.removeAllViews();
         navBtn("⌂","Главная",()->renderHome(true));
-        navBtn("≡","В раздел",this::openSection);
+        navBtn("≡","Содержание",this::openSection);
         navBtn("‹","Назад",this::goBack);
         navBtn("▦","Меню",this::showSectionsDialog);
     }
@@ -776,6 +776,7 @@ public class MainActivity extends Activity {
         titles.addView(text("Изучение Аль-Фатихи",12.5f,muted(),false));
         top.addView(titles,new LinearLayout.LayoutParams(0,-2,1));
 
+        Button search=miniButton("⌕");search.setContentDescription("Поиск по приложению");search.setOnClickListener(v->renderSearch(true));top.addView(search);
         Button theme=miniButton(dark?"☀":"☾");
         theme.setContentDescription(dark?"Светлая тема":"Тёмная тема");
         theme.setOnClickListener(v->{Screen s=current;s.scrollY=scroll==null?0:scroll.getScrollY();dark=!dark;prefs.edit().putBoolean("dark",dark).apply();buildShell();restore(s);current.scrollY=s.scrollY;scroll.post(()->scroll.scrollTo(0,s.scrollY));});
@@ -865,65 +866,43 @@ public class MainActivity extends Activity {
 
     private void renderHome(boolean push){
         clearActiveFlow();clear("home","",push);currentSection="home";appTop();heroArabic();
-        KnowledgeAnalytics.Summary summary=analytics().summary();
-        int seen=seenMindCount();int pct=Math.min(100,seen*100/8);
-        LinearLayout m=card(sageSoft());cardHead(m,"ГЛАВНЫЙ РАЗДЕЛ",C_SAGE,"Осознанное чтение Аль-Фатихи");
-        m.addView(text("Понимайте смысл произносимых слов и удерживайте его в сердце во время намаза.",15.5f,muted(),false));
-        LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.HORIZONTAL);meta.setGravity(Gravity.CENTER_VERTICAL);
-        meta.addView(text("Прогресс основного урока",13,muted(),false),new LinearLayout.LayoutParams(0,-2,1));
-        meta.addView(text(seen+" из 8",13,ink(),true));m.addView(meta);
-        m.addView(progressBar(pct,C_SAGE),new LinearLayout.LayoutParams(-1,dp(10)));
-        Button bm=action(seen>0?"Продолжить":"Начать обучение",C_SAGE);
-        Runnable openMind=this::continueMindCourse;
-        bm.setOnClickListener(v->openMind.run());
-        m.addView(bm);
 
-        // Нажатие на саму большую карточку всегда ведёт
-        // в главный раздел осознанного чтения.
-        // Продолжение последнего урока остаётся только на кнопке.
+        int seen=seenMindCount();int pct=Math.min(100,seen*100/8);
+        LinearLayout m=card(sageSoft());cardHead(m,"ГЛАВНЫЙ КУРС",C_SAGE,"Осознанное чтение Аль-Фатихи");
+        m.addView(text("Слова, глубокий смысл, состояние сердца, связи аятов и проверка понимания.",15,muted(),false));
+        LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.HORIZONTAL);meta.setGravity(Gravity.CENTER_VERTICAL);
+        meta.addView(text("Разбор основной суры",13,muted(),false),new LinearLayout.LayoutParams(0,-2,1));meta.addView(text(seen+" из 8",13,ink(),true));m.addView(meta);
+        m.addView(progressBar(pct,C_SAGE),new LinearLayout.LayoutParams(-1,dp(10)));
+        Button bm=action(seen>0?"Продолжить":"Начать обучение",C_SAGE);bm.setOnClickListener(v->continueMindCourse());m.addView(bm);
         m.setOnClickListener(v->renderMindHub(true));
 
-        int prayerSeen=seenPrayerSecretCount(),prayerTotal=arr("prayer_secrets.json").length();
-        LinearLayout ps=card(sandSoft());TextView prayerArrow=cardHead(ps,"ОТДЕЛЬНЫЙ КУРС",Color.rgb(145,104,42),"Тайны молитвы");
-        ps.addView(text("Пошагово пройдите молитву: действие → слова → внутренний смысл → состояние сердца → размышление → практика.",15.5f,muted(),false));
+        int prayerSeen=seenPrayerSecretCount(),prayerTotal=Math.max(0,arr("prayer_secrets.json").length()-1);
+        LinearLayout ps=card(sandSoft());cardHead(ps,"ОТДЕЛЬНЫЙ КУРС",Color.rgb(145,104,42),"Тайны молитвы");
+        ps.addView(text("Подготовка и молитва по порядку: действия, слова, подробный разбор и состояние сердца.",15,muted(),false));
         LinearLayout pmeta=new LinearLayout(this);pmeta.setOrientation(LinearLayout.HORIZONTAL);pmeta.setGravity(Gravity.CENTER_VERTICAL);
-        pmeta.addView(text("Прогресс курса",13,muted(),false),new LinearLayout.LayoutParams(0,-2,1));
-        pmeta.addView(text(prayerSeen+" из "+prayerTotal,13,ink(),true));ps.addView(pmeta);
+        pmeta.addView(text("Прогресс курса",13,muted(),false),new LinearLayout.LayoutParams(0,-2,1));pmeta.addView(text(prayerSeen+" из "+prayerTotal,13,ink(),true));ps.addView(pmeta);
         ps.addView(progressBar(prayerTotal==0?0:Math.min(100,prayerSeen*100/prayerTotal),Color.rgb(145,104,42)),new LinearLayout.LayoutParams(-1,dp(10)));
-        Button bps=action(prayerSeen>0?"Продолжить":"Начать курс",Color.rgb(145,104,42));
-        bps.setOnClickListener(v->continuePrayerSecrets());ps.addView(bps);
+        Button bps=action(prayerSeen>0?"Продолжить":"Начать курс",Color.rgb(145,104,42));bps.setOnClickListener(v->continuePrayerSecrets());ps.addView(bps);
         ps.setOnClickListener(v->renderPrayerSecretsHub(true));
-        prayerArrow.setContentDescription("Открыть курс «Тайны молитвы»");
-        prayerArrow.setOnClickListener(v->renderPrayerSecretsHub(true));
 
-        LinearLayout q=card(blueSoft());TextView modesArrow=cardHead(q,"ПРОВЕРКА ЗНАНИЙ",C_BLUE,"Викторина по Аль-Фатихе");
-        q.addView(text("Сложные вопросы по тафсиру: близкие варианты, анализ, сопоставление и экспертные режимы.",15.5f,muted(),false));
-        String lm0=prefs.getString("last_quiz_mode",prefs.getString("last_mode",""));
-        final String lm=isMindMode(lm0)?"":lm0;
-        if(!lm.isEmpty()){
-            int idx=nextUnanswered(lm),total=quizArray(lm).length();if(idx<0)idx=Math.max(0,Math.min(prefs.getInt("idx_"+lm,0),Math.max(0,total-1)));
-            LinearLayout resume=newSurface(dark?Color.rgb(43,50,54):Color.rgb(249,249,247),16,12,1);
-            resume.addView(text("Следующее: "+modeTitle(lm)+" · задание "+(idx+1)+" из "+Math.max(total,1),13,ink(),false));
-            LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(-1,-2);rlp.setMargins(0,dp(8),0,0);q.addView(resume,rlp);
+        LinearLayout q=card(blueSoft());cardHead(q,"ПРОВЕРКА ЗНАНИЙ",C_BLUE,"Викторина по Аль-Фатихе");
+        q.addView(text("Классические, экспертные, сопоставления, два правильных и ответы без вариантов.",15,muted(),false));
+        Button bq=action("Открыть викторину",C_BLUE);bq.setOnClickListener(v->renderQuizHub(true));q.addView(bq);q.setOnClickListener(v->renderQuizHub(true));
+
+        LinearLayout searchCard=card(lavSoft());searchCard.addView(kicker("ПОИСК",Color.rgb(112,96,134)));
+        searchCard.addView(text("Найти слово или смысл",19,ink(),true));
+        searchCard.addView(text("Например: «Рабби», «милость», «упование», «суджуд», «прямой путь».",13.8f,muted(),false));
+        Button sb=outline("Открыть поиск");sb.setOnClickListener(v->renderSearch(true));searchCard.addView(sb,new LinearLayout.LayoutParams(-1,dp(52)));
+
+        int due=analytics().reviewNowCount();
+        if(due>0){
+            LinearLayout review=card(sageSoft());review.addView(kicker("ПОВТОРИТЬ СЕГОДНЯ",C_SAGE));
+            review.addView(text(due+" заданий готовы к повторению",19,ink(),true));
+            review.addView(text("Только материал, срок которого уже наступил — без лишнего дублирования.",13.5f,muted(),false));
+            Button rb=action("Начать повторение",C_SAGE);rb.setOnClickListener(v->renderReviewToday(true));review.addView(rb);
         }
-        Button bq=action(lm.isEmpty()?"Открыть викторину":"Продолжить",C_BLUE);
-        bq.setOnClickListener(v->{if(lm.isEmpty())renderQuizHub(true);else continueQuiz(lm);});q.addView(bq);q.setOnClickListener(v->{if(lm.isEmpty())renderQuizHub(true);else continueQuiz(lm);});
-        modesArrow.setContentDescription("Все режимы викторины");modesArrow.setOnClickListener(v->renderQuizHub(true));
-
-        gap(8);TextView ph=text("ВАШ ПРОГРЕСС",12,muted(),true);ph.setLetterSpacing(.08f);add(ph);
-        LinearLayout stats=new LinearLayout(this);stats.setOrientation(LinearLayout.HORIZONTAL);
-        stats.addView(statCard(summary.rating+"/100","Общий\nрезультат",()->renderKnowledgeSnapshot(true)),new LinearLayout.LayoutParams(0,dp(104),1));
-        LinearLayout.LayoutParams sm=new LinearLayout.LayoutParams(0,dp(104),1);sm.setMargins(dp(8),0,0,0);stats.addView(statCard(String.valueOf(summary.answered),"Пройдено",()->renderTaskNavigator(0,true)),sm);
-        LinearLayout.LayoutParams sm2=new LinearLayout.LayoutParams(0,dp(104),1);sm2.setMargins(dp(8),0,0,0);stats.addView(statCard(String.valueOf(analytics().reviewNowCount()),"На\nповторение",()->renderReviewToday(true)),sm2);
-        page.addView(stats,new LinearLayout.LayoutParams(-1,-2));
-
-        gap(14);TextView ah=text("ДОПОЛНИТЕЛЬНО",12,muted(),true);ah.setLetterSpacing(.08f);add(ah);
-        LinearLayout tools=new LinearLayout(this);tools.setOrientation(LinearLayout.HORIZONTAL);
-        tools.addView(toolCard("↻","Повторение",()->renderRepeatHub(true)),new LinearLayout.LayoutParams(0,dp(88),1));
-        LinearLayout.LayoutParams tm=new LinearLayout.LayoutParams(0,dp(88),1);tm.setMargins(dp(8),0,0,0);tools.addView(toolCard("✓","Экзамен",()->renderExamCenter(true)),tm);
-        LinearLayout.LayoutParams tm2=new LinearLayout.LayoutParams(0,dp(88),1);tm2.setMargins(dp(8),0,0,0);tools.addView(toolCard("◎","Профиль",()->renderProfile(true)),tm2);
-        page.addView(tools);
     }
+
 
     private LinearLayout statCard(String value,String label,Runnable action){
         LinearLayout c=newSurface(panel(),20,10,2);c.setGravity(Gravity.CENTER);
@@ -2004,6 +1983,123 @@ public class MainActivity extends Activity {
 
     private void sectionCard(String title,String body,int color,int accent){
         LinearLayout c=card(color);c.addView(kicker(title.toUpperCase(Locale.ROOT),accent));addParagraphs(c,body,14.8f);
+    }
+
+    private ArrayList<ContentSearchEntry> buildSearchIndex(){
+        ArrayList<ContentSearchEntry> out=new ArrayList<>();
+
+        JSONArray mind=arr("mind_data.json");
+        for(int i=0;i<mind.length();i++){
+            JSONObject o=mind.optJSONObject(i);if(o==null)continue;
+            String body=o.optString("ru")+" "+o.optString("meaning")+" "+o.optString("recognition")+" "+o.optString("heart")+" "+o.optString("obligation")+" "+o.optString("prompt")+" "+o.optString("mistake");
+            JSONArray w=o.optJSONArray("words");if(w!=null)for(int k=0;k<w.length();k++){JSONArray x=w.optJSONArray(k);if(x!=null)body+=" "+x.optString(0)+" "+x.optString(1);}
+            out.add(new ContentSearchEntry(o.optString("t"),"Аль-Фатиха · часть "+(i+1),body,"mindLesson",String.valueOf(i)));
+        }
+
+        JSONArray prayer=arr("prayer_secrets.json");
+        for(int i=1;i<prayer.length();i++){
+            JSONObject o=prayer.optJSONObject(i);if(o==null)continue;
+            String body=o.optString("subtitle")+" "+o.optString("words")+" "+o.optString("meaning")+" "+o.optString("heart")+" "+o.optString("calls_to")+" "+o.optString("reflect")+" "+o.optString("mistake");
+            JSONArray wm=o.optJSONArray("word_map");if(wm!=null)for(int k=0;k<wm.length();k++){JSONObject w=wm.optJSONObject(k);if(w!=null)body+=" "+w.optString("phrase")+" "+w.optString("meaning")+" "+w.optString("detail")+" "+w.optString("example")+" "+w.optString("application");}
+            out.add(new ContentSearchEntry(o.optString("title"),"Тайны молитвы · этап "+i,body,"prayerLesson",String.valueOf(i)));
+        }
+
+        JSONArray glossary=arr("prayer_glossary.json");
+        for(int i=0;i<glossary.length();i++){JSONObject o=glossary.optJSONObject(i);if(o!=null)out.add(new ContentSearchEntry(o.optString("term"),"Словарь молитвы",o.optString("meaning")+" "+o.optString("deep"),"glossary",String.valueOf(i)));}
+
+        JSONArray mistakes=arr("mind_mistakes.json");
+        for(int i=0;i<mistakes.length();i++){JSONObject o=mistakes.optJSONObject(i);if(o!=null)out.add(new ContentSearchEntry(o.optString("title"),"Ошибка осознанного чтения",o.optString("situation")+" "+o.optString("question")+" "+o.optString("why")+" "+o.optString("takeaway"),"mindMistake",String.valueOf(i)));}
+
+        JSONArray life=arr("mind_life.json");
+        for(int i=0;i<life.length();i++){JSONObject o=life.optJSONObject(i);if(o!=null)out.add(new ContentSearchEntry(o.optString("title"),"Жизненная ситуация",o.optString("situation")+" "+o.optString("question")+" "+o.optString("why")+" "+o.optString("takeaway"),"mindLife",String.valueOf(i)));}
+
+        JSONArray pe=arr("prayer_heart_errors.json");
+        for(int i=0;i<pe.length();i++){JSONObject o=pe.optJSONObject(i);if(o!=null)out.add(new ContentSearchEntry(o.optString("title"),"Ошибка сердца в молитве",o.optString("stage")+" "+o.optString("outward")+" "+o.optString("hidden")+" "+o.optString("why")+" "+o.optString("return_to"),"prayerError",String.valueOf(i)));}
+
+        return out;
+    }
+
+    private void openSearchEntry(ContentSearchEntry e){
+        switch(e.type){
+            case"mindLesson":renderMindLesson(parseInt(e.arg),true);break;
+            case"prayerLesson":renderPrayerSecretLesson(parseInt(e.arg),true);break;
+            case"glossary":renderPrayerGlossaryEntry(parseInt(e.arg),true);break;
+            case"mindMistake":renderMindMistakes(parseInt(e.arg),true);break;
+            case"mindLife":renderMindLife(parseInt(e.arg),true);break;
+            case"prayerError":renderPrayerError(parseInt(e.arg),true);break;
+            default:renderHome(true);
+        }
+    }
+
+    private void renderSearch(boolean push){
+        clearActiveFlow();clear("search","",push);currentSection="search";appTop();
+        header("Поиск по приложению","Ищет по Аль-Фатихе, «Тайнам молитвы», словарю, ошибкам и жизненным ситуациям.");
+        final ArrayList<ContentSearchEntry> index=buildSearchIndex();
+
+        EditText input=new EditText(this);
+        input.setHint("Например: Рабби, милость, суджуд…");input.setTextSize(sz(16));input.setTextColor(ink());input.setHintTextColor(muted());
+        input.setSingleLine(true);input.setPadding(dp(14),0,dp(14),0);input.setBackground(surfaceBg(panel(),panel(),18,line()));
+        page.addView(input,new LinearLayout.LayoutParams(-1,dp(56)));
+
+        LinearLayout results=new LinearLayout(this);results.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(-1,-2);rlp.setMargins(0,dp(10),0,0);page.addView(results,rlp);
+
+        Runnable refresh=()->renderSearchMatches(results,input.getText().toString(),index);
+        input.addTextChangedListener(new android.text.TextWatcher(){
+            public void beforeTextChanged(CharSequence s,int st,int count,int after){}
+            public void onTextChanged(CharSequence s,int st,int before,int count){refresh.run();}
+            public void afterTextChanged(android.text.Editable e){}
+        });
+        renderSearchMatches(results,"",index);
+        input.requestFocus();
+    }
+
+    private void renderSearchMatches(LinearLayout results,String query,ArrayList<ContentSearchEntry> index){
+        results.removeAllViews();
+        String q=query==null?"":query.trim();
+        if(q.length()<2){
+            LinearLayout hint=newSurface(blueSoft(),18,14,1);hint.addView(text("Введите минимум 2 буквы. Поиск работает по заголовкам и содержанию, а не только по названию раздела.",14,muted(),false));results.addView(hint);
+            return;
+        }
+        int shown=0;
+        for(ContentSearchEntry e:index){
+            if(!e.matches(q))continue;
+            LinearLayout item=newSurface(panel(),18,14,2);
+            item.addView(text(e.title,16.5f,ink(),true));item.addView(text(e.subtitle,12.8f,muted(),false));
+            item.setOnClickListener(v->openSearchEntry(e));
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(5),0,dp(5));results.addView(item,lp);
+            if(++shown>=24)break;
+        }
+        if(shown==0){LinearLayout empty=newSurface(sandSoft(),18,14,1);empty.addView(text("Ничего не найдено. Попробуйте другое слово или более короткую форму.",14,muted(),false));results.addView(empty);}
+    }
+
+    private void renderPrayerGlossary(boolean push){
+        clearActiveFlow();clear("prayerGlossary","",push);currentSection="prayerSecrets";appTop();
+        JSONArray a=arr("prayer_glossary.json");
+        header("Словарь слов молитвы","Повторяющиеся слова собраны один раз: значение, глубокий смысл и места, где они встречаются.");
+        for(int i=0;i<a.length();i++){
+            JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
+            LinearLayout box=card(i%3==0?sageSoft():i%3==1?blueSoft():lavSoft());
+            box.addView(text(o.optString("term"),19,ink(),true));box.addView(text(o.optString("meaning"),14,muted(),false));
+            Button open=outline("Подробнее   ↓");box.addView(open,new LinearLayout.LayoutParams(-1,dp(50)));
+            LinearLayout detail=newSurface(panel(),16,12,1);detail.setVisibility(View.GONE);addParagraphs(detail,o.optString("deep"),14.3f);
+            JSONArray where=o.optJSONArray("where");if(where!=null){detail.addView(text("Где встречается",12.8f,C_SAGE,true));for(int k=0;k<where.length();k++)detail.addView(text("• "+where.optString(k),14,ink(),false));}
+            Button full=outline("Открыть отдельной страницей →");full.setOnClickListener(v->renderPrayerGlossaryEntry(idx,true));detail.addView(full,new LinearLayout.LayoutParams(-1,dp(50)));
+            box.addView(detail);open.setOnClickListener(v->toggleInline(detail,open,"Подробнее   ↓","Скрыть   ↑"));
+        }
+    }
+
+    private void renderPrayerGlossaryEntry(int idx,boolean push){
+        JSONArray a=arr("prayer_glossary.json");if(a.length()==0)return;if(idx<0||idx>=a.length())idx=0;
+        clear("prayerGlossaryEntry",String.valueOf(idx),push);currentSection="prayerSecrets";appTop();
+        JSONObject o=a.optJSONObject(idx);if(o==null)return;
+        header(o.optString("term"),o.optString("meaning"));
+        sectionCard("Глубокий смысл",o.optString("deep"),sageSoft(),C_SAGE);
+        JSONArray where=o.optJSONArray("where");if(where!=null){StringBuilder w=new StringBuilder();for(int i=0;i<where.length();i++){if(i>0)w.append("\n");w.append("• ").append(where.optString(i));}sectionCard("Где встречается",w.toString(),blueSoft(),C_BLUE);}
+        JSONArray links=o.optJSONArray("links");if(links!=null){
+            LinearLayout linkCard=card(lavSoft());linkCard.addView(kicker("ОТКРЫТЬ В КУРСЕ",Color.rgb(112,96,134)));
+            for(int i=0;i<links.length();i++){int pi=prayerIndexById(links.optString(i));if(pi<0)continue;JSONObject p=arr("prayer_secrets.json").optJSONObject(pi);Button b=outline(p==null?links.optString(i):p.optString("title"));final int target=pi;b.setOnClickListener(v->renderPrayerSecretLesson(target,true));linkCard.addView(b,new LinearLayout.LayoutParams(-1,dp(52)));}
+        }
     }
 
     private void renderQuizHub(boolean push){
@@ -3584,7 +3680,7 @@ public class MainActivity extends Activity {
         clearActiveFlow();clear("knowledgeSnapshot","",push);currentSection="profile";appTop();
         header("Краткий профиль знаний","Общий результат объединяет точность, охват базы, исправление ошибок и экзамены.");
         KnowledgeAnalytics.Summary s=analytics().summary();
-        LinearLayout hero=card(sageSoft());hero.addView(kicker("УРОВЕНЬ ЗНАНИЙ",C_SAGE));hero.addView(text(s.level,28,ink(),true));hero.addView(text("Рейтинг "+s.rating+" из 100 · точность "+s.accuracy+"%",16,muted(),false));hero.addView(progressBar(s.rating,C_SAGE),new LinearLayout.LayoutParams(-1,dp(9)));
+        LinearLayout hero=card(sageSoft());hero.addView(kicker("ОСВОЕНИЕ МАТЕРИАЛА",C_SAGE));hero.addView(text(s.level,28,ink(),true));hero.addView(text("Рейтинг "+s.rating+" из 100 · точность "+s.accuracy+"%",16,muted(),false));hero.addView(progressBar(s.rating,C_SAGE),new LinearLayout.LayoutParams(-1,dp(9)));
         LinearLayout facts=card(panel());facts.addView(text("Проверено разных заданий: "+s.answered+" из "+s.total,15,ink(),true));facts.addView(text("Текущих ошибок: "+s.wrong+" · исправлено: "+s.corrected,14,muted(),false));facts.addView(text("Интервальное повторение: "+s.due+" сейчас",14,muted(),false));
         LinearLayout weak=card(sandSoft());weak.addView(kicker("СЛАБАЯ ОБЛАСТЬ",Color.rgb(145,104,42)));if(s.weakArea==null)weak.addView(text("Данных пока недостаточно",18,ink(),true));else{weak.addView(text(s.weakArea.title+" · "+s.weakArea.accuracy()+"%",18,ink(),true));weak.addView(text(s.weakArea.answered+" проверено · ошибок "+s.weakArea.wrong,13.5f,muted(),false));}
         LinearLayout next=card(blueSoft());next.addView(kicker("СЛЕДУЮЩИЙ УРОВЕНЬ",C_BLUE));next.addView(text(s.nextLevel,18,ink(),true));next.addView(text(s.nextLevelHint,13.8f,muted(),false));
@@ -3667,7 +3763,7 @@ public class MainActivity extends Activity {
 
     private void renderProfile(boolean push){
         clearActiveFlow();clear("profile","",push);currentSection="profile";appTop();
-        header("Профиль знаний","Что уже усвоено, где остаются слабые места и как меняется результат.");
+        header("Прогресс обучения","Что уже пройдено, где остаются слабые места и как меняется результат по материалам приложения.");
         KnowledgeAnalytics model=analytics();KnowledgeAnalytics.Summary s=model.summary();final int rating=s.rating;
         LinearLayout hero=card(panel());hero.addView(kicker("УРОВЕНЬ ЗНАНИЙ",C_SAGE));TextView level=text(s.level,28,ink(),true);level.setGravity(Gravity.CENTER);hero.addView(level);
         View ring=new View(this){
@@ -3684,14 +3780,14 @@ public class MainActivity extends Activity {
                 canvas.drawText(rating+"/100",cx,cy-(paint.ascent()+paint.descent())/2,paint);
             }
         };
-        ring.setContentDescription("Рейтинг знаний: "+rating+" из 100");LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(dp(158),dp(158));rp.gravity=Gravity.CENTER_HORIZONTAL;hero.addView(ring,rp);
+        ring.setContentDescription("Результат по материалам приложения: "+rating+" из 100");LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(dp(158),dp(158));rp.gravity=Gravity.CENTER_HORIZONTAL;hero.addView(ring,rp);
         TextView acc=text("Точность "+s.accuracy+"% · охват "+s.coverage+"%",16,muted(),false);acc.setGravity(Gravity.CENTER);hero.addView(acc);
         LinearLayout metrics=card(sageSoft());profileMetricRow(metrics,"Проверено",s.answered+" / "+s.total,"Текущие ошибки",String.valueOf(s.wrong));profileMetricRow(metrics,"Исправлено",String.valueOf(s.corrected),"Повторить сейчас",String.valueOf(model.reviewNowCount()));profileMetricRow(metrics,"Экзамены",String.valueOf(s.examCount),"Интервальная очередь",String.valueOf(s.due));
         LinearLayout next=card(blueSoft());next.addView(kicker("СЛЕДУЮЩИЙ УРОВЕНЬ",C_BLUE));next.addView(text(s.nextLevel,19,ink(),true));next.addView(text(s.nextLevelHint,13.8f,muted(),false));
         LinearLayout weak=card(sandSoft());weak.addView(kicker("СЛАБАЯ ОБЛАСТЬ",Color.rgb(145,104,42)));
         if(s.weakArea==null){weak.addView(text("Данных пока мало",19,ink(),true));weak.addView(text("Для устойчивого вывода нужно минимум "+KnowledgeAnalytics.MIN_AREA_SAMPLE+" разных заданий внутри одной области.",13.5f,muted(),false));}
         else{KnowledgeAnalytics.AreaStats w=s.weakArea;weak.addView(text(w.title,20,ink(),true));weak.addView(text(w.accuracy()+"% по "+w.answered+" проверенным заданиям · ошибок "+w.wrong,14,muted(),false));weak.addView(text(w.description,13.5f,muted(),false));LinearLayout actions=new LinearLayout(this);Button errors=outline("Повторить ошибки · "+w.wrong);errors.setOnClickListener(v->startAreaErrors(w.key));actions.addView(errors,new LinearLayout.LayoutParams(0,dp(50),1));Button cont=outline("Продолжить тему");cont.setOnClickListener(v->continueArea(w.key));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(50),1);lp.setMargins(dp(7),0,0,0);actions.addView(cont,lp);weak.addView(actions);}
-        header("Области знаний","Процент показывается только после достаточного количества ответов. До этого сохраняется честный охват и число ошибок.");
+        header("Разделы материала","Процент показывается только после достаточного количества ответов. До этого сохраняется охват и число ошибок.");
         for(KnowledgeAnalytics.AreaStats area:model.areaStats().values())addAreaCard(area,true);
         Map<String,Integer> types=model.errorTypeCounts();if(!types.isEmpty()){LinearLayout errors=card(panel());errors.addView(text("Типы ошибок",20,ink(),true));ArrayList<Map.Entry<String,Integer>> list=new ArrayList<>(types.entrySet());list.sort((a,b)->Integer.compare(b.getValue(),a.getValue()));for(Map.Entry<String,Integer> e:list)errors.addView(text("• "+KnowledgeAnalytics.errorTypeTitle(e.getKey())+" — "+e.getValue(),14,ink(),false));}
         LinearLayout actions=card(lavSoft());actions.addView(text("Данные и настройки",18,ink(),true));Button detail=action("Подробная аналитика",C_BLUE);detail.setOnClickListener(v->renderDetailedAnalytics(true));actions.addView(detail);Button navigator=outline("Навигатор всех заданий");navigator.setOnClickListener(v->renderTaskNavigator(0,true));actions.addView(navigator,new LinearLayout.LayoutParams(-1,dp(50)));Button settings=outline("Настройки");settings.setOnClickListener(v->renderSettings(true));actions.addView(settings,new LinearLayout.LayoutParams(-1,dp(50)));
@@ -3751,7 +3847,7 @@ public class MainActivity extends Activity {
 
     private LinearLayout sectionDialogCard(String title,String sub,String detail,int accent){LinearLayout c=newSurface(panel(),18,11,1);c.addView(text(title,16,ink(),true));c.addView(text(sub,11.8f,muted(),false));c.addView(text(detail,11.8f,accent,true));return c;}
 
-    private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("quiz"))renderQuizHub(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else renderHome(true);}
+    private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("quiz"))renderQuizHub(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else if(currentSection.equals("search"))renderSearch(true);else renderHome(true);}
     private void goBack(){
         if(!history.isEmpty()){
             Screen s=history.pop();
@@ -3761,7 +3857,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerPracticeHub":renderPrayerPracticeHub(false);break;case"prayerBefore":renderPrayerBefore(false);break;case"prayerFlowPractice":renderPrayerFlowPractice(false);break;case"prayerAfter":renderPrayerAfter(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindHeart(Integer.parseInt(s.arg),false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @Override public void onBackPressed(){goBack();}
 
