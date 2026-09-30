@@ -2060,7 +2060,7 @@ public class MainActivity extends Activity {
     }
 
     private void addDeep(LinearLayout holder,JSONArray d){
-        String[] names={"ТАФСИР","ЧТО МОЖНО ИЗВЛЕЧЬ","РАЗМЫШЛЕНИЕ ДЛЯ СЕРДЦА","ПРАКТИКА В НАМАЗЕ","ОПОРА НА ИСТОЧНИКИ"};int[] cols={C_BLUE,Color.rgb(145,104,42),C_SAGE,C_BLUE,C_SAGE};
+        String[] names={"ТАФСИР","ЧТО МОЖНО ИЗВЛЕЧЬ","РАЗМЫШЛЕНИЕ ДЛЯ СЕРДЦА","ОСОЗНАННОЕ ПРИМЕНЕНИЕ","ОПОРА НА ИСТОЧНИКИ"};int[] cols={C_BLUE,Color.rgb(145,104,42),C_SAGE,C_BLUE,C_SAGE};
         for(int i=0;i<d.length()&&i<5;i++){LinearLayout c=newSurface(i==1?sandSoft():i==2?sageSoft():i==3?blueSoft():panel(),16,13,1);c.addView(kicker(names[i],cols[i]));Object x=d.opt(i);if(x instanceof JSONArray){JSONArray a=(JSONArray)x;for(int k=0;k<a.length();k++)c.addView(text("• "+a.optString(k),14.5f,ink(),false));}else addParagraphs(c,String.valueOf(x),14.5f);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(5),0,dp(5));holder.addView(c,lp);}
     }
 
@@ -2160,6 +2160,9 @@ public class MainActivity extends Activity {
         clearActiveFlow();clear("prayerGlossary","",push);currentSection="prayerSecrets";appTop();
         JSONArray a=arr("prayer_glossary.json");
         header("Словарь слов молитвы","Повторяющиеся слова собраны один раз: значение, глубокий смысл и места, где они встречаются.");
+        LinearLayout sourceNote=card(blueSoft());
+        sourceNote.addView(kicker("КАК УСТРОЕН СЛОВАРЬ",C_BLUE));
+        sourceNote.addView(text("Словарь — краткое объединение уже проверенных уроков. Для хадисной опоры и источника Ибн аль-Каййима откройте связанный урок: там источники показаны отдельно.",13.4f,muted(),false));
         for(int i=0;i<a.length();i++){
             JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
             LinearLayout box=card(i%3==0?sageSoft():i%3==1?blueSoft():lavSoft());
