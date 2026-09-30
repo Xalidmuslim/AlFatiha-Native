@@ -1037,7 +1037,7 @@ public class MainActivity extends Activity {
         LinearLayout practice=card(blueSoft());
         practice.addView(kicker("ПРАКТИКА",C_BLUE));
         practice.addView(text("Тренировка присутствия сердца",20,ink(),true));
-        practice.addView(text("Подготовка перед намазом, одна мысль на молитву и короткая самопроверка после саляма.",14,muted(),false));
+        practice.addView(text("Подготовка перед намазом, осознанное прохождение всей молитвы по порядку и короткая самопроверка после саляма.",14,muted(),false));
         Button pb=action("Открыть практику",C_BLUE);pb.setOnClickListener(v->renderPrayerPracticeHub(true));practice.addView(pb);
         practice.setOnClickListener(v->renderPrayerPracticeHub(true));
 
@@ -1095,68 +1095,61 @@ public class MainActivity extends Activity {
 
     private void renderPrayerPracticeHub(boolean push){
         clearActiveFlow();clear("prayerPracticeHub","",push);currentSection="prayerSecrets";appTop();
-        header("Практика присутствия сердца","Не добавляйте много мыслей сразу. Выберите один способ тренировки и перенесите его в ближайший намаз.");
+        header("Практика присутствия сердца","Изучайте смыслы постепенно вне намаза, а в самой молитве старайтесь следовать сердцем за каждым словом и движением по порядку.");
 
-        courseStep("01","Перед намазом","Короткая подготовка: остановиться, оставить внешнее и выбрать один смысл для молитвы.",C_SAGE,()->renderPrayerBefore(true),false);
-        int idx=Math.max(0,Math.min(arr("prayer_secrets.json").length()-1,prefs.getInt("prayer_focus_idx",0)));
-        courseStep("02","Одна мысль на намаз","Один этап молитвы и одна мысль, к которой нужно вернуть сердце. Сейчас: "+(idx+1)+".",C_BLUE,()->renderPrayerFocus(idx,true),false);
-        courseStep("03","После саляма","Три вопроса без оценок: где сердце было живым, где ушло и что взять в следующий намаз.",Color.rgb(112,96,134),()->renderPrayerAfter(true),false);
+        courseStep("01","Перед намазом","Короткая подготовка: остановиться, оставить отвлекающее и вспомнить, перед Кем вы собираетесь встать.",C_SAGE,()->renderPrayerBefore(true),false);
+        courseStep("02","Вся молитва по порядку","Последовательно пройти такбир, чтение, руку‘, выпрямление, суджуд, ташаххуд и завершение — каждому этапу соответствует своё состояние сердца.",C_BLUE,()->renderPrayerFlowPractice(true),false);
+        courseStep("03","После саляма","Коротко заметить, где сердце следовало за молитвой, а где смысл потерялся — чтобы повторить этот этап вне намаза.",Color.rgb(112,96,134),()->renderPrayerAfter(true),false);
     }
 
     private void renderPrayerBefore(boolean push){
         clear("prayerBefore","",push);currentSection="prayerSecrets";appTop();
-        header("Перед намазом","30–60 секунд подготовки. Не отдельный обряд, а способ собрать внимание.");
+        header("Перед намазом","30–60 секунд подготовки. Не отдельный обряд, а способ собрать сердце перед молитвой.");
         String[][] items={
-            {"1","Остановись","Не входи в молитву на той же скорости, на которой занимался делами. На несколько секунд прекрати внешнее и внутреннее движение."},
+            {"1","Остановись","Не входи в молитву на той же внутренней скорости, на которой занимался делами. На несколько секунд прекрати внешнюю суету."},
             {"2","Осознай, перед Кем встаёшь","Напомни себе: сейчас я встаю перед Аллахом. Не перед людьми и не ради отметки о выполненном намазе."},
-            {"3","Оставь одно отвлекающее дело","Если возможно, реши заранее: к этой мысли я вернусь после саляма. Сейчас она не важнее молитвы."},
-            {"4","Выбери один смысл","Не весь курс. Только один: такбир, руку‘, суджуд, просьба о прощении, ташаххуд или другой этап."},
-            {"5","Начни такбиром осознанно","Пусть «Аллаху акбар» станет реальным переходом: Аллах важнее того, что осталось за пределами молитвы."}
+            {"3","Оставь отвлекающее до саляма","Если возможно, реши заранее: к работе, телефону, спору или плану я вернусь после молитвы."},
+            {"4","Вспомни путь молитвы","Не выбирай один смысл на весь намаз. Напомни себе последовательность: такбир → чтение → руку‘ → хвала → суджуд → сидение → ташаххуд → ду‘а → салям. На каждом этапе сердце переходит к соответствующему смыслу."},
+            {"5","Начни такбиром осознанно","Пусть «Аллаху акбар» станет реальным началом. Затем следуй сердцем за каждым следующим словом и движением."}
         };
         for(String[] x:items)practiceCard(x[0],x[1],x[2],panel(),C_SAGE);
-        Button focus=action("Выбрать одну мысль",C_SAGE);
-        int idx=Math.max(0,Math.min(arr("prayer_secrets.json").length()-1,prefs.getInt("prayer_focus_idx",0)));
-        focus.setOnClickListener(v->renderPrayerFocus(idx,true));page.addView(focus);
+        Button flow=action("Открыть последовательность молитвы",C_SAGE);
+        flow.setOnClickListener(v->renderPrayerFlowPractice(true));page.addView(flow);
     }
 
-    private void renderPrayerFocus(int idx,boolean push){
-        JSONArray a=arr("prayer_secrets.json");if(a.length()==0)return;
-        if(idx<0||idx>=a.length())idx=0;
-        prefs.edit().putInt("prayer_focus_idx",idx).apply();
-        clear("prayerFocus",String.valueOf(idx),push);currentSection="prayerSecrets";appTop();
-        JSONObject o=a.optJSONObject(idx);if(o==null)return;
-        header("Одна мысль на намаз","Шаг "+(idx+1)+" из "+a.length()+" · не пытайтесь удерживать остальные.");
-        LinearLayout c1=card(sageSoft());
-        c1.addView(kicker("ВО ВРЕМЯ НАМАЗА",C_SAGE));
-        c1.addView(text(o.optString("title"),21,ink(),true));
-        c1.addView(text(o.optString("practice"),16,ink(),true));
-        String heart=o.optString("heart");if(!heart.isEmpty())c1.addView(text("Состояние сердца: "+heart,14,muted(),false));
+    private void renderPrayerFlowPractice(boolean push){
+        clear("prayerFlowPractice","",push);currentSection="prayerSecrets";appTop();
+        JSONArray a=arr("prayer_secrets.json");
+        header("Вся молитва по порядку","Цель — чтобы сердце переходило вместе с молитвой: каждый новый этап приносит свой смысл, не отменяя предыдущую осознанность.");
+        LinearLayout note=card(sageSoft());
+        note.addView(kicker("КАК ПОЛЬЗОВАТЬСЯ",C_SAGE));
+        note.addView(text("Разбирайте эту последовательность вне намаза. Во время самой молитвы не читайте список в голове — узнавайте знакомый смысл, когда наступает соответствующее слово или движение, и переходите дальше вместе с молитвой.",14.2f,ink(),false));
 
-        LinearLayout c2=card(blueSoft());
-        c2.addView(kicker("ВОПРОС ДЛЯ СЕРДЦА",C_BLUE));
-        c2.addView(text(o.optString("reflect"),16,ink(),true));
-        c2.addView(text("Не задавайте этот вопрос многократно прямо в намазе. Разберите его сейчас, а в молитве удерживайте уже знакомый смысл.",13.3f,muted(),false));
-
-        LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);
-        Button prev=outline("← Другая");final int pi=(idx-1+a.length())%a.length();prev.setOnClickListener(v->renderPrayerFocus(pi,true));nav.addView(prev,new LinearLayout.LayoutParams(0,dp(54),1));
-        Button next=outline("Следующая →");final int ni=(idx+1)%a.length();next.setOnClickListener(v->renderPrayerFocus(ni,true));LinearLayout.LayoutParams nlp=new LinearLayout.LayoutParams(0,dp(54),1);nlp.setMargins(dp(8),0,0,0);nav.addView(next,nlp);page.addView(nav);
-        final int lessonIdx=idx;
-        Button lesson=action("Открыть полный разбор этого этапа",C_BLUE);lesson.setOnClickListener(v->renderPrayerSecretLesson(lessonIdx,true));page.addView(lesson);
+        for(int i=0;i<a.length();i++){
+            JSONObject o=a.optJSONObject(i);if(o==null)continue;
+            LinearLayout item=card(i%3==0?sageSoft():i%3==1?blueSoft():sandSoft());
+            item.addView(kicker(String.format(Locale.ROOT,"%02d",i+1),i%3==0?C_SAGE:i%3==1?C_BLUE:Color.rgb(145,104,42)));
+            item.addView(text(o.optString("title"),18,ink(),true));
+            String words=o.optString("words");
+            if(!words.isEmpty())item.addView(text(words,13.8f,muted(),false));
+            item.addView(text(o.optString("heart"),14.4f,ink(),false));
+            final int lessonIdx=i;
+            item.setOnClickListener(v->renderPrayerSecretLesson(lessonIdx,true));
+        }
     }
 
     private void renderPrayerAfter(boolean push){
         clear("prayerAfter","",push);currentSection="prayerSecrets";appTop();
-        header("После саляма","Короткая самопроверка без баллов и чувства отчётности.");
-        practiceCard("1","Где сердце было живым?","В каком моменте молитвы смысл действительно присутствовал: такбир, чтение, руку‘, суджуд, ду‘а, ташаххуд?",sageSoft(),C_SAGE);
-        practiceCard("2","Где сердце ушло?","Не ругайте себя и не анализируйте каждую секунду. Просто назовите главный момент, где внимание чаще всего исчезало.",blueSoft(),C_BLUE);
-        practiceCard("3","Что взять в следующий намаз?","Выберите только одну вещь для следующей молитвы. Не пытайтесь исправить всё сразу.",sandSoft(),Color.rgb(145,104,42));
+        header("После саляма","Короткая самопроверка без баллов и без превращения молитвы в экзамен.");
+        practiceCard("1","Где сердце следовало за молитвой?","В каких этапах ты действительно понимал слова и внутренне переходил вместе с движениями: такбир, чтение, руку‘, хвала, суджуд, ташаххуд, ду‘а?",sageSoft(),C_SAGE);
+        practiceCard("2","Где смысл потерялся?","Назови место, где внимание ушло или движение стало автоматическим. Это не повод игнорировать остальные части молитвы — это место для дополнительного изучения вне намаза.",blueSoft(),C_BLUE);
+        practiceCard("3","Что нужно повторить вне намаза?","Вернись к слабому этапу курса, разберись с его словами и смыслом, а в следующей молитве снова старайся следовать сердцем за всей последовательностью.",sandSoft(),Color.rgb(145,104,42));
         LinearLayout note=card(panel());
         note.addView(kicker("ВАЖНО",Color.rgb(112,96,134)));
-        note.addView(text("Цель — не превратить намаз в самонаблюдение",17,ink(),true));
-        note.addView(text("Самопроверка происходит после саляма. Во время самой молитвы задача проще: возвращать сердце к Аллаху и к смыслу произносимых слов и действий.",14,muted(),false));
-        Button next=action("Выбрать мысль для следующего намаза",C_SAGE);
-        int idx=Math.max(0,Math.min(arr("prayer_secrets.json").length()-1,prefs.getInt("prayer_focus_idx",0)));
-        next.setOnClickListener(v->renderPrayerFocus(idx,true));page.addView(next);
+        note.addView(text("Не наблюдать за собой вместо поклонения",17,ink(),true));
+        note.addView(text("Самопроверка происходит после саляма. Во время молитвы задача — обращаться к Аллаху и следовать сердцем за смыслом текущих слов и действий, затем переходить к следующему этапу.",14,muted(),false));
+        Button flow=action("Повторить последовательность молитвы",C_SAGE);
+        flow.setOnClickListener(v->renderPrayerFlowPractice(true));page.addView(flow);
     }
 
     private int prayerCheckAnsweredCount(){
@@ -1407,7 +1400,7 @@ public class MainActivity extends Activity {
         LinearLayout today=card(sageSoft());
         today.addView(kicker("ПРАКТИКА В БЛИЖАЙШЕМ НАМАЗЕ",C_SAGE));
         today.addView(text(o.optString("practice"),16,ink(),true));
-        today.addView(text("Возьмите только эту одну мысль. Когда наступит соответствующий момент молитвы — верните к ней сердце.",13.2f,muted(),false));
+        today.addView(text("Изучите этот смысл заранее. В молитве осознайте его в соответствующем месте, а затем переходите сердцем к смыслу следующего слова или движения.",13.2f,muted(),false));
 
         sectionCard("Типичная потеря смысла",o.optString("mistake"),dark?Color.rgb(61,43,43):C_BAD_BG,C_BAD);
         sectionCard("Основной источник",o.optString("source"),panel(),C_SAGE);
@@ -1464,7 +1457,6 @@ public class MainActivity extends Activity {
       {"Есть ли истина, которую я уже знаю, но откладываю? И нет ли у меня действий или суждений в религии без достаточного знания?","Соединять правильное знание с действием: не оставлять известную истину и не действовать в религии без руководства."}};}
     private LinearLayout practiceCard(String n,String title,String body,int tone,int accent){LinearLayout c=card(tone);LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setGravity(Gravity.TOP);TextView x=text(n,14,accent,true);x.setGravity(Gravity.CENTER);x.setBackground(solidBg(panel(),13,line()));r.addView(x,new LinearLayout.LayoutParams(dp(42),dp(42)));LinearLayout t=new LinearLayout(this);t.setOrientation(LinearLayout.VERTICAL);t.setPadding(dp(11),0,0,0);t.addView(text(title,16,ink(),true));t.addView(text(body,14.5f,muted(),false));r.addView(t,new LinearLayout.LayoutParams(0,-2,1));c.addView(r);return c;}
     private void renderMindSlow(int idx,boolean push){JSONArray a=arr("mind_data.json");if(idx<0||idx>=a.length())idx=0;clear("mindSlow",String.valueOf(idx),push);currentSection="mind";appTop();JSONObject q=a.optJSONObject(idx);String[][] p=slowPrompts();header("Медленное чтение","Практика "+(idx+1)+" из "+a.length());LinearLayout ay=card(panel());ay.addView(kicker("АЯТ И ПЕРЕВОД",C_BLUE));ay.addView(text(q.optString("t"),21,ink(),true));ay.addView(text(q.optString("ru"),14.5f,muted(),false));practiceCard("1","Прочитай весь аят медленно","Прочитай аят целиком спокойно и без спешки, стараясь понимать, что ты сейчас произносишь.",panel(),C_SAGE);practiceCard("•","После аята остановись на 3–5 секунд","Ничего не произноси. Дай смыслу аята закрепиться в сознании, прежде чем переходить к следующему.",sandSoft(),Color.rgb(145,104,42));practiceCard("2","Размышляй над тем, что произнёс",p[idx][0],blueSoft(),C_BLUE);practiceCard("3","К чему меня обязывает этот смысл?",p[idx][1],sandSoft(),Color.rgb(145,104,42));practiceCard("4","Прочитай аят ещё раз","Повтори его медленно, уже удерживая смысл и практический вывод. Затем переходи к следующему аяту.",sageSoft(),C_SAGE);page.addView(contentActions("",q.optString("t")+"\n"+q.optString("ru")+"\n\n"+p[idx][0]+"\n\n"+p[idx][1],false));LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);if(idx>0){Button b=outline("← Назад");int x=idx-1;b.setOnClickListener(v->renderMindSlow(x,true));nav.addView(b,new LinearLayout.LayoutParams(0,dp(54),1));}Button n=outline(idx==a.length()-1?"Завершить":"Следующий аят →");int x=idx+1;n.setOnClickListener(v->{if(x<a.length())renderMindSlow(x,true);else renderMindHub(true);});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(54),1);if(idx>0)lp.setMargins(dp(8),0,0,0);nav.addView(n,lp);page.addView(nav);}
-    private void renderMindFocus(int idx,boolean push){JSONArray a=arr("mind_data.json");if(idx<0||idx>=a.length())idx=0;clear("mindFocus",String.valueOf(idx),push);currentSection="mind";appTop();JSONObject q=a.optJSONObject(idx);header("Одна мысль для намаза","На ближайшую молитву удерживайте только одну мысль.");LinearLayout c=card(sageSoft());c.addView(kicker("НА БЛИЖАЙШУЮ МОЛИТВУ",C_SAGE));c.addView(text(q.optString("t"),20,ink(),true));c.addView(text(q.optString("ru"),14,muted(),false));c.addView(text(q.optString("prompt"),17,ink(),true));c.addView(text("Не старайся удержать сразу все смыслы Аль-Фатихи. На этот намаз достаточно одной мысли — верни к ней сердце, когда произносишь эту часть.",13.5f,muted(),false));page.addView(contentActions("",q.optString("t")+"\n"+q.optString("ru")+"\n\n"+q.optString("prompt"),false));Button b=action("Другая мысль",C_SAGE);int x=(idx+1)%a.length();b.setOnClickListener(v->renderMindFocus(x,true));page.addView(b);}
     private void renderMindStages(int idx,int stage,boolean push){JSONArray a=arr("mind_data.json");if(idx<0||idx>=a.length())idx=0;if(stage<1||stage>4)stage=1;clear("mindStages",idx+":"+stage,push);currentSection="mind";appTop();JSONObject q=a.optJSONObject(idx);header("Тренировка без подсказок","Этап "+stage+" из 4 · часть "+(idx+1)+" из "+a.length());LinearLayout c=card(panel());c.addView(kicker("ПРОЧИТАЙ ОСОЗНАННО",C_BLUE));c.addView(text(q.optString("t"),21,ink(),true));if(stage==1){c.addView(text(q.optString("ru"),14,muted(),false));c.addView(text(q.optString("heart"),14.5f,ink(),false));}else if(stage==2){c.addView(text(q.optString("ru"),14,muted(),false));c.addView(text("Ключ: "+q.optString("prompt"),14.5f,ink(),true));}else if(stage==3){JSONArray w=q.optJSONArray("words");StringBuilder z=new StringBuilder();for(int i=0;w!=null&&i<Math.min(2,w.length());i++){JSONArray e=w.optJSONArray(i);if(i>0)z.append(" · ");z.append(e.optString(0)).append(" — ").append(e.optString(1));}c.addView(text(z.toString(),14.5f,ink(),false));}else c.addView(text("Произнеси эту часть самостоятельно и удержи её смысл без подсказки. Затем проверь себя.",14.5f,ink(),false));page.addView(contentActions("",lessonShareText(q),false));int fi=idx,fs=stage;LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);Button prev=outline("← Назад");prev.setOnClickListener(v->{if(fi>0)renderMindStages(fi-1,fs,true);else if(fs>1)renderMindStages(a.length()-1,fs-1,true);else renderMindHub(true);});nav.addView(prev,new LinearLayout.LayoutParams(0,dp(54),1));Button next=outline(stage==4&&idx==a.length()-1?"Завершить":"Далее →");next.setOnClickListener(v->{if(fi<a.length()-1)renderMindStages(fi+1,fs,true);else if(fs<4)renderMindStages(0,fs+1,true);else renderMindHub(true);});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(54),1);lp.setMargins(dp(8),0,0,0);nav.addView(next,lp);page.addView(nav);}
 
     private void renderMindConnections(boolean push){
@@ -1946,7 +1938,7 @@ public class MainActivity extends Activity {
         sectionCard("Применение в намазе",o.optString("prompt"),sandSoft(),Color.rgb(158,120,52));
         sectionCard("Типичная ошибка",o.optString("mistake"),dark?Color.rgb(61,43,43):C_BAD_BG,C_BAD);
 
-        LinearLayout today=card(sageSoft());today.addView(kicker("ПРАКТИКА СЕГОДНЯ",C_SAGE));today.addView(text("Одна мысль для ближайшего намаза",17,ink(),true));today.addView(text(o.optString("prompt"),14.7f,ink(),false));today.addView(text("Не пытайтесь удержать сразу весь курс. Сегодня достаточно осознанно вернуться к этой одной мысли.",13.2f,muted(),false));
+        LinearLayout today=card(sageSoft());today.addView(kicker("ПРАКТИКА В НАМАЗЕ",C_SAGE));today.addView(text("Осознай этот смысл в его месте",17,ink(),true));today.addView(text(o.optString("prompt"),14.7f,ink(),false));today.addView(text("Когда читаешь эту часть Аль-Фатихи, удерживай её смысл; затем переходи к следующему аяту вместе с его смыслом. Цель — осознанное чтение всей суры по порядку.",13.2f,muted(),false));
 
         if(deep.length()>idx){JSONArray d=deep.optJSONArray(idx);if(d!=null){
             LinearLayout box=card(panel());Button toggle=outline("Дополнительный разбор и опора на источники   ↓");toggle.setTextSize(sz(13.2f));box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
@@ -3733,7 +3725,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerPracticeHub":renderPrayerPracticeHub(false);break;case"prayerBefore":renderPrayerBefore(false);break;case"prayerFocus":renderPrayerFocus(Integer.parseInt(s.arg),false);break;case"prayerAfter":renderPrayerAfter(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindHeart(Integer.parseInt(s.arg),false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindPractice":String[]p=s.arg.split(":");renderMindPractice(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindFocus":renderMindFocus(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerPracticeHub":renderPrayerPracticeHub(false);break;case"prayerBefore":renderPrayerBefore(false);break;case"prayerFlowPractice":renderPrayerFlowPractice(false);break;case"prayerAfter":renderPrayerAfter(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindHeart(Integer.parseInt(s.arg),false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindPractice":String[]p=s.arg.split(":");renderMindPractice(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @Override public void onBackPressed(){goBack();}
 
