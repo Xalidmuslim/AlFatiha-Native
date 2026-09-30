@@ -1317,6 +1317,45 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void addPrayerMeaningDetails(JSONObject o){
+        LinearLayout box=card(panel());
+        box.addView(kicker("СМЫСЛ И СОСТОЯНИЕ СЕРДЦА",Color.rgb(145,104,42)));
+        Button toggle=outline("Раскрыть смысл   ↓");box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
+        LinearLayout holder=newSurface(sandSoft(),18,14,1);holder.setVisibility(View.GONE);
+        holder.addView(text("Внутренний смысл",13,Color.rgb(145,104,42),true));addParagraphs(holder,o.optString("meaning"),14.5f);
+        holder.addView(text("Состояние сердца",13,C_SAGE,true));addParagraphs(holder,o.optString("heart"),14.5f);
+        holder.addView(text("К чему это призывает",13,Color.rgb(112,96,134),true));addParagraphs(holder,o.optString("calls_to"),14.5f);
+        holder.addView(text("О чём размышлять",13,C_BLUE,true));addParagraphs(holder,o.optString("reflect"),14.5f);
+        box.addView(holder);
+        toggle.setOnClickListener(v->toggleInline(holder,toggle,"Раскрыть смысл   ↓","Скрыть смысл   ↑"));
+    }
+
+    private void addPrayerMistake(JSONObject o){
+        String mistake=o.optString("mistake");if(mistake.isEmpty())return;
+        LinearLayout box=card(dark?Color.rgb(61,43,43):C_BAD_BG);
+        box.addView(kicker("ТИПИЧНАЯ ПОТЕРЯ СМЫСЛА",C_BAD));
+        Button toggle=outline("Показать ошибку   ↓");box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(52)));
+        LinearLayout holder=newSurface(panel(),17,13,1);holder.setVisibility(View.GONE);addParagraphs(holder,mistake,14.3f);box.addView(holder);
+        toggle.setOnClickListener(v->toggleInline(holder,toggle,"Показать ошибку   ↓","Скрыть ошибку   ↑"));
+    }
+
+    private void addPrayerSources(JSONObject o){
+        LinearLayout box=card(panel());
+        box.addView(kicker("ИСТОЧНИКИ И ОПОРА",C_SAGE));
+        Button toggle=outline("Открыть источники   ↓");box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(52)));
+        LinearLayout holder=newSurface(blueSoft(),17,13,1);holder.setVisibility(View.GONE);
+        holder.addView(text("Источник смыслового разбора",13,C_SAGE,true));addParagraphs(holder,o.optString("source"),13.8f);
+        JSONArray ev=o.optJSONArray("evidence");
+        if(ev!=null&&ev.length()>0){
+            holder.addView(text("Хадисная и текстовая опора",13,C_BLUE,true));
+            for(int i=0;i<ev.length();i++)holder.addView(text("• "+ev.optString(i),13.8f,ink(),false));
+        }
+        holder.addView(text("Учебные примеры",13,Color.rgb(145,104,42),true));
+        holder.addView(text("Примеры в пословном разборе составлены внутри курса для объяснения смысла. Они не являются цитатами Ибн аль-Каййима или хадисами.",13.3f,muted(),false));
+        box.addView(holder);
+        toggle.setOnClickListener(v->toggleInline(holder,toggle,"Открыть источники   ↓","Скрыть источники   ↑"));
+    }
+
     private void addPrayerEvidence(JSONObject o){
         JSONArray ev=o.optJSONArray("evidence");
         if(ev==null||ev.length()==0)return;
@@ -1342,20 +1381,16 @@ public class MainActivity extends Activity {
         header(o.optString("title"),o.optString("subtitle"));
         LinearLayout bar=card(panel());
         bar.addView(text("Курс «Тайны молитвы»",13,muted(),false));
-        bar.addView(progressBar(Math.min(100,(idx+1)*100/data.length()),Color.rgb(145,104,42)),new LinearLayout.LayoutParams(-1,dp(9)));
+        int progressValue=idx<=0?0:(visibleTotal==0?0:Math.min(100,idx*100/visibleTotal));
+        bar.addView(progressBar(progressValue,Color.rgb(145,104,42)),new LinearLayout.LayoutParams(-1,dp(9)));
 
         sectionCard("Что происходит",o.optString("action"),blueSoft(),C_BLUE);
         String words=o.optString("words");
-        if(!words.isEmpty())sectionCard("Слова и смысл",words,panel(),Color.rgb(112,96,134));
+        if(!words.isEmpty())sectionCard("Фраза целиком",words,panel(),Color.rgb(112,96,134));
         addPrayerWordMap(o);
-        sectionCard("Внутренний смысл",o.optString("meaning"),sandSoft(),Color.rgb(145,104,42));
-        sectionCard("Состояние сердца",o.optString("heart"),sageSoft(),C_SAGE);
-        sectionCard("К чему это призывает",o.optString("calls_to"),panel(),Color.rgb(112,96,134));
-        sectionCard("О чём размышлять",o.optString("reflect"),blueSoft(),C_BLUE);
-
-        sectionCard("Типичная потеря смысла",o.optString("mistake"),dark?Color.rgb(61,43,43):C_BAD_BG,C_BAD);
-        sectionCard("Основной источник",o.optString("source"),panel(),C_SAGE);
-        addPrayerEvidence(o);
+        addPrayerMeaningDetails(o);
+        addPrayerMistake(o);
+        addPrayerSources(o);
 
         if(o.optBoolean("open_fatiha",false)){
             Button f=action("Открыть полный разбор Аль-Фатихи",C_SAGE);
