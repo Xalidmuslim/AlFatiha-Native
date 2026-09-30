@@ -904,20 +904,6 @@ public class MainActivity extends Activity {
     }
 
 
-    private LinearLayout statCard(String value,String label,Runnable action){
-        LinearLayout c=newSurface(panel(),20,10,2);c.setGravity(Gravity.CENTER);
-        TextView v=text(value,23,ink(),true);v.setGravity(Gravity.CENTER);c.addView(v);
-        TextView l=text(label,11.5f,muted(),false);l.setGravity(Gravity.CENTER);c.addView(l);
-        c.setOnClickListener(x->action.run());return c;
-    }
-
-    private LinearLayout toolCard(String icon,String title,Runnable r){
-        LinearLayout c=newSurface(panel(),20,10,2);c.setGravity(Gravity.CENTER);
-        TextView i=text(icon,22,C_SAGE,false);i.setGravity(Gravity.CENTER);c.addView(i);
-        TextView t=text(title,12.5f,ink(),true);t.setGravity(Gravity.CENTER);c.addView(t);
-        c.setOnClickListener(v->r.run());return c;
-    }
-
     private String progressSummary(){
         KnowledgeAnalytics.Summary s=analytics().summary();
         return "Проверено: "+s.answered+" из "+s.total+"   •   Точность: "+s.accuracy+"%";
@@ -1356,17 +1342,6 @@ public class MainActivity extends Activity {
         toggle.setOnClickListener(v->toggleInline(holder,toggle,"Открыть источники   ↓","Скрыть источники   ↑"));
     }
 
-    private void addPrayerEvidence(JSONObject o){
-        JSONArray ev=o.optJSONArray("evidence");
-        if(ev==null||ev.length()==0)return;
-        LinearLayout box=card(panel());
-        box.addView(kicker("ПРОВЕРКА ФОРМУЛЫ",C_BLUE));
-        Button toggle=outline("Хадисная опора и примечания   ↓");toggle.setTextSize(sz(13.3f));box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
-        LinearLayout holder=newSurface(blueSoft(),18,13,1);holder.setVisibility(View.GONE);
-        for(int i=0;i<ev.length();i++)holder.addView(text("• "+ev.optString(i),13.8f,ink(),false));
-        box.addView(holder);
-        toggle.setOnClickListener(v->toggleInline(holder,toggle,"Хадисная опора и примечания   ↓","Скрыть источники   ↑"));
-    }
 
     private void renderPrayerSecretLesson(int idx,boolean push){
         JSONArray data=arr("prayer_secrets.json");
@@ -1478,24 +1453,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void renderMindHeart(int idx,boolean push){
-        JSONArray data=arr("mind_heart.json");if(idx<0||idx>=data.length())idx=0;markSavedSet("mind_heart_seen",String.valueOf(idx));
-        rememberMindCourse("heart",String.valueOf(idx),"Состояние сердца · часть "+(idx+1));
-        clear("mindHeart",String.valueOf(idx),push);currentSection="mind";appTop();
-        header("Состояние сердца","Здесь не повторяется тафсир. Пять вопросов помогают проверить, участвует ли сердце в словах языка.");
-        JSONObject o=data.optJSONObject(idx);LinearLayout top=card(lavSoft());top.addView(kicker("ЧАСТЬ "+(idx+1)+" ИЗ "+data.length(),Color.rgb(112,96,134)));top.addView(text(o.optString("title"),19,ink(),true));
-        String[] heads={"Что я сейчас узнаю об Аллахе?","Что я признаю перед Ним?","Что должно происходить в сердце?","Что я прошу или чего надеюсь?","Что может противоречить моим словам?"};
-        String[] fields={"know","admit","heart","hope","contradiction"};int[] tones={blueSoft(),sandSoft(),sageSoft(),blueSoft(),dark?Color.rgb(61,43,43):C_BAD_BG};int[] accents={C_BLUE,Color.rgb(145,104,42),C_SAGE,C_BLUE,C_BAD};
-        for(int i=0;i<fields.length;i++){LinearLayout c=card(tones[i]);c.addView(kicker(heads[i],accents[i]));addParagraphs(c,o.optString(fields[i]),14.7f);}
-        LinearLayout practice=card(sageSoft());practice.addView(kicker("КОРОТКАЯ ПРАКТИКА",C_SAGE));practice.addView(text(o.optString("practice"),15.5f,ink(),true));
-        page.addView(contentActions("heart:"+idx,o.optString("title")+"\n\n"+o.optString("know")+"\n\n"+o.optString("admit")+"\n\n"+o.optString("heart")+"\n\n"+o.optString("hope")+"\n\n"+o.optString("contradiction"),true));
-        addIndexedNavigation(idx,data.length(),"mindHeart");
-    }
 
     private void addIndexedNavigation(int idx,int total,String screen){
         LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);nav.setPadding(0,dp(8),0,0);
-        Button prev=outline("← Предыдущая");prev.setEnabled(idx>0);prev.setAlpha(idx>0?1f:.45f);final int pi=idx-1;if(idx>0)prev.setOnClickListener(v->{if("mindHeart".equals(screen))renderMindHeart(pi,true);else if("mindMistakes".equals(screen))renderMindMistakes(pi,true);else renderMindLife(pi,true);});nav.addView(prev,new LinearLayout.LayoutParams(0,dp(52),1));
-        Button next=outline(idx==total-1?"В содержание":"Следующая →");final int ni=idx+1;next.setOnClickListener(v->{if(ni>=total)renderMindHub(true);else if("mindHeart".equals(screen))renderMindHeart(ni,true);else if("mindMistakes".equals(screen))renderMindMistakes(ni,true);else renderMindLife(ni,true);});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(52),1);lp.setMargins(dp(8),0,0,0);nav.addView(next,lp);page.addView(nav);
+        Button prev=outline("← Предыдущая");prev.setEnabled(idx>0);prev.setAlpha(idx>0?1f:.45f);final int pi=idx-1;if(idx>0)prev.setOnClickListener(v->{if("mindMistakes".equals(screen))renderMindMistakes(pi,true);else renderMindLife(pi,true);});nav.addView(prev,new LinearLayout.LayoutParams(0,dp(52),1));
+        Button next=outline(idx==total-1?"В содержание":"Следующая →");final int ni=idx+1;next.setOnClickListener(v->{if(ni>=total)renderMindHub(true);else if("mindMistakes".equals(screen))renderMindMistakes(ni,true);else renderMindLife(ni,true);});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(52),1);lp.setMargins(dp(8),0,0,0);nav.addView(next,lp);page.addView(nav);
     }
 
     private void renderMindApplicationsHub(boolean push){
@@ -3615,7 +3577,7 @@ public class MainActivity extends Activity {
             if(id.startsWith("qayyim:")){renderMindLesson(Integer.parseInt(id.substring(7)),true);return;}
             if(id.startsWith("deep:")){renderMindLesson(Integer.parseInt(id.substring(5)),true);return;}
             if(id.startsWith("connection:")){renderMindConnections(true);return;}
-            if(id.startsWith("heart:")){renderMindHeart(Integer.parseInt(id.substring(6)),true);return;}
+            if(id.startsWith("heart:")){renderMindLesson(Integer.parseInt(id.substring(6)),true);return;}
             if(id.startsWith("mind_mistakes:")||id.startsWith("mind_life:")){String mode=id.startsWith("mind_mistakes:")?"mind_mistakes":"mind_life";String raw=id.substring(mode.length()+1);JSONArray data=quizArray(mode);for(int i=0;i<data.length();i++){JSONObject o=data.optJSONObject(i);if(o!=null&&raw.equals(o.optString("id"))){if("mind_mistakes".equals(mode))renderMindMistakes(i,true);else renderMindLife(i,true);return;}}}
         }catch(Exception ignored){}
         toast("Материал этой версии не найден");
@@ -3688,7 +3650,7 @@ public class MainActivity extends Activity {
     private void openWeakMindCategory(String mode,String category){
         int lesson=weakMindLesson(mode,category);
         if("connections".equals(category))renderMindConnections(true);
-        else if("heart".equals(category))renderMindHeart(lesson,true);
+        else if("heart".equals(category))renderMindLesson(lesson,true);
         else if("practice".equals(category))renderMindReadingTraining(1,lesson,true);
         else if("errors".equals(category))renderMindMistakes(Math.max(0,Math.min(7,lesson)),true);
         else renderMindLesson(lesson,true);
