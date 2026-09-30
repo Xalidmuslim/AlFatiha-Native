@@ -1722,6 +1722,17 @@ public class MainActivity extends Activity {
                     c.addView(pt);
                 }
             }
+
+            String src=o.optString("src");
+            if(!src.isEmpty()){
+                LinearLayout sourceBox=newSurface(panel(),14,10,1);
+                TextView sourceLabel=text("Источник / основа",11.5f,C_SAGE,true);
+                sourceBox.addView(sourceLabel);
+                sourceBox.addView(text(src,12.6f,muted(),false));
+                LinearLayout.LayoutParams slp=new LinearLayout.LayoutParams(-1,-2);
+                slp.setMargins(0,dp(5),0,0);
+                c.addView(sourceBox,slp);
+            }
         }
         page.addView(contentActions("intro",introShareText(),true));
         Button b=action("Начать урок",C_SAGE);b.setOnClickListener(v->renderMindLesson(0,true));page.addView(b);
@@ -2007,6 +2018,7 @@ public class MainActivity extends Activity {
         JSONObject o=a.optJSONObject(idx);if(o==null)return;
         LinearLayout box=card(sageSoft());
         box.addView(kicker("ЧТО ДОЛЖНО ПРОИСХОДИТЬ С СЕРДЦЕМ",C_SAGE));
+        box.addView(text("Учебная самопроверка на основе смысла урока; это не дословная цитата учёного.",12.5f,muted(),false));
         Button toggle=outline("Открыть самопроверку сердца   ↓");box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
         LinearLayout holder=newSurface(panel(),18,14,1);holder.setVisibility(View.GONE);
         String[] heads={"Что я узнаю об Аллахе","Что я признаю","Состояние сердца","Чего надеюсь или прошу","Что противоречит моим словам"};
