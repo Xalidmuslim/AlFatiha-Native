@@ -2,7 +2,7 @@ name: Build Android APK + AAB
 
 on:
   push:
-    branches: [ main, alfatiha-native-play-ready-2026-09-30 ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
