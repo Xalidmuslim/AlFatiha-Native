@@ -1,19 +1,39 @@
 plugins { id 'com.android.application' }
 
+def uploadStoreFile = System.getenv('ANDROID_UPLOAD_STORE_FILE')
+def uploadStorePassword = System.getenv('ANDROID_UPLOAD_STORE_PASSWORD')
+def uploadKeyAlias = System.getenv('ANDROID_UPLOAD_KEY_ALIAS')
+def uploadKeyPassword = System.getenv('ANDROID_UPLOAD_KEY_PASSWORD')
+def hasUploadSigning = uploadStoreFile && uploadStorePassword && uploadKeyAlias && uploadKeyPassword
+
 android {
     namespace 'app.alfatiha.tafsir'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'app.alfatiha.tafsir'
         minSdk 24
-        targetSdk 35
-        versionCode 3
-        versionName '1.1.0-native'
+        targetSdk 36
+        versionCode 4
+        versionName '1.2.0'
+    }
+
+    signingConfigs {
+        if (hasUploadSigning) {
+            release {
+                storeFile file(uploadStoreFile)
+                storePassword uploadStorePassword
+                keyAlias uploadKeyAlias
+                keyPassword uploadKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
+            if (hasUploadSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
