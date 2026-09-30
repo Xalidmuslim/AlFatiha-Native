@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main, alfatiha-native-prayer-secrets-2026-09-30 ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
