@@ -78,6 +78,7 @@ source_datasets = [
     "quiz_data.json", "expert_data.json", "multi_data.json", "match_data.json",
     "hadith_data.json", "free_data.json", "mind_check.json", "mind_exam.json",
     "mind_mistakes.json", "mind_life.json", "prayer_check.json", "prayer_heart_errors.json",
+    "alfatiha_medium.json", "prayer_medium.json", "prayer_hard.json",
 ]
 for name in source_datasets:
     data = parsed.get(name, [])
@@ -99,7 +100,47 @@ for name in source_datasets:
         if not ok:
             fail(f"{name}[{i}]: missing source")
 
-# 6. Audited core sources must not fall back to vague placeholders.
+# 6. New difficulty levels: size, structure, balanced answers and hard-option quality.
+level_files = {
+    "alfatiha_medium.json": 20,
+    "prayer_medium.json": 20,
+    "prayer_hard.json": 20,
+}
+for name, expected in level_files.items():
+    data = parsed.get(name, [])
+    if len(data) != expected:
+        fail(f"{name}: expected {expected} questions, got {len(data)}")
+    ids = []
+    counts = [0, 0, 0, 0]
+    for i, item in enumerate(data):
+        if not isinstance(item, dict):
+            continue
+        ids.append(str(item.get("id", "")))
+        opts = item.get("options")
+        answer = item.get("correct")
+        ex = item.get("explanations")
+        if not isinstance(opts, list) or len(opts) != 4:
+            fail(f"{name}[{i}]: expected exactly 4 options")
+            continue
+        if len(set(str(x).strip() for x in opts)) != 4:
+            fail(f"{name}[{i}]: duplicate answer options")
+        if not isinstance(answer, int) or not 0 <= answer < 4:
+            fail(f"{name}[{i}]: invalid correct index {answer!r}")
+        else:
+            counts[answer] += 1
+        if not isinstance(ex, list) or len(ex) != 4:
+            fail(f"{name}[{i}]: expected 4 answer explanations")
+        if name == "prayer_hard.json":
+            short = [str(x) for x in opts if len(str(x).strip()) < 35]
+            if short:
+                fail(f"{name}[{i}]: hard-level option is too short/obvious: {short[0]!r}")
+    if len(ids) != len(set(ids)):
+        fail(f"{name}: duplicate question ids")
+    if max(counts) - min(counts) > 1:
+        fail(f"{name}: answer positions are imbalanced: {counts}")
+
+# 7. Audited core sources must not fall back to vague placeholders.
+
 audited_core = [
     "mind_qayyim_deep.json", "mind_connections.json", "mind_mistakes.json",
     "mind_life.json", "mind_check.json", "mind_exam.json",
@@ -116,8 +157,8 @@ for name in audited_core:
         if phrase.lower() in low:
             fail(f"{name}: vague source phrase remains: {phrase!r}")
 
-# 7. Single-choice checks should not teach a fixed answer position.
-for name in ["mind_check.json", "mind_exam.json", "prayer_check.json"]:
+# 8. Single-choice checks should not teach a fixed answer position.
+for name in ["mind_check.json", "mind_exam.json", "prayer_check.json", "alfatiha_medium.json", "prayer_medium.json", "prayer_hard.json"]:
     counts = [0, 0, 0, 0]
     total_single = 0
     for item in parsed.get(name, []):
@@ -132,7 +173,7 @@ for name in ["mind_check.json", "mind_exam.json", "prayer_check.json"]:
     if total_single >= 8 and max(counts) > (total_single + 1) // 2:
         fail(f"{name}: correct-answer position is too predictable: {counts}")
 
-# 8. Removed UX patterns must not reappear in user-visible code/data.
+# 9. Removed UX patterns must not reappear in user-visible code/data.
 
 
 forbidden = [
@@ -149,7 +190,7 @@ for path in search_files:
         if phrase.lower() in low:
             fail(f"{path.relative_to(ROOT)}: stale UX phrase {phrase!r}")
 
-# 9. Literal screens passed to clear() must be restorable via Back.
+# 10. Literal screens passed to clear() must be restorable via Back.
 src = MAIN.read_text(encoding="utf-8")
 cleared = set(re.findall(r'clear\("([A-Za-z0-9_]+)"', src))
 restored = set(re.findall(r'case"([A-Za-z0-9_]+)"\s*:', src))
@@ -159,7 +200,7 @@ missing_restore = sorted(cleared - restored - exempt)
 if missing_restore:
     fail("MainActivity.java: screens missing from restore(): " + ", ".join(missing_restore))
 
-# 10. Deleted prayer practice screens must stay deleted.
+# 11. Deleted prayer practice screens must stay deleted.
 for symbol in ["renderPrayerPracticeHub", "renderPrayerBefore", "renderPrayerFlowPractice", "renderPrayerAfter", "renderMindPractice"]:
     if symbol in src:
         fail(f"MainActivity.java: stale removed symbol {symbol}")
