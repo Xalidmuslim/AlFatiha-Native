@@ -56,7 +56,24 @@ for item in glossary:
         if link not in id_set:
             fail(f"prayer_glossary.json: unknown lesson link {link!r}")
 
-# 4. Religious assessment datasets must never ship with an empty source.
+# 4. Deep prayer wording contracts for tashahhud and final sitting.
+prayer_by_id = {x.get("id"): x for x in prayer if isinstance(x, dict)}
+for lesson_id, minimum in [("tashahhud", 20), ("salawat_dua", 45)]:
+    lesson = prayer_by_id.get(lesson_id)
+    if not lesson:
+        fail(f"prayer_secrets.json: missing {lesson_id}")
+        continue
+    wm = lesson.get("word_map") or []
+    if len(wm) < minimum:
+        fail(f"{lesson_id}: expected at least {minimum} word-by-word entries, got {len(wm)}")
+    for i, word in enumerate(wm):
+        if not str(word.get("arabic", "")).strip():
+            fail(f"{lesson_id}[{i}]: missing Arabic form")
+        if not str(word.get("group", "")).strip():
+            fail(f"{lesson_id}[{i}]: missing internal group")
+
+# 5. Religious assessment datasets must never ship with an empty source.
+
 source_datasets = [
     "quiz_data.json", "expert_data.json", "multi_data.json", "match_data.json",
     "hadith_data.json", "free_data.json", "mind_check.json", "mind_exam.json",
@@ -82,7 +99,7 @@ for name in source_datasets:
         if not ok:
             fail(f"{name}[{i}]: missing source")
 
-# 5. Audited core sources must not fall back to vague placeholders.
+# 6. Audited core sources must not fall back to vague placeholders.
 audited_core = [
     "mind_qayyim_deep.json", "mind_connections.json", "mind_mistakes.json",
     "mind_life.json", "mind_check.json", "mind_exam.json",
@@ -99,7 +116,7 @@ for name in audited_core:
         if phrase.lower() in low:
             fail(f"{name}: vague source phrase remains: {phrase!r}")
 
-# 6. Single-choice checks should not teach a fixed answer position.
+# 7. Single-choice checks should not teach a fixed answer position.
 for name in ["mind_check.json", "mind_exam.json", "prayer_check.json"]:
     counts = [0, 0, 0, 0]
     total_single = 0
@@ -115,7 +132,7 @@ for name in ["mind_check.json", "mind_exam.json", "prayer_check.json"]:
     if total_single >= 8 and max(counts) > (total_single + 1) // 2:
         fail(f"{name}: correct-answer position is too predictable: {counts}")
 
-# 7. Removed UX patterns must not reappear in user-visible code/data.
+# 8. Removed UX patterns must not reappear in user-visible code/data.
 
 
 forbidden = [
@@ -132,7 +149,7 @@ for path in search_files:
         if phrase.lower() in low:
             fail(f"{path.relative_to(ROOT)}: stale UX phrase {phrase!r}")
 
-# 8. Literal screens passed to clear() must be restorable via Back.
+# 9. Literal screens passed to clear() must be restorable via Back.
 src = MAIN.read_text(encoding="utf-8")
 cleared = set(re.findall(r'clear\("([A-Za-z0-9_]+)"', src))
 restored = set(re.findall(r'case"([A-Za-z0-9_]+)"\s*:', src))
@@ -142,7 +159,7 @@ missing_restore = sorted(cleared - restored - exempt)
 if missing_restore:
     fail("MainActivity.java: screens missing from restore(): " + ", ".join(missing_restore))
 
-# 9. Deleted prayer practice screens must stay deleted.
+# 10. Deleted prayer practice screens must stay deleted.
 for symbol in ["renderPrayerPracticeHub", "renderPrayerBefore", "renderPrayerFlowPractice", "renderPrayerAfter", "renderMindPractice"]:
     if symbol in src:
         fail(f"MainActivity.java: stale removed symbol {symbol}")
