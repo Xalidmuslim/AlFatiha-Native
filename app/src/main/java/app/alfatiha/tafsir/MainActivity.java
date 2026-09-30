@@ -1010,6 +1010,9 @@ public class MainActivity extends Activity {
             for(int i=0;i<wm.length();i++){
                 JSONObject w=wm.optJSONObject(i);if(w==null)continue;
                 b.append("\n• ").append(w.optString("phrase")).append(" — ").append(w.optString("meaning"));
+                String detail=w.optString("detail");if(!detail.isEmpty())b.append("\n  Подробнее: ").append(detail);
+                String example=w.optString("example");if(!example.isEmpty())b.append("\n  Пример: ").append(example);
+                String application=w.optString("application");if(!application.isEmpty())b.append("\n  В молитве: ").append(application);
                 String h=w.optString("heart");if(!h.isEmpty())b.append("\n  Сердце: ").append(h);
             }
         }
@@ -1017,7 +1020,6 @@ public class MainActivity extends Activity {
         String heart=o.optString("heart");if(!heart.isEmpty())b.append("\n\nСостояние сердца:\n").append(heart);
         String calls=o.optString("calls_to");if(!calls.isEmpty())b.append("\n\nК чему призывает:\n").append(calls);
         String reflect=o.optString("reflect");if(!reflect.isEmpty())b.append("\n\nДля размышления:\n").append(reflect);
-        String practice=o.optString("practice");if(!practice.isEmpty())b.append("\n\nПрактика:\n").append(practice);
         String mistake=o.optString("mistake");if(!mistake.isEmpty())b.append("\n\nТипичная потеря смысла:\n").append(mistake);
         String source=o.optString("source");if(!source.isEmpty())b.append("\n\nИсточник: ").append(source);
         return b.toString().trim();
@@ -1341,25 +1343,54 @@ public class MainActivity extends Activity {
     private void addPrayerWordMap(JSONObject o){
         JSONArray words=o.optJSONArray("word_map");
         if(words==null||words.length()==0)return;
+
         LinearLayout box=card(lavSoft());
-        box.addView(kicker("ПОСЛОВНЫЙ РАЗБОР",Color.rgb(112,96,134)));
-        box.addView(text("Не переводите всё заново во время намаза. Разберите смысл заранее, чтобы знакомые слова сами возвращали сердце к нужному состоянию.",13.3f,muted(),false));
-        Button toggle=outline("Разобрать слова глубже   ↓");toggle.setTextSize(sz(13.5f));box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
-        LinearLayout holder=newSurface(dark?Color.rgb(44,40,49):Color.rgb(249,247,251),18,13,1);holder.setVisibility(View.GONE);
+        box.addView(kicker("ПОЛНЫЙ РАЗБОР СЛОВ",Color.rgb(112,96,134)));
+        box.addView(text("Нажмите на слово или фразу, чтобы открыть подробный смысл, реальный пример и применение. Нажмите повторно — разбор скроется.",13.4f,muted(),false));
+
         for(int i=0;i<words.length();i++){
             JSONObject w=words.optJSONObject(i);if(w==null)continue;
-            LinearLayout item=newSurface(panel(),16,12,1);
-            item.addView(text(w.optString("phrase"),17,ink(),true));
-            item.addView(text(w.optString("meaning"),14.2f,ink(),false));
+            String phrase=w.optString("phrase");
+            Button toggle=outline(phrase+"   ↓");
+            toggle.setTextSize(sz(15f));
+            toggle.setAllCaps(false);
+            toggle.setSingleLine(false);
+            toggle.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+
+            LinearLayout detail=newSurface(dark?Color.rgb(44,40,49):Color.rgb(249,247,251),18,14,1);
+            detail.setVisibility(View.GONE);
+
+            detail.addView(kicker("ЧТО ОЗНАЧАЕТ",Color.rgb(112,96,134)));
+            detail.addView(text(w.optString("meaning"),14.8f,ink(),true));
+
+            String deeper=w.optString("detail");
+            if(!deeper.isEmpty()){
+                TextView t1=text("Подробнее",13,C_BLUE,true);t1.setPadding(0,dp(10),0,dp(2));detail.addView(t1);
+                detail.addView(text(deeper,14.4f,ink(),false));
+            }
+
+            String example=w.optString("example");
+            if(!example.isEmpty()){
+                TextView t2=text("Реальный пример",13,Color.rgb(145,104,42),true);t2.setPadding(0,dp(10),0,dp(2));detail.addView(t2);
+                detail.addView(text(example,14.4f,ink(),false));
+            }
+
+            String application=w.optString("application");
+            if(!application.isEmpty()){
+                TextView t3=text("Как применять этот смысл в молитве",13,C_SAGE,true);t3.setPadding(0,dp(10),0,dp(2));detail.addView(t3);
+                detail.addView(text(application,14.4f,ink(),false));
+            }
+
             String heart=w.optString("heart");
             if(!heart.isEmpty()){
-                TextView h=text("Сердце: "+heart,13.7f,dark?blend(C_SAGE,Color.WHITE,.35f):C_SAGE,false);
-                h.setPadding(0,dp(6),0,0);item.addView(h);
+                TextView t4=text("Что должно быть в сердце",13,Color.rgb(112,96,134),true);t4.setPadding(0,dp(10),0,dp(2));detail.addView(t4);
+                detail.addView(text(heart,14.4f,ink(),false));
             }
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(5),0,dp(5));holder.addView(item,lp);
+
+            box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(58)));
+            LinearLayout.LayoutParams dlp=new LinearLayout.LayoutParams(-1,-2);dlp.setMargins(0,dp(5),0,dp(9));box.addView(detail,dlp);
+            toggle.setOnClickListener(v->toggleInline(detail,toggle,phrase+"   ↓",phrase+"   ↑"));
         }
-        box.addView(holder);
-        toggle.setOnClickListener(v->toggleInline(holder,toggle,"Разобрать слова глубже   ↓","Скрыть пословный разбор   ↑"));
     }
 
     private void addPrayerEvidence(JSONObject o){
@@ -1396,11 +1427,6 @@ public class MainActivity extends Activity {
         sectionCard("Состояние сердца",o.optString("heart"),sageSoft(),C_SAGE);
         sectionCard("К чему это призывает",o.optString("calls_to"),panel(),Color.rgb(112,96,134));
         sectionCard("О чём размышлять",o.optString("reflect"),blueSoft(),C_BLUE);
-
-        LinearLayout today=card(sageSoft());
-        today.addView(kicker("ПРАКТИКА В БЛИЖАЙШЕМ НАМАЗЕ",C_SAGE));
-        today.addView(text(o.optString("practice"),16,ink(),true));
-        today.addView(text("Изучите этот смысл заранее. В молитве осознайте его в соответствующем месте, а затем переходите сердцем к смыслу следующего слова или движения.",13.2f,muted(),false));
 
         sectionCard("Типичная потеря смысла",o.optString("mistake"),dark?Color.rgb(61,43,43):C_BAD_BG,C_BAD);
         sectionCard("Основной источник",o.optString("source"),panel(),C_SAGE);
