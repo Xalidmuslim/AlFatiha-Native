@@ -127,8 +127,9 @@ forbidden = [
 search_files = [MAIN] + sorted(ASSETS.glob("*.json"))
 for path in search_files:
     text = path.read_text(encoding="utf-8")
+    low = text.lower()
     for phrase in forbidden:
-        if phrase in text:
+        if phrase.lower() in low:
             fail(f"{path.relative_to(ROOT)}: stale UX phrase {phrase!r}")
 
 # 8. Literal screens passed to clear() must be restorable via Back.
