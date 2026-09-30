@@ -1,8 +1,8 @@
-name: Build Android APK
+name: Build Android APK + AAB
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, alfatiha-native-play-ready-2026-09-30 ]
   workflow_dispatch:
 
 jobs:
@@ -21,10 +21,17 @@ jobs:
         run: chmod +x gradlew
       - name: Verify content and navigation contracts
         run: python3 scripts/verify_content.py
-      - name: Build APK
-        run: ./gradlew assembleDebug
-      - name: Upload APK
+      - name: Lint Android
+        run: ./gradlew lintDebug
+      - name: Build debug APK and release AAB
+        run: ./gradlew assembleDebug bundleRelease
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: AlFatiha-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlFatiha-Release-AAB
+          path: app/build/outputs/bundle/release/app-release.aab
