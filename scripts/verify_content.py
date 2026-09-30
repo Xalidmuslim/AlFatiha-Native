@@ -56,7 +56,34 @@ for item in glossary:
         if link not in id_set:
             fail(f"prayer_glossary.json: unknown lesson link {link!r}")
 
-# 4. Removed UX patterns must not reappear in user-visible code/data.
+# 4. Religious assessment datasets must never ship with an empty source.
+source_datasets = [
+    "quiz_data.json", "expert_data.json", "multi_data.json", "match_data.json",
+    "hadith_data.json", "free_data.json", "mind_check.json", "mind_exam.json",
+    "mind_mistakes.json", "mind_life.json", "prayer_check.json", "prayer_heart_errors.json",
+]
+for name in source_datasets:
+    data = parsed.get(name, [])
+    for i, item in enumerate(data):
+        if not isinstance(item, dict):
+            fail(f"{name}[{i}]: expected object")
+            continue
+        raw = (
+            item.get("src")
+            or item.get("source")
+            or item.get("sources")
+            or item.get("sourceList")
+            or item.get("reference")
+        )
+        if isinstance(raw, list):
+            ok = any(bool(str(x).strip()) if not isinstance(x, dict) else bool(str(x.get("label", "")).strip()) for x in raw)
+        else:
+            ok = bool(str(raw or "").strip())
+        if not ok:
+            fail(f"{name}[{i}]: missing source")
+
+# 5. Removed UX patterns must not reappear in user-visible code/data.
+
 forbidden = [
     "Одна мысль на намаз",
     "На ближайшую молитву удерживайте только одну мысль",
@@ -70,7 +97,7 @@ for path in search_files:
         if phrase in text:
             fail(f"{path.relative_to(ROOT)}: stale UX phrase {phrase!r}")
 
-# 5. Literal screens passed to clear() must be restorable via Back.
+# 6. Literal screens passed to clear() must be restorable via Back.
 src = MAIN.read_text(encoding="utf-8")
 cleared = set(re.findall(r'clear\("([A-Za-z0-9_]+)"', src))
 restored = set(re.findall(r'case"([A-Za-z0-9_]+)"\s*:', src))
@@ -80,7 +107,7 @@ missing_restore = sorted(cleared - restored - exempt)
 if missing_restore:
     fail("MainActivity.java: screens missing from restore(): " + ", ".join(missing_restore))
 
-# 6. Deleted prayer practice screens must stay deleted.
+# 7. Deleted prayer practice screens must stay deleted.
 for symbol in ["renderPrayerPracticeHub", "renderPrayerBefore", "renderPrayerFlowPractice", "renderPrayerAfter", "renderMindPractice"]:
     if symbol in src:
         fail(f"MainActivity.java: stale removed symbol {symbol}")
