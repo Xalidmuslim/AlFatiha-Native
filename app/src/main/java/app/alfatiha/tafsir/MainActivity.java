@@ -1387,7 +1387,8 @@ public class MainActivity extends Activity {
                 detail.addView(text(heart,14.4f,ink(),false));
             }
 
-            box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(58)));
+            toggle.setMinHeight(dp(58));
+            box.addView(toggle,new LinearLayout.LayoutParams(-1,-2));
             LinearLayout.LayoutParams dlp=new LinearLayout.LayoutParams(-1,-2);dlp.setMargins(0,dp(5),0,dp(9));box.addView(detail,dlp);
             toggle.setOnClickListener(v->toggleInline(detail,toggle,phrase+"   ↓",phrase+"   ↑"));
         }
