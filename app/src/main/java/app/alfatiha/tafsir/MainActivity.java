@@ -1330,10 +1330,22 @@ public class MainActivity extends Activity {
 
         LinearLayout box=card(lavSoft());
         box.addView(kicker("ПОЛНЫЙ РАЗБОР СЛОВ",Color.rgb(112,96,134)));
-        box.addView(text("Нажмите на слово или фразу, чтобы открыть подробный смысл, учебный пример и применение. Примеры составлены для объяснения и не являются цитатами из источника.",13.4f,muted(),false));
+        box.addView(text("Нажмите на слово или фразу, чтобы открыть буквальный смысл, подробное объяснение, учебный пример и применение. Повторное нажатие скрывает разбор.",13.4f,muted(),false));
 
+        String lastGroup="";
         for(int i=0;i<words.length();i++){
             JSONObject w=words.optJSONObject(i);if(w==null)continue;
+
+            String group=w.optString("group");
+            if(!group.isEmpty()&&!group.equals(lastGroup)){
+                TextView groupTitle=text(group.toUpperCase(Locale.ROOT),12.2f,C_SAGE,true);
+                groupTitle.setLetterSpacing(.055f);
+                LinearLayout.LayoutParams glp=new LinearLayout.LayoutParams(-1,-2);
+                glp.setMargins(0,lastGroup.isEmpty()?dp(12):dp(20),0,dp(6));
+                box.addView(groupTitle,glp);
+                lastGroup=group;
+            }
+
             String phrase=w.optString("phrase");
             Button toggle=outline(phrase+"   ↓");
             toggle.setTextSize(sz(15f));
@@ -1344,7 +1356,18 @@ public class MainActivity extends Activity {
             LinearLayout detail=newSurface(dark?Color.rgb(44,40,49):Color.rgb(249,247,251),18,14,1);
             detail.setVisibility(View.GONE);
 
-            detail.addView(kicker("ЧТО ОЗНАЧАЕТ",Color.rgb(112,96,134)));
+            String arabic=w.optString("arabic");
+            if(!arabic.isEmpty()){
+                TextView ar=text(arabic,24f,ink(),true);
+                ar.setTypeface(Typeface.create("serif",Typeface.BOLD));
+                ar.setGravity(Gravity.CENTER_HORIZONTAL);
+                ar.setTextDirection(View.TEXT_DIRECTION_RTL);
+                LinearLayout.LayoutParams alp=new LinearLayout.LayoutParams(-1,-2);
+                alp.setMargins(0,0,0,dp(8));
+                detail.addView(ar,alp);
+            }
+
+            detail.addView(kicker("БУКВАЛЬНЫЙ СМЫСЛ",Color.rgb(112,96,134)));
             detail.addView(text(w.optString("meaning"),14.8f,ink(),true));
 
             String deeper=w.optString("detail");
@@ -1373,10 +1396,13 @@ public class MainActivity extends Activity {
 
             toggle.setMinHeight(dp(58));
             box.addView(toggle,new LinearLayout.LayoutParams(-1,-2));
-            LinearLayout.LayoutParams dlp=new LinearLayout.LayoutParams(-1,-2);dlp.setMargins(0,dp(5),0,dp(9));box.addView(detail,dlp);
+            LinearLayout.LayoutParams dlp=new LinearLayout.LayoutParams(-1,-2);
+            dlp.setMargins(0,dp(5),0,dp(9));
+            box.addView(detail,dlp);
             toggle.setOnClickListener(v->toggleInline(detail,toggle,phrase+"   ↓",phrase+"   ↑"));
         }
     }
+
 
     private void addPrayerMeaningDetails(JSONObject o){
         LinearLayout box=card(panel());
