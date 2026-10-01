@@ -1141,14 +1141,6 @@ public class MainActivity extends Activity {
         int total=Math.max(0,data.length()-1),seen=seenPrayerSecretCount();
         header("Тайны молитвы","Последовательный разбор подготовки и самой молитвы: слова, движения, смысл и состояние сердца.");
 
-        LinearLayout quiz=card(lavSoft());
-        quiz.addView(kicker("ВИКТОРИНА",Color.rgb(112,96,134)));
-        quiz.addView(text("Базовый · Средний · Сложный",20,ink(),true));
-        int quizTotal=arr("prayer_check.json").length()+modeCount("prayer_medium")+modeCount("prayer_hard");
-        quiz.addView(text(quizTotal+" вопросов · викторина доступна сразу, без прокрутки курса.",14,muted(),false));
-        Button qb=action("Открыть викторину",Color.rgb(112,96,134));qb.setOnClickListener(v->renderPrayerQuizHub(true));quiz.addView(qb);
-        quiz.setOnClickListener(v->renderPrayerQuizHub(true));
-
         LinearLayout preface=card(sandSoft());
         preface.addView(kicker("ВАЖНОЕ ПРЕДИСЛОВИЕ",Color.rgb(145,104,42)));
         preface.addView(text("Зачем сердцу понимать движения молитвы",20.5f,ink(),true));
@@ -1161,12 +1153,6 @@ public class MainActivity extends Activity {
         progress.addView(progressBar(total==0?0:Math.min(100,seen*100/total),C_SAGE),new LinearLayout.LayoutParams(-1,dp(10)));
         if(seen>0){Button resume=action(prayerSecretResumeLine(),C_SAGE);resume.setOnClickListener(v->continuePrayerSecrets());progress.addView(resume);}
 
-        LinearLayout glossary=card(lavSoft());
-        glossary.addView(kicker("СЛОВАРЬ",Color.rgb(112,96,134)));
-        glossary.addView(text("Повторяющиеся слова молитвы",19,ink(),true));
-        glossary.addView(text("«Рабби», «Субхана», «хамд», «салям» и другие слова — одно глубокое значение и все места, где оно встречается.",13.8f,muted(),false));
-        Button gb=outline("Открыть словарь");gb.setOnClickListener(v->renderPrayerGlossary(true));glossary.addView(gb,new LinearLayout.LayoutParams(-1,dp(52)));
-
         gap(10);TextView prep=text("ПОДГОТОВКА К МОЛИТВЕ",12,Color.rgb(145,104,42),true);prep.setLetterSpacing(.07f);add(prep);
         for(int i=1;i<=2&&i<data.length();i++){JSONObject o=data.optJSONObject(i);if(o==null)continue;final int idx=i;courseStep(String.format(Locale.ROOT,"%02d",i),o.optString("title"),o.optString("subtitle"),Color.rgb(145,104,42),()->renderPrayerSecretLesson(idx,true),false);}
 
@@ -1178,6 +1164,12 @@ public class MainActivity extends Activity {
         errs.addView(text("Когда тело молится, а смысл теряется",20,ink(),true));
         errs.addView(text("12 ситуаций: как заметить разрыв между внешним действием и внутренним поклонением.",14,muted(),false));
         Button eb=action("Разобрать ошибки",C_BAD);eb.setOnClickListener(v->renderPrayerErrorsHub(true));errs.addView(eb);
+
+        LinearLayout glossary=card(lavSoft());
+        glossary.addView(kicker("СЛОВАРЬ",Color.rgb(112,96,134)));
+        glossary.addView(text("Повторяющиеся слова молитвы",19,ink(),true));
+        glossary.addView(text("«Рабби», «Субхана», «хамд», «салям» и другие слова — одно глубокое значение и все места, где оно встречается.",13.8f,muted(),false));
+        Button gb=outline("Открыть словарь");gb.setOnClickListener(v->renderPrayerGlossary(true));glossary.addView(gb,new LinearLayout.LayoutParams(-1,dp(52)));
     }
 
     private void renderPrayerQuizHub(boolean push){
