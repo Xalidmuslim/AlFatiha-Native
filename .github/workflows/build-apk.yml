@@ -2,7 +2,7 @@ name: Build Android APK + AAB
 
 on:
   push:
-    branches: [ main, alfatiha-native-quiz-levels-2026-10-01 ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
