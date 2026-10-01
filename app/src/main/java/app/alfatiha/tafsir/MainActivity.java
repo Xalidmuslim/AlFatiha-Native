@@ -4084,7 +4084,7 @@ public class MainActivity extends Activity {
         head.addView(text("Разделы",21,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
         Button close=outline("×");close.setTextSize(sz(20));close.setMinWidth(0);close.setMinimumWidth(0);head.addView(close,new LinearLayout.LayoutParams(dp(38),dp(38)));shell.addView(head);
 
-        LinearLayout course=newSurface(sageSoft(),20,13,2);course.addView(kicker("ГЛАВНЫЙ КУРС",C_SAGE));course.addView(text("Осознанное чтение",20,ink(),true));course.addView(text(mindCourseResumeLine(),13.5f,C_SAGE,true));
+        LinearLayout course=newSurface(sageSoft(),20,13,2);course.addView(kicker("ИЗУЧЕНИЕ СУРЫ",C_SAGE));course.addView(text("Осознанное чтение",20,ink(),true));course.addView(text(mindCourseResumeLine(),13.5f,C_SAGE,true));
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.setMargins(0,dp(8),0,dp(8));shell.addView(course,cp);course.setOnClickListener(v->{d.dismiss();continueMindCourse();});
 
         LinearLayout prayerCourse=newSurface(sandSoft(),20,13,2);prayerCourse.addView(kicker("ТАЙНЫ МОЛИТВЫ",Color.rgb(145,104,42)));prayerCourse.addView(text("Слова и состояния сердца",20,ink(),true));prayerCourse.addView(text(prayerSecretResumeLine(),13.5f,Color.rgb(145,104,42),true));
