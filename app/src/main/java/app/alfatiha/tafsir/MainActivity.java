@@ -1297,7 +1297,11 @@ public class MainActivity extends Activity {
         Button errors=outline("Повторить «Ошибки сердца»");
         errors.setOnClickListener(v->renderPrayerErrorsHub(true));page.addView(errors,new LinearLayout.LayoutParams(-1,dp(54)));
 
-        Button reset=outline("Пройти проверку заново");
+        Button levels=outline("К уровням викторины");
+        levels.setOnClickListener(v->renderPrayerQuizHub(true));
+        page.addView(levels,new LinearLayout.LayoutParams(-1,dp(54)));
+
+        Button reset=outline("Пройти базовый уровень заново");
         reset.setOnClickListener(v->{prefs.edit().remove("prayer_check_answered").remove("prayer_check_correct").remove("prayer_check_last_idx").apply();renderPrayerCheck(0,true);});
         page.addView(reset,new LinearLayout.LayoutParams(-1,dp(54)));
     }
