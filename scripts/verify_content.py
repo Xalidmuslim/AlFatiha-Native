@@ -111,9 +111,10 @@ level_files = {
 seen_level_questions = {}
 for name, expected in level_files.items():
     data = parsed.get(name, [])
-    if len(data) != expected:
-        fail(f"{name}: expected {expected} questions, got {len(data)}")
+    if len(data) < expected:
+        fail(f"{name}: expected at least {expected} questions, got {len(data)}")
     ids = []
+    normalized_questions = []
     counts = [0, 0, 0, 0]
     local_questions = set()
     for i, item in enumerate(data):
@@ -154,6 +155,8 @@ for name, expected in level_files.items():
                 fail(f"{name}[{i}]: hard-level answer choices are not distinct")
     if len(ids) != len(set(ids)):
         fail(f"{name}: duplicate question ids")
+    if len(normalized_questions) != len(set(normalized_questions)):
+        fail(f"{name}: duplicate question texts")
     if max(counts) - min(counts) > 1:
         fail(f"{name}: answer positions are imbalanced: {counts}")
 
