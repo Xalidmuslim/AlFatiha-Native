@@ -959,6 +959,10 @@ public class MainActivity extends Activity {
     private void renderHome(boolean push){
         clearActiveFlow();clear("home","",push);currentSection="home";appTop();heroArabic();
 
+        LinearLayout q=card(blueSoft());cardHead(q,"ПРОВЕРКА ЗНАНИЙ",C_BLUE,"Викторины");
+        q.addView(text("Аль-Фатиха и Тайны молитвы. Сначала выберите курс, затем уровень сложности.",15,muted(),false));
+        Button bq=action("Открыть викторины",C_BLUE);bq.setOnClickListener(v->renderQuizCenter(true));q.addView(bq);q.setOnClickListener(v->renderQuizCenter(true));
+
         int seen=seenMindCount();int pct=Math.min(100,seen*100/8);
         LinearLayout m=card(sageSoft());cardHead(m,"ГЛАВНЫЙ КУРС",C_SAGE,"Осознанное чтение Аль-Фатихи");
         m.addView(text("Слова, глубокий смысл, состояние сердца, связи аятов и проверка понимания.",15,muted(),false));
@@ -976,10 +980,6 @@ public class MainActivity extends Activity {
         ps.addView(progressBar(prayerTotal==0?0:Math.min(100,prayerSeen*100/prayerTotal),Color.rgb(145,104,42)),new LinearLayout.LayoutParams(-1,dp(10)));
         Button bps=action(prayerSeen>0?"Продолжить":"Начать курс",Color.rgb(145,104,42));bps.setOnClickListener(v->continuePrayerSecrets());ps.addView(bps);
         ps.setOnClickListener(v->renderPrayerSecretsHub(true));
-
-        LinearLayout q=card(blueSoft());cardHead(q,"ПРОВЕРКА ЗНАНИЙ",C_BLUE,"Викторины");
-        q.addView(text("Аль-Фатиха и Тайны молитвы. Сначала выберите курс, затем уровень сложности.",15,muted(),false));
-        Button bq=action("Открыть викторины",C_BLUE);bq.setOnClickListener(v->renderQuizCenter(true));q.addView(bq);q.setOnClickListener(v->renderQuizCenter(true));
 
         LinearLayout searchCard=card(lavSoft());searchCard.addView(kicker("ПОИСК",Color.rgb(112,96,134)));
         searchCard.addView(text("Найти слово или смысл",19,ink(),true));
