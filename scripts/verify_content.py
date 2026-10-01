@@ -103,6 +103,8 @@ for name in source_datasets:
 # 6. New difficulty levels: size, structure, balanced answers and hard-option quality.
 level_files = {
     "alfatiha_medium.json": 50,
+    "expert_data.json": 50,
+    "prayer_check.json": 50,
     "prayer_medium.json": 50,
     "prayer_hard.json": 50,
 }
@@ -174,7 +176,7 @@ for name in audited_core:
             fail(f"{name}: vague source phrase remains: {phrase!r}")
 
 # 8. Single-choice checks should not teach a fixed answer position.
-for name in ["mind_check.json", "mind_exam.json", "prayer_check.json", "alfatiha_medium.json", "prayer_medium.json", "prayer_hard.json"]:
+for name in ["mind_check.json", "mind_exam.json", "prayer_check.json", "alfatiha_medium.json", "expert_data.json", "prayer_medium.json", "prayer_hard.json"]:
     counts = [0, 0, 0, 0]
     total_single = 0
     for item in parsed.get(name, []):
