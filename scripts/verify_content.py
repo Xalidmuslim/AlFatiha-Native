@@ -102,20 +102,34 @@ for name in source_datasets:
 
 # 6. New difficulty levels: size, structure, balanced answers and hard-option quality.
 level_files = {
-    "alfatiha_medium.json": 20,
-    "prayer_medium.json": 20,
-    "prayer_hard.json": 20,
+    "alfatiha_medium.json": 50,
+    "prayer_medium.json": 50,
+    "prayer_hard.json": 50,
 }
+seen_level_questions = {}
 for name, expected in level_files.items():
     data = parsed.get(name, [])
     if len(data) != expected:
         fail(f"{name}: expected {expected} questions, got {len(data)}")
     ids = []
     counts = [0, 0, 0, 0]
+    local_questions = set()
     for i, item in enumerate(data):
         if not isinstance(item, dict):
             continue
         ids.append(str(item.get("id", "")))
+        question = str(item.get("question", "")).strip()
+        norm_q = re.sub(r"\s+", " ", question.lower())
+        if not norm_q:
+            fail(f"{name}[{i}]: empty question")
+        elif norm_q in local_questions:
+            fail(f"{name}[{i}]: duplicate question inside dataset")
+        else:
+            local_questions.add(norm_q)
+            if norm_q in seen_level_questions:
+                fail(f"{name}[{i}]: duplicate question also present in {seen_level_questions[norm_q]}")
+            else:
+                seen_level_questions[norm_q] = name
         opts = item.get("options")
         answer = item.get("correct")
         ex = item.get("explanations")
@@ -134,6 +148,8 @@ for name, expected in level_files.items():
             short = [str(x) for x in opts if len(str(x).strip()) < 35]
             if short:
                 fail(f"{name}[{i}]: hard-level option is too short/obvious: {short[0]!r}")
+            if len({str(x).strip().lower() for x in opts}) != 4:
+                fail(f"{name}[{i}]: hard-level answer choices are not distinct")
     if len(ids) != len(set(ids)):
         fail(f"{name}: duplicate question ids")
     if max(counts) - min(counts) > 1:
