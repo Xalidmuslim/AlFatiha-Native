@@ -840,10 +840,11 @@ public class MainActivity extends Activity {
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(10),0,dp(2),0);
 
-        TextView title=chromeText("Аль-Фатиха •\\nТайны молитвы",14.2f,ink(),false);
-        title.setSingleLine(false);
-        title.setMaxLines(2);
-        title.setGravity(Gravity.CENTER_VERTICAL);
+        TextView title=chromeText("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",16.2f,ink(),false);
+        title.setSingleLine(true);
+        title.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
+        title.setTextDirection(View.TEXT_DIRECTION_RTL);
+        title.setTypeface(Typeface.create("serif",Typeface.NORMAL));
         title.setTextScaleX(.96f);
         titles.addView(title,new LinearLayout.LayoutParams(-1,dp(52)));
 
@@ -956,8 +957,6 @@ public class MainActivity extends Activity {
 
     private void renderHome(boolean push){
         clearActiveFlow();clear("home","",push);currentSection="home";appTop();heroArabic();
-
-        addHeartReminder();
 
         int seen=seenMindCount();int pct=Math.min(100,seen*100/8);
         LinearLayout m=card(sageSoft());cardHead(m,"ИЗУЧЕНИЕ СУРЫ",C_SAGE,"Осознанное чтение Аль-Фатихи");
@@ -1265,6 +1264,8 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams plp=new LinearLayout.LayoutParams(-1,dp(8));plp.setMargins(0,dp(8),0,dp(10));
         page.addView(progressBar((idx+1)*100/a.length(),Color.rgb(112,96,134)),plp);
 
+        addPrayerCheckQuickNavigation(idx,a.length());
+
         LinearLayout qc=card(panel());
         qc.addView(text(q.optString("question"),20.5f,ink(),false));
         JSONArray opts=q.optJSONArray("options");
@@ -1288,6 +1289,46 @@ public class MainActivity extends Activity {
                 addPrayerCheckExplanation(q,ix,correct,questionIdx,a.length());
             });
         }
+    }
+
+    private void addPrayerCheckQuickNavigation(int idx,int total){
+        LinearLayout nav=new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        nav.setGravity(Gravity.CENTER_VERTICAL);
+
+        Button first=outline("↺ С 1 вопроса");
+        Button prev=outline("← Предыдущий");
+        Button next=outline("Следующий →");
+
+        first.setTextSize(sz(11.7f));prev.setTextSize(sz(11.7f));next.setTextSize(sz(11.7f));
+        first.setSingleLine(true);prev.setSingleLine(true);next.setSingleLine(true);
+
+        if(idx==0){
+            first.setEnabled(false);prev.setEnabled(false);
+            first.setAlpha(.45f);prev.setAlpha(.45f);
+        }else{
+            first.setOnClickListener(v->renderPrayerCheck(0,true));
+            final int pi=idx-1;
+            prev.setOnClickListener(v->renderPrayerCheck(pi,true));
+        }
+
+        if(idx>=total-1){
+            next.setEnabled(false);
+            next.setAlpha(.45f);
+        }else{
+            final int ni=idx+1;
+            next.setOnClickListener(v->renderPrayerCheck(ni,true));
+        }
+
+        LinearLayout.LayoutParams a=new LinearLayout.LayoutParams(0,dp(48),1);
+        LinearLayout.LayoutParams b=new LinearLayout.LayoutParams(0,dp(48),1);b.setMargins(dp(6),0,0,0);
+        LinearLayout.LayoutParams c=new LinearLayout.LayoutParams(0,dp(48),1);c.setMargins(dp(6),0,0,0);
+
+        nav.addView(first,a);nav.addView(prev,b);nav.addView(next,c);
+
+        LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);
+        np.setMargins(0,0,0,dp(7));
+        page.addView(nav,np);
     }
 
     private void addPrayerCheckExplanation(JSONObject q,int selected,int correct,int idx,int total){
@@ -2493,9 +2534,13 @@ public class MainActivity extends Activity {
         first.setTextSize(sz(12.2f));
         first.setSingleLine(true);
 
-        Button prev=outline("← Предыдущий вопрос");
-        prev.setTextSize(sz(12.2f));
+        Button prev=outline("← Предыдущий");
+        prev.setTextSize(sz(11.7f));
         prev.setSingleLine(true);
+
+        Button next=outline("Следующий →");
+        next.setTextSize(sz(11.7f));
+        next.setSingleLine(true);
 
         if(idx==0){
             first.setEnabled(false);
@@ -2522,6 +2567,20 @@ public class MainActivity extends Activity {
             );
         }
 
+        if(idx>=total-1){
+            next.setEnabled(false);
+            next.setAlpha(.45f);
+        }else{
+            final int ni=idx+1;
+            next.setOnClickListener(
+                    v->renderNativeQuiz(
+                            mode,
+                            ni,
+                            true
+                    )
+            );
+        }
+
         LinearLayout.LayoutParams a=
                 new LinearLayout.LayoutParams(
                         0,
@@ -2536,10 +2595,20 @@ public class MainActivity extends Activity {
                         1
                 );
 
-        b.setMargins(dp(7),0,0,0);
+        b.setMargins(dp(6),0,0,0);
+
+        LinearLayout.LayoutParams c=
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                );
+
+        c.setMargins(dp(6),0,0,0);
 
         nav.addView(first,a);
         nav.addView(prev,b);
+        nav.addView(next,c);
 
         LinearLayout.LayoutParams np=
                 new LinearLayout.LayoutParams(-1,-2);
