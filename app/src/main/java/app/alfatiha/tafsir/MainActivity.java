@@ -959,6 +959,8 @@ public class MainActivity extends Activity {
     private void renderHome(boolean push){
         clearActiveFlow();clear("home","",push);currentSection="home";appTop();heroArabic();
 
+        addHeartReminder();
+
         LinearLayout q=card(blueSoft());cardHead(q,"ПРОВЕРКА ЗНАНИЙ",C_BLUE,"Викторины");
         q.addView(text("Аль-Фатиха и Тайны молитвы. Сначала выберите курс, затем уровень сложности.",15,muted(),false));
         Button bq=action("Открыть викторины",C_BLUE);bq.setOnClickListener(v->renderQuizCenter(true));q.addView(bq);q.setOnClickListener(v->renderQuizCenter(true));
@@ -995,6 +997,55 @@ public class MainActivity extends Activity {
         }
     }
 
+
+    private void addHeartReminder(){
+        final String[][] reminders={
+            {
+                "Коран 20:14",
+                "«Совершай молитву для Моего поминания».",
+                "Цель не в том, чтобы просто пройти курс. Пусть знакомые слова постепенно перестают проходить мимо сердца."
+            },
+            {
+                "Сахих Муслим №395a",
+                "Аль-Фатиха — не монолог.",
+                "В достоверном хадисе кудси переданы ответы Аллаха на её части. Читая суру, помни: это обращение раба к своему Господу."
+            },
+            {
+                "Коран 2:45",
+                "«Ищите помощи в терпении и молитве».",
+                "Когда становится тяжело, намаз — не ещё одна нагрузка в списке дел. Это место, где раб снова просит помощи у Аллаха."
+            },
+            {
+                "Сахих Муслим №482",
+                "Ближе всего раб к своему Господу — в суджуде.",
+                "Не спеши через суджуд только ради следующего движения. Это положение, в котором Пророк ﷺ особенно побуждал к ду‘а."
+            },
+            {
+                "Коран 13:28",
+                "«Поминанием Аллаха успокаиваются сердца».",
+                "Осознанная молитва — не погоня за сильными эмоциями. Это возвращение сердца к Тому, для Кого оно создано."
+            }
+        };
+
+        Calendar now=Calendar.getInstance();
+        int index=Math.floorMod(now.get(Calendar.DAY_OF_YEAR),reminders.length);
+        String[] r=reminders[index];
+
+        LinearLayout box=card(dark?Color.rgb(47,48,39):sandSoft());
+        box.addView(kicker("НАПОМИНАНИЕ ДЛЯ СЕРДЦА",Color.rgb(145,104,42)));
+
+        TextView line=text(r[1],19.5f,ink(),true);
+        line.setLineSpacing(dp(3),1.08f);
+        box.addView(line);
+
+        TextView body=text(r[2],14.2f,muted(),false);
+        body.setPadding(0,dp(5),0,dp(5));
+        box.addView(body);
+
+        TextView source=text(r[0],12.3f,Color.rgb(145,104,42),true);
+        source.setGravity(Gravity.END);
+        box.addView(source);
+    }
 
     private String progressSummary(){
         KnowledgeAnalytics.Summary s=analytics().summary();
