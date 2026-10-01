@@ -1214,7 +1214,7 @@ public class MainActivity extends Activity {
     private void renderPrayerCheck(int idx,boolean push){
         JSONArray a=arr("prayer_check.json");if(a.length()==0)return;
         if(idx<0||idx>=a.length())idx=0;
-        clear("prayerCheck",String.valueOf(idx),push);currentSection="prayerSecrets";appTop();
+        clear("prayerCheck",String.valueOf(idx),push);currentSection="quiz";appTop();
         JSONObject q=a.optJSONObject(idx);if(q==null)return;
 
         LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.HORIZONTAL);meta.setGravity(Gravity.CENTER_VERTICAL);
@@ -1277,7 +1277,7 @@ public class MainActivity extends Activity {
 
     private void renderPrayerCheckResult(boolean push){
         JSONArray a=arr("prayer_check.json");
-        clear("prayerCheckResult","",push);currentSection="prayerSecrets";appTop();
+        clear("prayerCheckResult","",push);currentSection="quiz";appTop();
         int answered=prayerCheckAnsweredCount(),correct=prayerCheckCorrectCount(),total=a.length();
         int pct=answered==0?0:correct*100/answered;
         header("Проверка понимания","Результат нужен не для оценки молитвы, а чтобы понять, какие смыслы курса ещё стоит повторить.");
