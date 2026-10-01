@@ -1118,8 +1118,9 @@ public class MainActivity extends Activity {
 
         LinearLayout quiz=card(lavSoft());
         quiz.addView(kicker("ВИКТОРИНА",Color.rgb(112,96,134)));
-        quiz.addView(text("Средний и сложный уровни",20,ink(),true));
-        quiz.addView(text((modeCount("prayer_medium")+modeCount("prayer_hard"))+" вопросов · в сложном уровне варианты намеренно близкие и требуют различать источник, смысл и границу вывода.",14,muted(),false));
+        quiz.addView(text("Базовый · Средний · Сложный",20,ink(),true));
+        int quizTotal=arr("prayer_check.json").length()+modeCount("prayer_medium")+modeCount("prayer_hard");
+        quiz.addView(text(quizTotal+" вопросов · от ситуационной проверки сердца до тонкого различения источника, смысла и границы вывода.",14,muted(),false));
         Button qb=action("Открыть викторину",Color.rgb(112,96,134));qb.setOnClickListener(v->renderPrayerQuizHub(true));quiz.addView(qb);
 
         LinearLayout errs=card(dark?Color.rgb(61,43,43):C_BAD_BG);
@@ -1127,24 +1128,28 @@ public class MainActivity extends Activity {
         errs.addView(text("Когда тело молится, а смысл теряется",20,ink(),true));
         errs.addView(text("12 ситуаций: как заметить разрыв между внешним действием и внутренним поклонением.",14,muted(),false));
         Button eb=action("Разобрать ошибки",C_BAD);eb.setOnClickListener(v->renderPrayerErrorsHub(true));errs.addView(eb);
-
-        int qa=prayerCheckAnsweredCount(),qt=arr("prayer_check.json").length();
-        LinearLayout check=card(blueSoft());
-        check.addView(kicker("ПРОВЕРКА ПОНИМАНИЯ",C_BLUE));
-        check.addView(text("Что происходит с сердцем?",20,ink(),true));
-        check.addView(text("12 ситуационных вопросов после изучения материала · пройдено "+qa+" из "+qt,14,muted(),false));
-        Button cb=action(qa>0?"Продолжить проверку":"Начать проверку",C_BLUE);cb.setOnClickListener(v->continuePrayerCheck());check.addView(cb);
     }
 
     private void renderPrayerQuizHub(boolean push){
         clearActiveFlow();clear("prayerQuizHub","",push);currentSection="prayerSecrets";appTop();
-        header("Викторина · Тайны молитвы","Два уровня. Средний проверяет устойчивое понимание уроков; сложный — тонкие различия между прямым доказательством, разбором Ибн аль-Каййима и учебным применением.");
+        header("Викторина · Тайны молитвы","Три уровня сложности: от ситуационной проверки понимания до тонких различий между доказательством, смысловым разбором и учебным применением.");
+
+        int qa=prayerCheckAnsweredCount(),qt=arr("prayer_check.json").length();
+        LinearLayout basic=card(blueSoft());
+        basic.addView(kicker("БАЗОВЫЙ",C_BLUE));
+        basic.addView(text("Проверка понимания",20.5f,ink(),true));
+        basic.addView(text(qt+" ситуационных вопросов · состояние сердца и смысл положений · пройдено "+qa+" из "+qt,14,muted(),false));
+        Button bb=action(qa>=qt?"Посмотреть результат":qa>0?"Продолжить":"Начать",C_BLUE);
+        bb.setOnClickListener(v->{if(qa>=qt)renderPrayerCheckResult(true);else continuePrayerCheck();});
+        basic.addView(bb);
+        basic.setOnClickListener(v->{if(qa>=qt)renderPrayerCheckResult(true);else continuePrayerCheck();});
+
         modeCard("СРЕДНИЙ","Средний уровень",modeCount("prayer_medium")+" вопросов · слова, положения, хадисы и состояние сердца","prayer_medium",C_SAGE,sageSoft());
         modeCard("СЛОЖНЫЙ","Сложный уровень",modeCount("prayer_hard")+" вопросов · близкие варианты без очевидных подсказок","prayer_hard",Color.rgb(112,96,134),lavSoft());
 
         LinearLayout note=card(panel());
-        note.addView(kicker("ПРИНЦИП СЛОЖНОСТИ",C_BLUE));
-        note.addView(text("Правильный ответ определяется точностью: что прямо установлено Кораном или хадисом, что является смысловым разбором учёного, а что — учебным примером приложения. Хорошо звучащий, но более широкий вывод считается неточным.",13.8f,muted(),false));
+        note.addView(kicker("ПРИНЦИП СЛОЖНОГО УРОВНЯ",C_BLUE));
+        note.addView(text("Варианты специально близкие. Нужно отличать: что прямо установлено Кораном или достоверным хадисом, что является смысловым разбором Ибн аль-Каййима, а что — учебным применением приложения. Ответ, который звучит правдоподобно, но делает вывод шире источника, считается неточным.",13.8f,muted(),false));
     }
 
 
