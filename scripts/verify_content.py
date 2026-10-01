@@ -157,6 +157,24 @@ for name, expected in level_files.items():
         fail(f"{name}: duplicate question ids")
     if len(normalized_questions) != len(set(normalized_questions)):
         fail(f"{name}: duplicate question texts")
+
+    # Reject strong near-duplicates, not only byte-identical question text.
+    token_sets = []
+    for item in data:
+        q = str(item.get("question", "")).lower()
+        tokens = {
+            x for x in re.findall(r"[0-9a-zа-яё‘]+", q)
+            if len(x) > 3
+        }
+        token_sets.append(tokens)
+    for i in range(len(token_sets)):
+        for j in range(i + 1, len(token_sets)):
+            a, b = token_sets[i], token_sets[j]
+            union = len(a | b)
+            similarity = (len(a & b) / union) if union else 0.0
+            if similarity >= 0.65:
+                fail(f"{name}: questions {i+1} and {j+1} are too similar ({similarity:.2f})")
+
     if max(counts) - min(counts) > 1:
         fail(f"{name}: answer positions are imbalanced: {counts}")
 
