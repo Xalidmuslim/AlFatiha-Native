@@ -163,7 +163,6 @@ fun AzkarGoldenReadingScreen(
                         ),
                     )
                     .padding(horizontal = AzkarSpacing.shellHorizontal)
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
                     .padding(bottom = AzkarSpacing.shellBottomBase),
             ) {
                 // Верхняя зона остаётся на месте. Прокручивается только карточка азкара.
@@ -609,7 +608,7 @@ internal fun AzkarDhikrCard(
     }
 
     val cardModifier = Modifier
-        .fillMaxWidth()
+        .fillMaxSize()
         .then(if (maxHeight != null) Modifier.heightIn(max = maxHeight) else Modifier)
         .testTag(AzkarReadingTestTags.Card)
 
