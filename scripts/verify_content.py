@@ -12,6 +12,36 @@ errors = []
 def fail(msg):
     errors.append(msg)
 
+# Embedded Medicine of the Prophet module must retain the complete structured book.
+MEDICINE_ASSETS = ROOT / "medicine" / "src" / "main" / "assets"
+MEDICINE_SOURCE = ROOT / "medicine" / "src" / "main" / "java" / "com" / "xalid" / "meditsinaproroka" / "nativeapp"
+medicine_book_path = MEDICINE_ASSETS / "book.json"
+if not medicine_book_path.is_file():
+    fail("medicine: missing embedded book.json")
+else:
+    try:
+        medicine_book = json.loads(medicine_book_path.read_text(encoding="utf-8"))
+        medicine_expected = {
+            "chapters": (len(medicine_book.get("chapters", [])), 111),
+            "topics": (len(medicine_book.get("topics", [])), 15),
+            "remedies": (len(medicine_book.get("remedies", [])), 98),
+            "treatments": (len(medicine_book.get("treatments", [])), 39),
+        }
+        for label, (actual, expected) in medicine_expected.items():
+            if actual != expected:
+                fail(f"medicine: expected {expected} {label}, got {actual}")
+        if medicine_book.get("stats", {}).get("sourceWords") != 76149:
+            fail("medicine: source word-count contract changed")
+    except Exception as e:
+        fail(f"medicine: invalid embedded book.json: {e}")
+
+for required in [
+    "App.kt", "MainActivity.kt", "Models.kt", "Reader.kt", "Routes.kt",
+    "Screens.kt", "Store.kt", "Theme.kt", "Utils.kt", "WebDesign.kt",
+]:
+    if not (MEDICINE_SOURCE / required).is_file():
+        fail(f"medicine: missing native source {required}")
+
 # 1. Every JSON asset must parse.
 parsed = {}
 for path in sorted(ASSETS.glob("*.json")):
