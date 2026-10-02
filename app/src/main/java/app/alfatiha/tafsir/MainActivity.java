@@ -167,7 +167,7 @@ public class MainActivity extends Activity {
         bottom.removeAllViews();
         navBtn("⌂","Главная",()->renderHome(true));
         navBtn("≡","Содержание",this::openSection);
-        navBtn("‹","Назад",this::goBack);
+        navBtn("▥","Прогресс",()->renderProfile(true));
         navBtn("▦","Меню",this::showSectionsDialog);
     }
 
@@ -840,12 +840,12 @@ public class MainActivity extends Activity {
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(10),0,dp(2),0);
 
-        TextView title=chromeText("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",16.2f,ink(),false);
-        title.setSingleLine(true);
-        title.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
-        title.setTextDirection(View.TEXT_DIRECTION_RTL);
-        title.setTypeface(Typeface.create("serif",Typeface.NORMAL));
-        title.setTextScaleX(.96f);
+        TextView title=chromeText("Сердце молитвы",16.6f,ink(),false);
+        title.setSingleLine(false);
+        title.setMaxLines(2);
+        title.setGravity(Gravity.CENTER_VERTICAL);
+        title.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        title.setTextScaleX(.97f);
         titles.addView(title,new LinearLayout.LayoutParams(-1,dp(52)));
 
         top.addView(titles,new LinearLayout.LayoutParams(0,dp(52),1));
@@ -980,6 +980,14 @@ public class MainActivity extends Activity {
         q.addView(text("Аль-Фатиха и Тайны молитвы. Сначала выберите курс, затем уровень сложности.",15,muted(),false));
         Button bq=action("Открыть викторины",C_BLUE);bq.setOnClickListener(v->renderQuizCenter(true));q.addView(bq);q.setOnClickListener(v->renderQuizCenter(true));
 
+        LinearLayout az=card(dark?Color.rgb(43,55,48):Color.rgb(236,242,237));
+        cardHead(az,"УТРО И ВЕЧЕР",C_SAGE,"Азкары");
+        az.addView(text("Последняя нативная версия азкаров: чтение по одному или списком, арабский текст, перевод, разъяснения, счётчики и настройки.",15,muted(),false));
+        Button baz=action("Открыть азкары",C_SAGE);
+        baz.setOnClickListener(v->openAzkar());
+        az.addView(baz);
+        az.setOnClickListener(v->openAzkar());
+
         LinearLayout searchCard=card(lavSoft());searchCard.addView(kicker("ПОИСК",Color.rgb(112,96,134)));
         searchCard.addView(text("Найти слово или смысл",19,ink(),true));
         searchCard.addView(text("Например: «Рабби», «милость», «упование», «суджуд», «прямой путь».",13.8f,muted(),false));
@@ -1042,6 +1050,15 @@ public class MainActivity extends Activity {
         TextView source=text(r[0],12.3f,Color.rgb(145,104,42),true);
         source.setGravity(Gravity.END);
         box.addView(source);
+    }
+
+    private void openAzkar(){
+        try{
+            Intent i=new Intent(this,app.xalidmuslim.azkar.MainActivity.class);
+            startActivity(i);
+        }catch(Exception e){
+            toast("Не удалось открыть раздел азкаров");
+        }
     }
 
     private String progressSummary(){
