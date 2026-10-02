@@ -826,7 +826,7 @@ public class MainActivity extends Activity {
         page.addView(top,tlp);
 
         ImageView mark=new ImageView(this);
-        mark.setImageResource(R.drawable.app_icon);
+        mark.setImageResource(R.drawable.heart_prayer_icon);
         mark.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         mark.setPadding(dp(3),dp(3),dp(3),dp(3));
         mark.setBackground(surfaceBg(
