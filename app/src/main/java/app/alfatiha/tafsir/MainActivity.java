@@ -956,7 +956,7 @@ public class MainActivity extends Activity {
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(7),0,dp(4),0);
 
-        TextView title=chromeText("Сердце молитвы",16.5f,ink(),true);
+        TextView title=chromeText("Путь сердца",16.5f,ink(),true);
         title.setSingleLine(true);
         title.setGravity(Gravity.CENTER_VERTICAL);
         title.setTypeface(Typeface.create("serif",Typeface.BOLD));
@@ -1112,8 +1112,8 @@ public class MainActivity extends Activity {
                 Color.TRANSPARENT,
                 25,
                 dark?Color.rgb(58,67,62):Color.rgb(236,230,220)));
-        hero.setContentDescription("Открыть Аль-Фатиху и Тайны молитвы");
-        hero.setOnClickListener(v->renderHeartCourseHub(true));
+        hero.setContentDescription("Продолжить обучение");
+        hero.setOnClickListener(v->continueMindCourse());
 
         ImageView heroArt=new ImageView(this);
         heroArt.setImageResource(R.drawable.heart_prayer_hero_exact);
@@ -1140,13 +1140,13 @@ public class MainActivity extends Activity {
         heroText.setGravity(Gravity.CENTER_VERTICAL);
         heroText.setPadding(dp(16),dp(10),dp(5),dp(10));
 
-        TextView heroTitle=homeText("Аль-Фатиха\nи тайны молитвы",22.0f,
+        TextView heroTitle=homeText("Продолжить путь",22.0f,
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),true);
         heroTitle.setLineSpacing(0,1.00f);
         heroTitle.setPadding(0,0,0,dp(6));
         heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
 
-        TextView heroSub=homeText("Осознай то, что читаешь,\nи укрепляй сердце в молитве.",
+        TextView heroSub=homeText("Возвращайся к тому,\nна чём остановился.",
                 11.8f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
         heroSub.setLineSpacing(dp(1),1.04f);
         heroSub.setPadding(0,0,0,dp(7));
@@ -1165,8 +1165,11 @@ public class MainActivity extends Activity {
         ));
         heroResume.setOnClickListener(v->continueMindCourse());
 
+        String heroResumeText=seen>0
+                ?mindCourseResumeLine().replace("Продолжить · ","")
+                :"Осознанное чтение Аль-Фатихи · часть 1 из 8";
         TextView heroResumeLabel=homeText(
-                mindCourseResumeLine(),
+                heroResumeText,
                 10.4f,
                 dark?Color.rgb(214,220,216):Color.rgb(53,73,65),
                 true
@@ -1221,14 +1224,14 @@ public class MainActivity extends Activity {
         LinearLayout row2=new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout f3=homeFeature(
-                R.drawable.ic_home_shirk_colored,
+                R.drawable.home_minor_shirk_exact,
                 "Малый ширк",
                 "Защита единобожия",
                 dashboardCard,()->renderMinorShirkHub(true));
         LinearLayout f4=homeFeature(
                 R.drawable.home_azkar_mockup,
                 "Азкары",
-                "Утро и вечер",
+                "Утро и вечер · ат-Тарифи",
                 dashboardCard,this::openAzkar);
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
@@ -1247,10 +1250,10 @@ public class MainActivity extends Activity {
                 "Проверка понимания",
                 dashboardCard,()->renderQuizCenter(true));
         LinearLayout f6=homeFeature(
-                R.drawable.ic_home_medicine_colored,
+                R.drawable.home_medicine_exact,
                 "Медицина\nПророка ﷺ",
                 "Книга Ибн аль-Каййима",
-                dashboardCard,()->renderMedicineHub(true));
+                dashboardCard,this::openMedicine);
         LinearLayout.LayoutParams r3a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r3b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         r3b.setMargins(dp(6),0,0,0);
@@ -1887,6 +1890,19 @@ public class MainActivity extends Activity {
             );
         }catch(Exception e){
             toast("Не удалось открыть раздел азкаров");
+        }
+    }
+
+    private void openMedicine(){
+        try{
+            Intent i=new Intent(this,com.xalid.meditsinaproroka.nativeapp.MainActivity.class);
+            startActivity(i);
+            overridePendingTransition(
+                    android.R.anim.fade_in,
+                    android.R.anim.fade_out
+            );
+        }catch(Exception e){
+            toast("Не удалось открыть «Медицину Пророка ﷺ»");
         }
     }
 
@@ -3159,7 +3175,7 @@ public class MainActivity extends Activity {
             case"prayerError":renderPrayerError(parseInt(e.arg),true);break;
             case"minorShirkCourse":renderMinorShirkCourse(parseInt(e.arg),true);break;
             case"minorShirkDaily":renderMinorShirkDaily(parseInt(e.arg),true);break;
-            case"medicineChapter":renderMedicineChapter(parseInt(e.arg),true);break;
+            case"medicineChapter":openMedicine();break;
             default:renderHome(true);
         }
     }
