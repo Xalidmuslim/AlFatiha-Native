@@ -258,10 +258,10 @@ public class MainActivity extends Activity {
         LinearLayout c=new LinearLayout(this);
         c.setOrientation(LinearLayout.VERTICAL);
         c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
-        int end=dark?color:Color.rgb(253,250,244);
-        int stroke=dark?Color.rgb(61,70,65):Color.rgb(235,229,219);
+        int end=dark?blend(color,Color.BLACK,.015f):blend(color,Color.WHITE,.035f);
+        int stroke=dark?Color.rgb(58,67,62):Color.rgb(236,230,220);
         c.setBackground(surfaceBg(color,end,radius,stroke));
-        c.setElevation(dp(2));
+        c.setElevation(dp(1));
         return c;
     }
 
@@ -1043,8 +1043,12 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(39,45,41):Color.rgb(249,245,236),
                 dark?Color.rgb(35,41,38):Color.rgb(254,251,244),
                 25,0));
-        hero.setElevation(dp(4));
+        hero.setElevation(dp(1));
         hero.setClipToOutline(true);
+        hero.setForeground(solidBg(
+                Color.TRANSPARENT,
+                25,
+                dark?Color.rgb(58,67,62):Color.rgb(236,230,220)));
         hero.setContentDescription("Открыть курс Аль-Фатихи");
         hero.setOnClickListener(v->renderMindHub(true));
 
@@ -1109,7 +1113,7 @@ public class MainActivity extends Activity {
         ImageView contIcon=new ImageView(this);
         contIcon.setImageResource(R.drawable.ic_home_book_colored);
         contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        contIcon.setPadding(dp(3),dp(3),dp(3),dp(3));
+        contIcon.setPadding(dp(5),dp(5),dp(5),dp(5));
         contIcon.setBackground(solidBg(
                 dark?Color.rgb(45,57,50):Color.rgb(248,243,233),17,0));
         contIcon.setClipToOutline(true);
@@ -1139,7 +1143,7 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(45,52,48):Color.rgb(250,247,240),
                 dark?Color.rgb(41,48,44):Color.rgb(246,242,234),
                 20,dark?line():Color.rgb(232,226,216)));
-        chevron.setElevation(dp(1));
+        chevron.setElevation(0f);
         contTop.addView(chevron,new LinearLayout.LayoutParams(dp(40),dp(40)));
         cont.addView(contTop);
 
@@ -1170,11 +1174,11 @@ public class MainActivity extends Activity {
                 "Слова и глубокий смысл",
                 dashboardCard,()->renderMindHub(true));
         LinearLayout f2=homeFeature(
-                R.drawable.icon_mosque_3d,
+                R.drawable.ic_home_mihrab_colored,
                 "Тайны молитвы",
                 "Действия, слова\nи состояние сердца",
                 dashboardCard,()->renderPrayerSecretsHub(true));
-        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(172),1);
+        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(184),1);
         LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(172),1);
         r1b.setMargins(dp(8),0,0,0);
         row1.addView(f1,r1a);
@@ -1184,12 +1188,12 @@ public class MainActivity extends Activity {
         LinearLayout row2=new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout f3=homeFeature(
-                R.drawable.icon_quiz_3d,
+                R.drawable.ic_home_quiz_colored,
                 "Викторины",
                 "Проверка понимания",
                 dashboardCard,()->renderQuizCenter(true));
         LinearLayout f4=homeFeature(
-                R.drawable.icon_azkar_3d,
+                R.drawable.ic_home_azkar_colored,
                 "Азкары",
                 "Утро и вечер",
                 dashboardCard,this::openAzkar);
@@ -1208,7 +1212,7 @@ public class MainActivity extends Activity {
 
         int cardTone=tone;
         LinearLayout c=homeSurface(cardTone,22,13,2);
-        c.setMinimumHeight(dp(172));
+        c.setMinimumHeight(dp(184));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -1217,12 +1221,12 @@ public class MainActivity extends Activity {
         ImageView badge=new ImageView(this);
         badge.setImageResource(iconRes);
         badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        badge.setPadding(dp(3),dp(3),dp(3),dp(3));
+        badge.setPadding(dp(5),dp(5),dp(5),dp(5));
         badge.setBackground(solidBg(
                 dark?Color.rgb(45,52,48):Color.rgb(248,243,233),18,0));
         badge.setClipToOutline(true);
-        int iconWidth=iconRes==R.drawable.icon_azkar_3d?dp(82):dp(66);
-        int iconHeight=dp(66);
+        int iconWidth=iconRes==R.drawable.ic_home_azkar_colored?dp(82):dp(68);
+        int iconHeight=dp(68);
         top.addView(badge,new LinearLayout.LayoutParams(iconWidth,iconHeight));
 
         TextView arrow=homeText("›",23,ink(),false);
@@ -1231,7 +1235,7 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(45,52,48):Color.rgb(252,249,243),
                 dark?Color.rgb(41,48,44):Color.rgb(248,245,239),
                 19,dark?line():Color.rgb(236,230,220)));
-        arrow.setElevation(dp(1));
+        arrow.setElevation(0f);
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
         top.addView(arrow,new LinearLayout.LayoutParams(dp(38),dp(38)));
         c.addView(top);
