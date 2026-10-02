@@ -258,10 +258,10 @@ public class MainActivity extends Activity {
         LinearLayout c=new LinearLayout(this);
         c.setOrientation(LinearLayout.VERTICAL);
         c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
-        int end=dark?color:blend(color,Color.WHITE,0.07f);
-        int stroke=dark?Color.rgb(62,71,66):Color.rgb(235,230,221);
-        c.setBackground(surfaceBg(color,end,radius,stroke));
-        c.setElevation(dp(Math.min(elevation,2f)));
+        int end=dark?color:Color.rgb(253,250,244);
+        int stroke=dark?Color.rgb(61,70,65):Color.rgb(235,229,219);
+        c.setBackground(surfaceBg(color,end,22,stroke));
+        c.setElevation(dp(2));
         return c;
     }
 
@@ -912,9 +912,9 @@ public class MainActivity extends Activity {
         LinearLayout titles=new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
-        titles.setPadding(dp(10),0,dp(2),0);
+        titles.setPadding(dp(10),0,dp(14),0);
 
-        TextView title=chromeText("Сердце молитвы",17.0f,ink(),true);
+        TextView title=chromeText("Сердце молитвы",16.4f,ink(),true);
         title.setSingleLine(true);
         title.setGravity(Gravity.CENTER_VERTICAL);
         title.setTypeface(Typeface.create("serif",Typeface.BOLD));
@@ -1099,17 +1099,16 @@ public class MainActivity extends Activity {
         page.addView(hero,hp);
 
         // Resume card.
-        LinearLayout cont=homeSurface(
-                dark?Color.rgb(40,48,44):Color.rgb(253,250,244),
-                22,14,3);
+        int dashboardCard=dark?Color.rgb(40,47,43):Color.rgb(253,250,244);
+        LinearLayout cont=homeSurface(dashboardCard,22,14,2);
         LinearLayout contTop=new LinearLayout(this);
         contTop.setOrientation(LinearLayout.HORIZONTAL);
         contTop.setGravity(Gravity.CENTER_VERTICAL);
 
         ImageView contIcon=new ImageView(this);
         contIcon.setImageResource(R.drawable.icon_quran_3d);
-        contIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        contIcon.setPadding(0,0,0,0);
+        contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        contIcon.setPadding(dp(3),dp(3),dp(3),dp(3));
         contIcon.setBackground(solidBg(
                 dark?Color.rgb(45,57,50):Color.rgb(248,243,233),17,0));
         contIcon.setClipToOutline(true);
@@ -1168,12 +1167,12 @@ public class MainActivity extends Activity {
                 R.drawable.icon_quran_3d,
                 "Осознанное\nчтение Аль-Фатихи",
                 "Слова и глубокий смысл",
-                dark?Color.rgb(39,47,43):Color.rgb(249,248,243),()->renderMindHub(true));
+                dashboardCard,()->renderMindHub(true));
         LinearLayout f2=homeFeature(
                 R.drawable.icon_mosque_3d,
                 "Тайны молитвы",
                 "Действия, слова\nи состояние сердца",
-                dark?Color.rgb(48,45,38):Color.rgb(250,247,239),()->renderPrayerSecretsHub(true));
+                dashboardCard,()->renderPrayerSecretsHub(true));
         LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,-2,1);
         LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,-2,1);
         r1b.setMargins(dp(8),0,0,0);
@@ -1187,12 +1186,12 @@ public class MainActivity extends Activity {
                 R.drawable.icon_quiz_3d,
                 "Викторины",
                 "Проверка понимания",
-                dark?Color.rgb(39,45,49):Color.rgb(249,249,247),()->renderQuizCenter(true));
+                dashboardCard,()->renderQuizCenter(true));
         LinearLayout f4=homeFeature(
                 R.drawable.icon_azkar_3d,
                 "Азкары",
                 "Утро и вечер",
-                dark?Color.rgb(44,42,47):Color.rgb(250,248,244),this::openAzkar);
+                dashboardCard,this::openAzkar);
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,-2,1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,-2,1);
         r2b.setMargins(dp(8),0,0,0);
@@ -1207,8 +1206,8 @@ public class MainActivity extends Activity {
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=tone;
-        LinearLayout c=homeSurface(cardTone,22,13,3);
-        c.setMinimumHeight(dp(148));
+        LinearLayout c=homeSurface(cardTone,22,13,2);
+        c.setMinimumHeight(dp(160));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -1216,12 +1215,14 @@ public class MainActivity extends Activity {
 
         ImageView badge=new ImageView(this);
         badge.setImageResource(iconRes);
-        badge.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        badge.setPadding(0,0,0,0);
+        badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        badge.setPadding(dp(3),dp(3),dp(3),dp(3));
         badge.setBackground(solidBg(
                 dark?Color.rgb(45,52,48):Color.rgb(248,243,233),18,0));
         badge.setClipToOutline(true);
-        top.addView(badge,new LinearLayout.LayoutParams(dp(66),dp(66)));
+        int iconWidth=iconRes==R.drawable.icon_azkar_3d?dp(82):dp(66);
+        int iconHeight=dp(66);
+        top.addView(badge,new LinearLayout.LayoutParams(iconWidth,iconHeight));
 
         TextView arrow=homeText("›",23,ink(),false);
         arrow.setGravity(Gravity.CENTER);
@@ -1234,12 +1235,16 @@ public class MainActivity extends Activity {
         top.addView(arrow,new LinearLayout.LayoutParams(dp(38),dp(38)));
         c.addView(top);
 
-        TextView t=homeText(title,16.0f,ink(),true);
+        TextView t=homeText(title,15.7f,ink(),true);
+        t.setMaxLines(3);
+        t.setEllipsize(null);
         t.setLineSpacing(0,1.00f);
         t.setPadding(0,dp(8),0,dp(1));
         c.addView(t);
 
-        TextView st=homeText(sub,11.5f,muted(),false);
+        TextView st=homeText(sub,11.3f,muted(),false);
+        st.setMaxLines(2);
+        st.setEllipsize(null);
         st.setLineSpacing(dp(1),1.01f);
         st.setPadding(0,0,0,0);
         c.addView(st);
