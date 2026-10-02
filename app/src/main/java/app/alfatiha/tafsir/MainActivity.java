@@ -166,7 +166,7 @@ public class MainActivity extends Activity {
         topHost=new LinearLayout(this);
         topHost.setOrientation(LinearLayout.VERTICAL);
         topHost.setBackgroundColor(bg());
-        topHost.setPadding(dp(18),dp(6),dp(18),0);
+        topHost.setPadding(dp(18),dp(8),dp(18),dp(2));
         root.addView(topHost,new LinearLayout.LayoutParams(-1,-2));
 
         scroll=new ScrollView(this);
@@ -909,8 +909,8 @@ public class MainActivity extends Activity {
         top.setGravity(Gravity.CENTER_VERTICAL);
 
         // Fixed chrome height: reading font size must never expand this card.
-        LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,dp(70));
-        tlp.setMargins(0,0,0,dp(6));
+        LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,dp(80));
+        tlp.setMargins(0,0,0,dp(7));
         LinearLayout host=topHost!=null?topHost:page;
         if(topHost!=null)topHost.removeAllViews();
         host.addView(top,tlp);
@@ -925,21 +925,21 @@ public class MainActivity extends Activity {
                 17,
                 0));
         mark.setClipToOutline(true);
-        top.addView(mark,new LinearLayout.LayoutParams(dp(50),dp(50)));
+        top.addView(mark,new LinearLayout.LayoutParams(dp(56),dp(56)));
 
         LinearLayout titles=new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(10),0,dp(8),0);
 
-        TextView title=chromeText("Сердце молитвы",15.8f,ink(),true);
+        TextView title=chromeText("Сердце молитвы",16.2f,ink(),true);
         title.setSingleLine(true);
         title.setGravity(Gravity.CENTER_VERTICAL);
         title.setTypeface(Typeface.create("serif",Typeface.BOLD));
         title.setTextScaleX(.96f);
-        titles.addView(title,new LinearLayout.LayoutParams(-1,dp(46)));
+        titles.addView(title,new LinearLayout.LayoutParams(-1,dp(52)));
 
-        top.addView(titles,new LinearLayout.LayoutParams(0,dp(46),1));
+        top.addView(titles,new LinearLayout.LayoutParams(0,dp(52),1));
         top.addView(new Space(this),new LinearLayout.LayoutParams(dp(6),1));
 
         Button search=chromeMiniButton("⌕");
@@ -1061,14 +1061,14 @@ public class MainActivity extends Activity {
         final int heroH;
         final int resumeH;
         if(screenH<=700){
-            heroH=124; resumeH=74; homeTileHeightDp=130; homeTileIconDp=48;
-            homeTileTitleSp=12.8f; homeTileSubSp=9.7f;
+            heroH=158; resumeH=88; homeTileHeightDp=145; homeTileIconDp=56;
+            homeTileTitleSp=13.1f; homeTileSubSp=9.8f;
         }else if(screenH<=760){
-            heroH=138; resumeH=82; homeTileHeightDp=140; homeTileIconDp=54;
-            homeTileTitleSp=13.4f; homeTileSubSp=10.0f;
+            heroH=172; resumeH=96; homeTileHeightDp=156; homeTileIconDp=60;
+            homeTileTitleSp=13.8f; homeTileSubSp=10.1f;
         }else{
-            heroH=150; resumeH=88; homeTileHeightDp=150; homeTileIconDp=58;
-            homeTileTitleSp=14.0f; homeTileSubSp=10.4f;
+            heroH=188; resumeH=100; homeTileHeightDp=168; homeTileIconDp=64;
+            homeTileTitleSp=14.4f; homeTileSubSp=10.6f;
         }
 
         int seen=seenMindCount();
@@ -1126,7 +1126,7 @@ public class MainActivity extends Activity {
         heroSub.setPadding(0,0,0,dp(5));
         heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
 
-        int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(91,116,105);
+        int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
         Button heroAction=homeAction("Открыть курс",mutedHeroGreen);
         heroAction.setOnClickListener(v->renderHeartCourseHub(true));
         LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(158),dp(40));
@@ -1149,7 +1149,7 @@ public class MainActivity extends Activity {
         contTop.setGravity(Gravity.CENTER_VERTICAL);
 
         ImageView contIcon=new ImageView(this);
-        contIcon.setImageResource(R.drawable.home_resume_mockup);
+        contIcon.setImageResource(R.drawable.home_book_mockup);
         contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         contIcon.setPadding(0,0,0,0);
         contIcon.setBackgroundColor(Color.TRANSPARENT);
@@ -1205,7 +1205,7 @@ public class MainActivity extends Activity {
         LinearLayout row1=new LinearLayout(this);
         row1.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout f1=homeFeature(
-                R.drawable.home_book_mockup,
+                R.drawable.home_resume_mockup,
                 "Осознанное\nчтение Аль-Фатихи",
                 "Слова и глубокий смысл",
                 dashboardCard,()->renderMindHub(true));
@@ -1216,7 +1216,7 @@ public class MainActivity extends Activity {
                 dashboardCard,()->renderPrayerSecretsHub(true));
         LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r1b.setMargins(dp(6),0,0,0);
+        r1b.setMargins(dp(8),0,0,0);
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
         page.addView(row1,new LinearLayout.LayoutParams(-1,-2));
@@ -1235,9 +1235,9 @@ public class MainActivity extends Activity {
                 dashboardCard,this::openAzkar);
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r2b.setMargins(dp(6),0,0,0);
+        r2b.setMargins(dp(8),0,0,0);
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
-        row2lp.setMargins(0,dp(6),0,0);
+        row2lp.setMargins(0,dp(8),0,0);
         row2.addView(f3,r2a);
         row2.addView(f4,r2b);
         page.addView(row2,row2lp);
