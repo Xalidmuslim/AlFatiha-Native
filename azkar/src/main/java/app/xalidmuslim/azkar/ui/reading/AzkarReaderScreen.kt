@@ -12,7 +12,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -421,28 +420,10 @@ fun AzkarReaderScreen(
                     else Modifier,
                 ),
         ) {
-            if (
-                readerUi.viewMode == AzkarReaderViewMode.Cards &&
-                readerUi.activeSheet == AzkarReaderSheet.None
-            ) {
-                // Gesture exclusion is needed only while the card pager itself is active.
-                // Never keep these edge regions registered under a modal sheet: on gesture-nav
-                // phones that makes Android Back wait/compete with the reader's horizontal pager.
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .width(32.dp)
-                        .height(200.dp)
-                        .systemGestureExclusion(),
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .width(32.dp)
-                        .height(200.dp)
-                        .systemGestureExclusion(),
-                )
-            }
+            // Do not reserve either screen edge for Azkar paging.
+            // Horizontal paging still works from the content area via draggable(),
+            // while Android always owns the edge swipe so Back reacts immediately
+            // in cards, settings, contents, explanations, and other sheets.
 
             when (readerUi.viewMode) {
                 AzkarReaderViewMode.Cards -> {
