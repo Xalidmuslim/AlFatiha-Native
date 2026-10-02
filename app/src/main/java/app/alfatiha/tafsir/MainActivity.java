@@ -825,15 +825,16 @@ public class MainActivity extends Activity {
         tlp.setMargins(0,0,0,dp(10));
         page.addView(top,tlp);
 
-        TextView mark=chromeText("ف",24,dark?blend(C_SAGE,Color.WHITE,.48f):C_SAGE,true);
-        mark.setGravity(Gravity.CENTER);
-        mark.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        ImageView mark=new ImageView(this);
+        mark.setImageResource(R.drawable.app_icon);
+        mark.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        mark.setPadding(dp(3),dp(3),dp(3),dp(3));
         mark.setBackground(surfaceBg(
-                dark?Color.rgb(45,63,54):Color.rgb(233,241,236),
-                dark?Color.rgb(42,58,50):Color.rgb(242,246,241),
-                15,
-                dark?Color.rgb(67,88,77):Color.rgb(204,219,210)));
-        top.addView(mark,new LinearLayout.LayoutParams(dp(46),dp(46)));
+                dark?Color.rgb(45,63,54):Color.rgb(244,239,229),
+                dark?Color.rgb(42,58,50):Color.rgb(250,247,239),
+                16,
+                dark?Color.rgb(67,88,77):Color.rgb(225,218,205)));
+        top.addView(mark,new LinearLayout.LayoutParams(dp(50),dp(50)));
 
         LinearLayout titles=new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
@@ -875,7 +876,6 @@ public class MainActivity extends Activity {
         top.addView(aa);
 
         if(!"home".equals(current.type))return;
-        addCourseDots();
     }
 
     private void addCourseDots(){
@@ -956,52 +956,118 @@ public class MainActivity extends Activity {
     }
 
     private void renderHome(boolean push){
-        clearActiveFlow();clear("home","",push);currentSection="home";appTop();heroArabic();
+        clearActiveFlow();
+        clear("home","",push);
+        currentSection="home";
+        appTop();
 
-        int seen=seenMindCount();int pct=Math.min(100,seen*100/8);
-        LinearLayout m=card(sageSoft());cardHead(m,"ИЗУЧЕНИЕ СУРЫ",C_SAGE,"Осознанное чтение Аль-Фатихи");
-        m.addView(text("Слова, глубокий смысл, состояние сердца, связи аятов и проверка понимания.",15,muted(),false));
-        LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.HORIZONTAL);meta.setGravity(Gravity.CENTER_VERTICAL);
-        meta.addView(text("Разбор основной суры",13,muted(),false),new LinearLayout.LayoutParams(0,-2,1));meta.addView(text(seen+" из 8",13,ink(),true));m.addView(meta);
-        m.addView(progressBar(pct,C_SAGE),new LinearLayout.LayoutParams(-1,dp(10)));
-        Button bm=action(seen>0?"Продолжить":"Начать обучение",C_SAGE);bm.setOnClickListener(v->continueMindCourse());m.addView(bm);
-        m.setOnClickListener(v->renderMindHub(true));
+        int seen=seenMindCount();
+        int pct=Math.min(100,seen*100/8);
 
-        int prayerSeen=seenPrayerSecretCount(),prayerTotal=Math.max(0,arr("prayer_secrets.json").length()-1);
-        LinearLayout ps=card(sandSoft());cardHead(ps,"ИЗУЧЕНИЕ МОЛИТВЫ",Color.rgb(145,104,42),"Тайны молитвы");
-        ps.addView(text("Подготовка и молитва по порядку: действия, слова, подробный разбор и состояние сердца.",15,muted(),false));
-        LinearLayout pmeta=new LinearLayout(this);pmeta.setOrientation(LinearLayout.HORIZONTAL);pmeta.setGravity(Gravity.CENTER_VERTICAL);
-        pmeta.addView(text("Прогресс курса",13,muted(),false),new LinearLayout.LayoutParams(0,-2,1));pmeta.addView(text(prayerSeen+" из "+prayerTotal,13,ink(),true));ps.addView(pmeta);
-        ps.addView(progressBar(prayerTotal==0?0:Math.min(100,prayerSeen*100/prayerTotal),Color.rgb(145,104,42)),new LinearLayout.LayoutParams(-1,dp(10)));
-        Button bps=action(prayerSeen>0?"Продолжить":"Начать курс",Color.rgb(145,104,42));bps.setOnClickListener(v->continuePrayerSecrets());ps.addView(bps);
-        ps.setOnClickListener(v->renderPrayerSecretsHub(true));
+        LinearLayout hero=newSurface(dark?Color.rgb(46,48,42):Color.rgb(249,244,233),28,20,5);
+        hero.addView(kicker("АЛЬ-ФАТИХА И МОЛИТВА",C_SAGE),new LinearLayout.LayoutParams(-2,-2));
+        TextView heroTitle=text("Аль-Фатиха и сердце молитвы",28,ink(),true);
+        heroTitle.setLineSpacing(dp(2),1.02f);
+        hero.addView(heroTitle);
+        TextView heroSub=text("Понимай то, что читаешь, и укрепляй сердце в молитве.",15.2f,muted(),false);
+        heroSub.setPadding(0,dp(5),0,dp(2));
+        hero.addView(heroSub);
+        Button heroAction=action(seen>0?"Продолжить обучение":"Начать обучение",C_SAGE);
+        heroAction.setOnClickListener(v->continueMindCourse());
+        hero.addView(heroAction);
+        hero.setOnClickListener(v->continueMindCourse());
+        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);
+        hp.setMargins(0,dp(5),0,dp(8));
+        page.addView(hero,hp);
 
-        LinearLayout q=card(blueSoft());cardHead(q,"ПРОВЕРКА ЗНАНИЙ",C_BLUE,"Викторины");
-        q.addView(text("Аль-Фатиха и Тайны молитвы. Сначала выберите курс, затем уровень сложности.",15,muted(),false));
-        Button bq=action("Открыть викторины",C_BLUE);bq.setOnClickListener(v->renderQuizCenter(true));q.addView(bq);q.setOnClickListener(v->renderQuizCenter(true));
+        LinearLayout cont=newSurface(dark?Color.rgb(40,48,44):Color.rgb(253,250,243),24,17,3);
+        LinearLayout contTop=new LinearLayout(this);
+        contTop.setOrientation(LinearLayout.HORIZONTAL);
+        contTop.setGravity(Gravity.CENTER_VERTICAL);
+        TextView contIcon=text("▤",25,C_SAGE,true);
+        contIcon.setGravity(Gravity.CENTER);
+        contIcon.setBackground(solidBg(dark?Color.rgb(45,62,54):Color.rgb(226,236,229),99,0));
+        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(52),dp(52)));
+        LinearLayout contText=new LinearLayout(this);
+        contText.setOrientation(LinearLayout.VERTICAL);
+        contText.setPadding(dp(12),0,dp(6),0);
+        contText.addView(text("Продолжить",13.2f,C_SAGE,false));
+        String resume=mindCourseResumeLine();
+        if(resume.startsWith("Продолжить · "))resume=resume.substring("Продолжить · ".length());
+        if("Начать курс".equals(resume))resume="С первой части";
+        contText.addView(text(resume,19,ink(),true));
+        contText.addView(text("Осознанное чтение Аль-Фатихи",13.2f,muted(),false));
+        contTop.addView(contText,new LinearLayout.LayoutParams(0,-2,1));
+        TextView chevron=text("›",28,muted(),false);
+        chevron.setGravity(Gravity.CENTER);
+        contTop.addView(chevron,new LinearLayout.LayoutParams(dp(32),dp(48)));
+        cont.addView(contTop);
+        LinearLayout.LayoutParams pbar=new LinearLayout.LayoutParams(-1,dp(9));
+        pbar.setMargins(dp(64),dp(4),dp(12),0);
+        cont.addView(progressBar(pct,C_SAGE),pbar);
+        cont.setOnClickListener(v->continueMindCourse());
+        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
+        cp.setMargins(0,dp(7),0,dp(8));
+        page.addView(cont,cp);
 
-        LinearLayout az=card(dark?Color.rgb(43,55,48):Color.rgb(236,242,237));
-        cardHead(az,"УТРО И ВЕЧЕР",C_SAGE,"Азкары");
-        az.addView(text("Последняя нативная версия азкаров: чтение по одному или списком, арабский текст, перевод, разъяснения, счётчики и настройки.",15,muted(),false));
-        Button baz=action("Открыть азкары",C_SAGE);
-        baz.setOnClickListener(v->openAzkar());
-        az.addView(baz);
-        az.setOnClickListener(v->openAzkar());
+        LinearLayout row1=new LinearLayout(this);
+        row1.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout f1=homeFeature("▤","Осознанное чтение Аль-Фатихи","Слова и глубокий смысл",sageSoft(),C_SAGE,()->renderMindHub(true));
+        LinearLayout f2=homeFeature("◉","Тайны молитвы","Действия, слова и состояние сердца",sandSoft(),Color.rgb(145,104,42),()->renderPrayerSecretsHub(true));
+        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,-2,1);
+        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,-2,1);r1b.setMargins(dp(8),0,0,0);
+        row1.addView(f1,r1a);row1.addView(f2,r1b);
+        page.addView(row1,new LinearLayout.LayoutParams(-1,-2));
 
-        LinearLayout searchCard=card(lavSoft());searchCard.addView(kicker("ПОИСК",Color.rgb(112,96,134)));
-        searchCard.addView(text("Найти слово или смысл",19,ink(),true));
-        searchCard.addView(text("Например: «Рабби», «милость», «упование», «суджуд», «прямой путь».",13.8f,muted(),false));
-        Button sb=outline("Открыть поиск");sb.setOnClickListener(v->renderSearch(true));searchCard.addView(sb,new LinearLayout.LayoutParams(-1,dp(52)));
+        LinearLayout row2=new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout f3=homeFeature("?","Викторины","Проверка понимания",blueSoft(),C_BLUE,()->renderQuizCenter(true));
+        LinearLayout f4=homeFeature("☾","Азкары утром и вечером","Последняя нативная версия без изменений",lavSoft(),Color.rgb(112,96,134),this::openAzkar);
+        LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,-2,1);
+        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,-2,1);r2b.setMargins(dp(8),0,0,0);
+        LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);row2lp.setMargins(0,dp(8),0,dp(8));
+        row2.addView(f3,r2a);row2.addView(f4,r2b);
+        page.addView(row2,row2lp);
 
         int due=analytics().reviewNowCount();
         if(due>0){
-            LinearLayout review=card(sageSoft());review.addView(kicker("ПОВТОРИТЬ СЕГОДНЯ",C_SAGE));
-            review.addView(text(due+" заданий готовы к повторению",19,ink(),true));
-            review.addView(text("Только материал, срок которого уже наступил — без лишнего дублирования.",13.5f,muted(),false));
-            Button rb=action("Начать повторение",C_SAGE);rb.setOnClickListener(v->renderReviewToday(true));review.addView(rb);
+            LinearLayout review=newSurface(dark?Color.rgb(40,48,44):Color.rgb(249,247,241),20,14,2);
+            LinearLayout rr=new LinearLayout(this);rr.setOrientation(LinearLayout.HORIZONTAL);rr.setGravity(Gravity.CENTER_VERTICAL);
+            rr.addView(text("Повторить сегодня · "+due,14,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
+            TextView ra=text("›",24,muted(),false);ra.setGravity(Gravity.CENTER);rr.addView(ra,new LinearLayout.LayoutParams(dp(30),dp(40)));
+            review.addView(rr);review.setOnClickListener(v->renderReviewToday(true));
+            page.addView(review,new LinearLayout.LayoutParams(-1,-2));
         }
     }
 
+    private LinearLayout homeFeature(String icon,String title,String sub,int tone,int accent,Runnable open){
+        LinearLayout c=newSurface(tone,22,15,3);
+        c.setMinimumHeight(dp(154));
+
+        LinearLayout top=new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        TextView badge=text(icon,24,accent,true);
+        badge.setGravity(Gravity.CENTER);
+        badge.setBackground(solidBg(dark?blend(accent,Color.BLACK,.55f):blend(accent,Color.WHITE,.76f),99,0));
+        top.addView(badge,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        TextView arrow=text("›",24,muted(),false);
+        arrow.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams alp=new LinearLayout.LayoutParams(dp(28),dp(44));
+        alp.gravity=Gravity.RIGHT;
+        top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
+        top.addView(arrow,alp);
+        c.addView(top);
+
+        TextView t=text(title,17.2f,ink(),true);
+        t.setPadding(0,dp(9),0,dp(2));
+        c.addView(t);
+        TextView st=text(sub,12.7f,muted(),false);
+        st.setPadding(0,0,0,0);
+        c.addView(st);
+        c.setOnClickListener(v->open.run());
+        return c;
+    }
 
     private void addHeartReminder(){
         final String[][] reminders={
