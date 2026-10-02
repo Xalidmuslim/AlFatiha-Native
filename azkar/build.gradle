@@ -6,6 +6,8 @@ plugins {
 
 def azkarGoogleFontsCommit = '23e54b51ddffbc7713c583748e3bd86f62b1fa4a'
 def azkarGeneratedFontRes = layout.buildDirectory.dir('generated/azkar-fonts/res').get().asFile
+def azkarGeneratedIconRes = layout.buildDirectory.dir('generated/azkar-icon/res').get().asFile
+def azkarIconChunks = (1..4).collect { index -> file("src/main/icon/azkar_launcher_exact.b64." + index) }
 def azkarFontSpecs = [
     [file: 'literata_variable.ttf', path: 'ofl/literata/Literata%5Bopsz%2Cwght%5D.ttf', gitBlobSha: '0a81b4984a4a4eb101e0ddc28babc85bb137efef', size: 955132L],
     [file: 'pt_serif_regular.ttf', path: 'ofl/ptserif/PT_Serif-Web-Regular.ttf', gitBlobSha: '5310691a999658437d6db608b9447d606598753e', size: 359048L],
@@ -33,6 +35,25 @@ def gitBlobSha1 = { File file ->
         while ((read = input.read(buffer)) != -1) digest.update(buffer, 0, read)
     }
     digest.digest().encodeHex().toString()
+}
+
+
+tasks.register('prepareAzkarIcon') {
+    def outputDir = new File(azkarGeneratedIconRes, 'drawable-nodpi')
+    def target = new File(outputDir, 'azkar_launcher_exact.webp')
+    inputs.files(azkarIconChunks)
+    outputs.file(target)
+    doLast {
+        outputDir.mkdirs()
+        String encoded = azkarIconChunks.collect { chunk -> chunk.getText('UTF-8').trim() }.join('')
+        byte[] bytes = java.util.Base64.decoder.decode(encoded)
+        if (bytes.length != 23960) throw new GradleException('Azkar launcher icon size mismatch: ' + bytes.length)
+        String digest = java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+        if (digest != '203f62f41359a50c03e21a354bed68c0d2ace28d347dd60d13b08e19cf59375f') {
+            throw new GradleException('Azkar launcher icon hash mismatch: ' + digest)
+        }
+        target.bytes = bytes
+    }
 }
 
 tasks.register('prepareAzkarFonts') {
@@ -74,7 +95,10 @@ android {
     buildFeatures { compose true }
 
     sourceSets {
-        main { res.srcDir azkarGeneratedFontRes }
+        main {
+            res.srcDir azkarGeneratedFontRes
+            res.srcDir azkarGeneratedIconRes
+        }
     }
 
     compileOptions {
@@ -88,7 +112,10 @@ android {
     testOptions { animationsDisabled = true }
 }
 
-tasks.named('preBuild').configure { dependsOn tasks.named('prepareAzkarFonts') }
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('prepareAzkarFonts')
+    dependsOn tasks.named('prepareAzkarIcon')
+}
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
