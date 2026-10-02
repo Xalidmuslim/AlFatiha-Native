@@ -45,6 +45,10 @@ public class MainActivity extends Activity {
     private String fontMode = "modern";
     private final HashMap<String, JSONArray> cache = new HashMap<>();
     private String currentSection = "home";
+    private int homeTileHeightDp=150;
+    private int homeTileIconDp=60;
+    private float homeTileTitleSp=14.2f;
+    private float homeTileSubSp=10.5f;
     private KnowledgeAnalytics.Catalog knowledgeCatalog;
     private final ArrayList<KnowledgeAnalytics.QuestionRef> activeFlow=new ArrayList<>();
     private final LinkedHashMap<String,Boolean> activeFlowResults=new LinkedHashMap<>();
@@ -1048,6 +1052,25 @@ public class MainActivity extends Activity {
         currentSection="home";
         appTop();
 
+        // Home is intentionally a one-screen dashboard. Scale only its chrome
+        // to the available phone height; course/reader typography is untouched.
+        page.setPadding(dp(18),dp(1),dp(18),dp(5));
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        int screenH=getResources().getConfiguration().screenHeightDp;
+        final int heroH;
+        final int resumeH;
+        if(screenH<=700){
+            heroH=124; resumeH=74; homeTileHeightDp=130; homeTileIconDp=48;
+            homeTileTitleSp=12.8f; homeTileSubSp=9.7f;
+        }else if(screenH<=760){
+            heroH=138; resumeH=82; homeTileHeightDp=140; homeTileIconDp=54;
+            homeTileTitleSp=13.4f; homeTileSubSp=10.0f;
+        }else{
+            heroH=150; resumeH=88; homeTileHeightDp=150; homeTileIconDp=58;
+            homeTileTitleSp=14.0f; homeTileSubSp=10.4f;
+        }
+
         int seen=seenMindCount();
         int pct=Math.min(100,seen*100/8);
 
@@ -1089,37 +1112,38 @@ public class MainActivity extends Activity {
         LinearLayout heroText=new LinearLayout(this);
         heroText.setOrientation(LinearLayout.VERTICAL);
         heroText.setGravity(Gravity.CENTER_VERTICAL);
-        heroText.setPadding(dp(18),dp(14),dp(5),dp(14));
+        heroText.setPadding(dp(16),dp(7),dp(5),dp(7));
 
-        TextView heroTitle=homeText("Аль-Фатиха\nи сердце молитвы",22.4f,
+        TextView heroTitle=homeText("Аль-Фатиха\nи сердце молитвы",20.2f,
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),true);
         heroTitle.setLineSpacing(0,1.00f);
-        heroTitle.setPadding(0,0,0,dp(7));
+        heroTitle.setPadding(0,0,0,dp(4));
         heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
 
         TextView heroSub=homeText("Понимай то, что читаешь,\nи укрепляй сердце в молитве.",
-                12.1f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
+                10.9f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
         heroSub.setLineSpacing(dp(1),1.04f);
-        heroSub.setPadding(0,0,0,dp(8));
+        heroSub.setPadding(0,0,0,dp(5));
         heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
 
-        Button heroAction=homeAction("Открыть курс",C_SAGE);
+        int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(91,116,105);
+        Button heroAction=homeAction("Открыть курс",mutedHeroGreen);
         heroAction.setOnClickListener(v->renderHeartCourseHub(true));
-        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(174),dp(48));
+        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(158),dp(40));
         hap.setMargins(0,dp(3),0,0);
         heroText.addView(heroAction,hap);
 
-        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(268),-1);
+        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(258),-1);
         htlp.gravity=Gravity.LEFT|Gravity.CENTER_VERTICAL;
         hero.addView(heroText,htlp);
 
-        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(214));
-        hp.setMargins(0,dp(2),0,dp(8));
+        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(heroH));
+        hp.setMargins(0,dp(1),0,dp(5));
         page.addView(hero,hp);
 
         // Resume card.
         int dashboardCard=dark?Color.rgb(40,47,43):Color.rgb(253,250,244);
-        LinearLayout cont=homeSurface(dashboardCard,22,14,2);
+        LinearLayout cont=homeSurface(dashboardCard,20,8,1);
         LinearLayout contTop=new LinearLayout(this);
         contTop.setOrientation(LinearLayout.HORIZONTAL);
         contTop.setGravity(Gravity.CENTER_VERTICAL);
@@ -1129,52 +1153,52 @@ public class MainActivity extends Activity {
         contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         contIcon.setPadding(0,0,0,0);
         contIcon.setBackgroundColor(Color.TRANSPARENT);
-        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(60),dp(60)));
+        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(46),dp(46)));
 
         LinearLayout contText=new LinearLayout(this);
         contText.setOrientation(LinearLayout.VERTICAL);
-        contText.setPadding(dp(12),0,dp(5),0);
-        TextView resumeLabel=homeText(seen>0?"Продолжить с места":"Начать с первой части",12.2f,C_SAGE,false);
+        contText.setPadding(dp(9),0,dp(4),0);
+        TextView resumeLabel=homeText(seen>0?"Продолжить с места":"Начать с первой части",10.6f,C_SAGE,false);
         resumeLabel.setPadding(0,0,0,dp(1));
         contText.addView(resumeLabel);
 
         String resume=mindCourseResumeLine();
         if(resume.startsWith("Продолжить · "))resume=resume.substring("Продолжить · ".length());
         if("Начать курс".equals(resume))resume="Часть 1 из 8";
-        TextView resumeTitle=homeText(resume,18.0f,ink(),true);
+        TextView resumeTitle=homeText(resume,15.4f,ink(),true);
         resumeTitle.setPadding(0,0,0,0);
         contText.addView(resumeTitle);
-        TextView resumeSub=homeText("Осознанное чтение Аль-Фатихи",12.1f,muted(),false);
+        TextView resumeSub=homeText("Осознанное чтение Аль-Фатихи",10.4f,muted(),false);
         resumeSub.setPadding(0,dp(1),0,0);
         contText.addView(resumeSub);
         contTop.addView(contText,new LinearLayout.LayoutParams(0,-2,1));
 
-        TextView chevron=homeText("›",25,ink(),false);
+        TextView chevron=homeText("›",22,ink(),false);
         chevron.setGravity(Gravity.CENTER);
         chevron.setBackground(surfaceBg(
                 dark?Color.rgb(45,52,48):Color.rgb(250,247,240),
                 dark?Color.rgb(41,48,44):Color.rgb(246,242,234),
                 20,dark?line():Color.rgb(232,226,216)));
         chevron.setElevation(0f);
-        contTop.addView(chevron,new LinearLayout.LayoutParams(dp(40),dp(40)));
+        contTop.addView(chevron,new LinearLayout.LayoutParams(dp(34),dp(34)));
         cont.addView(contTop);
 
         LinearLayout progressRow=new LinearLayout(this);
         progressRow.setOrientation(LinearLayout.HORIZONTAL);
         progressRow.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams pbar=new LinearLayout.LayoutParams(0,dp(8),1);
-        pbar.setMargins(dp(70),dp(5),dp(8),0);
+        LinearLayout.LayoutParams pbar=new LinearLayout.LayoutParams(0,dp(6),1);
+        pbar.setMargins(dp(55),dp(2),dp(6),0);
         progressRow.addView(progressBar(pct,C_SAGE),pbar);
-        TextView pctText=homeText(pct+"%",11.4f,muted(),false);
+        TextView pctText=homeText(pct+"%",10.1f,muted(),false);
         pctText.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
         pctText.setPadding(0,dp(3),0,0);
-        progressRow.addView(pctText,new LinearLayout.LayoutParams(dp(38),dp(24)));
+        progressRow.addView(pctText,new LinearLayout.LayoutParams(dp(34),dp(18)));
         cont.addView(progressRow,new LinearLayout.LayoutParams(-1,-2));
 
         cont.setContentDescription(seen>0?"Продолжить обучение с места остановки":"Начать обучение с первой части");
         cont.setOnClickListener(v->continueMindCourse());
-        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
-        cp.setMargins(0,dp(2),0,dp(8));
+        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,dp(resumeH));
+        cp.setMargins(0,dp(1),0,dp(5));
         page.addView(cont,cp);
 
         // Four primary sections — same visual system and 3D icon language.
@@ -1190,9 +1214,9 @@ public class MainActivity extends Activity {
                 "Тайны молитвы",
                 "Действия, слова\nи состояние сердца",
                 dashboardCard,()->renderPrayerSecretsHub(true));
-        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(184),1);
-        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(184),1);
-        r1b.setMargins(dp(8),0,0,0);
+        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
+        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
+        r1b.setMargins(dp(6),0,0,0);
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
         page.addView(row1,new LinearLayout.LayoutParams(-1,-2));
@@ -1209,11 +1233,11 @@ public class MainActivity extends Activity {
                 "Азкары",
                 "Утро и вечер",
                 dashboardCard,this::openAzkar);
-        LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(184),1);
-        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(184),1);
-        r2b.setMargins(dp(8),0,0,0);
+        LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
+        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
+        r2b.setMargins(dp(6),0,0,0);
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
-        row2lp.setMargins(0,dp(8),0,dp(6));
+        row2lp.setMargins(0,dp(6),0,0);
         row2.addView(f3,r2a);
         row2.addView(f4,r2b);
         page.addView(row2,row2lp);
@@ -1223,8 +1247,8 @@ public class MainActivity extends Activity {
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=tone;
-        LinearLayout c=homeSurface(cardTone,22,13,2);
-        c.setMinimumHeight(dp(184));
+        LinearLayout c=homeSurface(cardTone,20,9,1);
+        c.setMinimumHeight(dp(homeTileHeightDp));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -1235,11 +1259,11 @@ public class MainActivity extends Activity {
         badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
         badge.setPadding(0,0,0,0);
         badge.setBackgroundColor(Color.TRANSPARENT);
-        int iconWidth=iconRes==R.drawable.home_azkar_mockup?dp(86):dp(72);
-        int iconHeight=dp(72);
+        int iconWidth=iconRes==R.drawable.home_azkar_mockup?dp(homeTileIconDp+10):dp(homeTileIconDp);
+        int iconHeight=dp(homeTileIconDp);
         top.addView(badge,new LinearLayout.LayoutParams(iconWidth,iconHeight));
 
-        TextView arrow=homeText("›",23,ink(),false);
+        TextView arrow=homeText("›",20,ink(),false);
         arrow.setGravity(Gravity.CENTER);
         arrow.setBackground(surfaceBg(
                 dark?Color.rgb(45,52,48):Color.rgb(252,249,243),
@@ -1247,17 +1271,17 @@ public class MainActivity extends Activity {
                 19,dark?line():Color.rgb(236,230,220)));
         arrow.setElevation(0f);
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
-        top.addView(arrow,new LinearLayout.LayoutParams(dp(38),dp(38)));
+        top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(32)));
         c.addView(top);
 
-        TextView t=homeText(title,15.7f,ink(),true);
+        TextView t=homeText(title,homeTileTitleSp,ink(),true);
         t.setMaxLines(3);
         t.setEllipsize(null);
         t.setLineSpacing(0,1.00f);
-        t.setPadding(0,dp(8),0,dp(1));
+        t.setPadding(0,dp(4),0,0);
         c.addView(t);
 
-        TextView st=homeText(sub,11.3f,muted(),false);
+        TextView st=homeText(sub,homeTileSubSp,muted(),false);
         st.setMaxLines(2);
         st.setEllipsize(null);
         st.setLineSpacing(dp(1),1.01f);
