@@ -184,8 +184,8 @@ public class MainActivity extends Activity {
         bottom.setGravity(Gravity.CENTER);
         bottom.setPadding(dp(8),dp(6),dp(8),dp(6));
         bottom.setBackground(surfaceBg(dark?Color.rgb(31,37,34):Color.rgb(250,248,242),dark?Color.rgb(28,33,31):Color.rgb(246,243,235),28,line()));
-        bottom.setElevation(dp(10));
-        LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(72));
+        bottom.setElevation(dp(6));
+        LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(66));
         blp.setMargins(dp(8),0,dp(8),dp(8));
         root.addView(bottom,blp);
         setContentView(root);
@@ -1069,8 +1069,8 @@ public class MainActivity extends Activity {
         }else{
             // Same vertical composition as the approved mockup:
             // more breathing room in hero/resume, less empty space inside the 4 tiles.
-            heroH=208; resumeH=102; homeTileHeightDp=138; homeTileIconDp=58;
-            homeTileTitleSp=13.8f; homeTileSubSp=10.2f;
+            heroH=222; resumeH=108; homeTileHeightDp=168; homeTileIconDp=66;
+            homeTileTitleSp=14.5f; homeTileSubSp=10.6f;
         }
 
         int seen=seenMindCount();
@@ -1116,14 +1116,14 @@ public class MainActivity extends Activity {
         heroText.setGravity(Gravity.CENTER_VERTICAL);
         heroText.setPadding(dp(16),dp(10),dp(5),dp(10));
 
-        TextView heroTitle=homeText("Аль-Фатиха\nи сердце молитвы",20.2f,
+        TextView heroTitle=homeText("Аль-Фатиха\nи сердце молитвы",22.0f,
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),true);
         heroTitle.setLineSpacing(0,1.00f);
         heroTitle.setPadding(0,0,0,dp(6));
         heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
 
         TextView heroSub=homeText("Понимай то, что читаешь,\nи укрепляй сердце в молитве.",
-                10.9f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
+                11.8f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
         heroSub.setLineSpacing(dp(1),1.04f);
         heroSub.setPadding(0,0,0,dp(7));
         heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
@@ -1131,7 +1131,7 @@ public class MainActivity extends Activity {
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
         Button heroAction=homeAction("Открыть курс",mutedHeroGreen);
         heroAction.setOnClickListener(v->renderHeartCourseHub(true));
-        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(158),dp(40));
+        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(174),dp(44));
         hap.setMargins(0,dp(3),0,0);
         heroText.addView(heroAction,hap);
 
@@ -1167,10 +1167,10 @@ public class MainActivity extends Activity {
         String resume=mindCourseResumeLine();
         if(resume.startsWith("Продолжить · "))resume=resume.substring("Продолжить · ".length());
         if("Начать курс".equals(resume))resume="Часть 1 из 8";
-        TextView resumeTitle=homeText(resume,15.4f,ink(),true);
+        TextView resumeTitle=homeText(resume,16.0f,ink(),true);
         resumeTitle.setPadding(0,0,0,0);
         contText.addView(resumeTitle);
-        TextView resumeSub=homeText("Осознанное чтение Аль-Фатихи",10.4f,muted(),false);
+        TextView resumeSub=homeText("Осознанное чтение Аль-Фатихи",10.8f,muted(),false);
         resumeSub.setPadding(0,dp(1),0,0);
         contText.addView(resumeSub);
         contTop.addView(contText,new LinearLayout.LayoutParams(0,-2,1));
@@ -1218,7 +1218,7 @@ public class MainActivity extends Activity {
                 dashboardCard,()->renderPrayerSecretsHub(true));
         LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r1b.setMargins(dp(8),0,0,0);
+        r1b.setMargins(dp(6),0,0,0);
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
         page.addView(row1,new LinearLayout.LayoutParams(-1,-2));
@@ -1237,9 +1237,9 @@ public class MainActivity extends Activity {
                 dashboardCard,this::openAzkar);
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r2b.setMargins(dp(8),0,0,0);
+        r2b.setMargins(dp(6),0,0,0);
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
-        row2lp.setMargins(0,dp(8),0,0);
+        row2lp.setMargins(0,dp(6),0,0);
         row2.addView(f3,r2a);
         row2.addView(f4,r2b);
         page.addView(row2,row2lp);
