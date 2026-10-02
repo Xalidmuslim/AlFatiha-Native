@@ -24,6 +24,8 @@ def heartDesignAssets = [
     [src: file('src/main/icon/mockup_mihrab.b64'), out: 'home_mihrab_mockup.webp'],
     [src: file('src/main/icon/mockup_quiz.b64'), out: 'home_quiz_mockup.webp'],
     [src: file('src/main/icon/mockup_azkar.b64'), out: 'home_azkar_mockup.webp'],
+    [src: file('src/main/icon/minor_shirk_home.b64'), out: 'home_minor_shirk_exact.webp'],
+    [src: file('src/main/icon/medicine_home.b64'), out: 'home_medicine_exact.webp'],
 ]
 
 tasks.register('prepareHeartDesignAssets') {
@@ -98,6 +100,7 @@ android {
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     implementation project(':azkar')
+    implementation project(':medicine')
 }
 
 
