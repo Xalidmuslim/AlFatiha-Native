@@ -1,5 +1,6 @@
 package app.xalidmuslim.azkar.ui.reading
 
+import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -53,6 +54,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -219,6 +221,7 @@ internal fun AzkarHeader(
     onToggleTheme: () -> Unit = {},
 ) {
     val colors = AzkarThemeValues.colors
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -235,6 +238,20 @@ internal fun AzkarHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AzkarSpacing.brandGap),
         ) {
+            AzkarIconButton(
+                onClick = { (context as? Activity)?.finish() },
+                modifier = Modifier
+                    .semantics { contentDescription = "Вернуться в Сердце молитвы" },
+            ) {
+                BasicText(
+                    text = "‹",
+                    style = AzkarThemeValues.typography.translation.copy(
+                        color = colors.foreground,
+                        fontSize = 28.sp,
+                    ),
+                )
+            }
+
             val brandShape = RoundedCornerShape(AzkarRadius.brandIcon)
             Box(
                 modifier = Modifier
