@@ -7,7 +7,7 @@ import androidx.compose.ui.unit.dp
 
 object AzkarSpacing {
     val shellHorizontal = 10.dp
-    val shellBottomBase = 10.dp
+    val shellBottomBase = 4.dp
     val topBarHorizontal = 2.dp
     val topBarVertical = 5.dp
     val brandGap = 10.dp
