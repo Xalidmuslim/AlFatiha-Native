@@ -5,6 +5,9 @@ on:
     branches: [ main, heart-prayer-azkar-integration-2026-10-02 ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,3 +38,20 @@ jobs:
         with:
           name: AlFatiha-Release-AAB
           path: app/build/outputs/bundle/release/app-release.aab
+
+      - name: Publish permanent APK link
+        if: github.ref == 'refs/heads/heart-prayer-azkar-integration-2026-10-02' && contains(github.event.head_commit.message, '[publish-apk]')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" app/build.gradle | head -n1)
+          TAG="v${VERSION}"
+          ASSET="AlFatiha-${VERSION}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "${ASSET}"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${ASSET}" --clobber
+          else
+            gh release create "${TAG}" "${ASSET}" \
+              --title "AlFatiha ${VERSION}" \
+              --notes "Stable APK build ${VERSION}."
+          fi
