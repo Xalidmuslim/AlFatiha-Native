@@ -1259,7 +1259,7 @@ public class MainActivity extends Activity {
         badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
         badge.setPadding(0,0,0,0);
         badge.setBackgroundColor(Color.TRANSPARENT);
-        int iconWidth=iconRes==R.drawable.home_azkar_mockup?dp(homeTileIconDp+10):dp(homeTileIconDp);
+        int iconWidth=dp(homeTileIconDp);
         int iconHeight=dp(homeTileIconDp);
         top.addView(badge,new LinearLayout.LayoutParams(iconWidth,iconHeight));
 
