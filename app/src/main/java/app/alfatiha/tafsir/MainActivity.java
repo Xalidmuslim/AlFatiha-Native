@@ -101,6 +101,20 @@ public class MainActivity extends Activity {
         handleHeartNavIntent(intent);
     }
 
+    @Override protected void onResume(){
+        super.onResume();
+        if(prefs==null)return;
+        boolean sharedDark=prefs.getBoolean("dark",dark);
+        if(sharedDark!=dark){
+            Screen s=current;
+            int y=scroll==null?0:scroll.getScrollY();
+            dark=sharedDark;
+            buildShell();
+            restore(s);
+            if(scroll!=null)scroll.post(()->scroll.scrollTo(0,y));
+        }
+    }
+
     private void handleHeartNavIntent(Intent intent){
         if(intent==null)return;
         String target=intent.getStringExtra("heart_nav");
@@ -110,6 +124,10 @@ public class MainActivity extends Activity {
             renderHome(false);
         }else if("progress".equals(target)){
             renderProfile(false);
+        }else if("search".equals(target)){
+            renderSearch(false);
+        }else if("settings".equals(target)){
+            renderSettings(false);
         }else if("menu".equals(target)){
             renderHome(false);
             page.post(this::showSectionsDialog);
