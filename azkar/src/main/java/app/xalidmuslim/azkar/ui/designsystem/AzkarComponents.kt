@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
@@ -94,7 +95,11 @@ fun AzkarCardSurface(
 
     Box(
         modifier = modifier
-            .azkarShadow(AzkarThemeValues.elevation.card, AzkarRadius.dhikrCard)
+            .shadow(
+                elevation = 2.dp,
+                shape = shape,
+                clip = false,
+            )
             .clip(shape)
             .background(cardBackground)
             .drawBehind {
