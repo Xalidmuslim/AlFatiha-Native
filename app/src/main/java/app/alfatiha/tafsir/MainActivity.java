@@ -912,9 +912,9 @@ public class MainActivity extends Activity {
         LinearLayout titles=new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
-        titles.setPadding(dp(10),0,dp(14),0);
+        titles.setPadding(dp(10),0,dp(8),0);
 
-        TextView title=chromeText("Сердце молитвы",16.4f,ink(),true);
+        TextView title=chromeText("Сердце молитвы",15.8f,ink(),true);
         title.setSingleLine(true);
         title.setGravity(Gravity.CENTER_VERTICAL);
         title.setTypeface(Typeface.create("serif",Typeface.BOLD));
@@ -922,6 +922,7 @@ public class MainActivity extends Activity {
         titles.addView(title,new LinearLayout.LayoutParams(-1,dp(52)));
 
         top.addView(titles,new LinearLayout.LayoutParams(0,dp(52),1));
+        top.addView(new Space(this),new LinearLayout.LayoutParams(dp(6),1));
 
         Button search=chromeMiniButton("⌕");
         search.setContentDescription("Поиск по приложению");
@@ -1173,8 +1174,8 @@ public class MainActivity extends Activity {
                 "Тайны молитвы",
                 "Действия, слова\nи состояние сердца",
                 dashboardCard,()->renderPrayerSecretsHub(true));
-        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(160),1);
-        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(160),1);
+        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(172),1);
+        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(172),1);
         r1b.setMargins(dp(8),0,0,0);
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
@@ -1192,8 +1193,8 @@ public class MainActivity extends Activity {
                 "Азкары",
                 "Утро и вечер",
                 dashboardCard,this::openAzkar);
-        LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(160),1);
-        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(160),1);
+        LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(172),1);
+        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(172),1);
         r2b.setMargins(dp(8),0,0,0);
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
         row2lp.setMargins(0,dp(8),0,dp(6));
@@ -1207,7 +1208,7 @@ public class MainActivity extends Activity {
 
         int cardTone=tone;
         LinearLayout c=homeSurface(cardTone,22,13,2);
-        c.setMinimumHeight(dp(160));
+        c.setMinimumHeight(dp(172));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
