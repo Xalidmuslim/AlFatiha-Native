@@ -260,7 +260,7 @@ public class MainActivity extends Activity {
         c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
         int end=dark?color:Color.rgb(253,250,244);
         int stroke=dark?Color.rgb(61,70,65):Color.rgb(235,229,219);
-        c.setBackground(surfaceBg(color,end,22,stroke));
+        c.setBackground(surfaceBg(color,end,radius,stroke));
         c.setElevation(dp(2));
         return c;
     }
@@ -1173,8 +1173,8 @@ public class MainActivity extends Activity {
                 "Тайны молитвы",
                 "Действия, слова\nи состояние сердца",
                 dashboardCard,()->renderPrayerSecretsHub(true));
-        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,-2,1);
-        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,-2,1);
+        LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(160),1);
+        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(160),1);
         r1b.setMargins(dp(8),0,0,0);
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
@@ -1192,8 +1192,8 @@ public class MainActivity extends Activity {
                 "Азкары",
                 "Утро и вечер",
                 dashboardCard,this::openAzkar);
-        LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,-2,1);
-        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,-2,1);
+        LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(160),1);
+        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(160),1);
         r2b.setMargins(dp(8),0,0,0);
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
         row2lp.setMargins(0,dp(8),0,dp(6));
