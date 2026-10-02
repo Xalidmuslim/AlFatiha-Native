@@ -858,7 +858,7 @@ public class MainActivity extends Activity {
         page.addView(top,tlp);
 
         ImageView mark=new ImageView(this);
-        mark.setImageResource(R.drawable.heart_prayer_icon);
+        mark.setImageResource(R.drawable.heart_prayer_logo_exact);
         mark.setScaleType(ImageView.ScaleType.CENTER_CROP);
         mark.setPadding(0,0,0,0);
         mark.setBackground(surfaceBg(
@@ -874,12 +874,11 @@ public class MainActivity extends Activity {
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(10),0,dp(2),0);
 
-        TextView title=chromeText("Сердце молитвы",16.6f,ink(),false);
-        title.setSingleLine(false);
-        title.setMaxLines(2);
+        TextView title=chromeText("Сердце молитвы",17.0f,ink(),true);
+        title.setSingleLine(true);
         title.setGravity(Gravity.CENTER_VERTICAL);
-        title.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
-        title.setTextScaleX(.97f);
+        title.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        title.setTextScaleX(.96f);
         titles.addView(title,new LinearLayout.LayoutParams(-1,dp(52)));
 
         top.addView(titles,new LinearLayout.LayoutParams(0,dp(52),1));
@@ -997,117 +996,180 @@ public class MainActivity extends Activity {
         int seen=seenMindCount();
         int pct=Math.min(100,seen*100/8);
 
-        LinearLayout hero=newSurface(dark?Color.rgb(46,48,42):Color.rgb(249,244,233),26,16,4);
-        LinearLayout heroRow=new LinearLayout(this);
-        heroRow.setOrientation(LinearLayout.HORIZONTAL);
-        heroRow.setGravity(Gravity.CENTER_VERTICAL);
+        // Hero: real native text/actions over the approved interior artwork.
+        FrameLayout hero=new FrameLayout(this);
+        hero.setBackground(surfaceBg(
+                dark?Color.rgb(39,45,41):Color.rgb(249,245,236),
+                dark?Color.rgb(35,41,38):Color.rgb(254,251,244),
+                25,line()));
+        hero.setElevation(dp(4));
+        hero.setClipToOutline(true);
+        hero.setOnClickListener(v->continueMindCourse());
+
+        ImageView heroArt=new ImageView(this);
+        heroArt.setImageResource(R.drawable.heart_prayer_hero_exact);
+        heroArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        heroArt.setContentDescription(null);
+        hero.addView(heroArt,new FrameLayout.LayoutParams(-1,-1));
+
+        // A very light wash keeps text readable without hiding the photograph.
+        View wash=new View(this);
+        GradientDrawable washBg=new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{
+                        dark?Color.argb(220,31,37,34):Color.argb(242,249,245,236),
+                        dark?Color.argb(112,31,37,34):Color.argb(120,249,245,236),
+                        Color.TRANSPARENT
+                });
+        wash.setBackground(washBg);
+        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams((int)(dp(210)), -1);
+        wlp.gravity=Gravity.LEFT;
+        hero.addView(wash,wlp);
 
         LinearLayout heroText=new LinearLayout(this);
         heroText.setOrientation(LinearLayout.VERTICAL);
-        heroText.addView(kicker("СЕРДЦЕ МОЛИТВЫ",C_SAGE),new LinearLayout.LayoutParams(-2,-2));
+        heroText.setGravity(Gravity.CENTER_VERTICAL);
+        heroText.setPadding(dp(18),dp(14),dp(5),dp(14));
 
-        TextView heroTitle=text("Аль-Фатиха и\nсердце молитвы",24.5f,ink(),true);
-        heroTitle.setLineSpacing(dp(1),1.0f);
-        heroTitle.setPadding(0,dp(7),0,0);
-        heroText.addView(heroTitle);
+        TextView heroTitle=text("Аль-Фатиха и\nсердце молитвы",25.0f,
+                dark?Color.rgb(239,241,238):Color.rgb(32,48,42),true);
+        heroTitle.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        heroTitle.setLineSpacing(0,1.00f);
+        heroTitle.setPadding(0,0,0,dp(5));
+        heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
 
-        TextView heroSub=text("Понимай то, что читаешь, и укрепляй сердце в молитве.",13.5f,muted(),false);
-        heroSub.setPadding(0,dp(4),0,dp(2));
-        heroText.addView(heroSub);
+        TextView heroSub=text("Понимай то, что читаешь,\nи укрепляй сердце в молитве.",
+                13.0f,dark?Color.rgb(200,207,202):Color.rgb(86,96,90),false);
+        heroSub.setLineSpacing(dp(1),1.04f);
+        heroSub.setPadding(0,0,0,dp(5));
+        heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
 
         Button heroAction=action(seen>0?"Продолжить":"Начать обучение",C_SAGE);
         heroAction.setTextSize(sz(14.5f));
-        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(-1,dp(50));
-        hap.setMargins(0,dp(7),0,0);
-        heroAction.setLayoutParams(hap);
+        heroAction.setTypeface(Typeface.create("serif",Typeface.BOLD));
         heroAction.setOnClickListener(v->continueMindCourse());
-        heroText.addView(heroAction);
-        heroRow.addView(heroText,new LinearLayout.LayoutParams(0,-2,1));
+        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(158),dp(48));
+        hap.setMargins(0,dp(3),0,0);
+        heroText.addView(heroAction,hap);
 
-        ImageView arch=new ImageView(this);
-        arch.setImageResource(R.drawable.heart_prayer_icon);
-        arch.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        arch.setAlpha(dark?.88f:.98f);
-        LinearLayout.LayoutParams arlp=new LinearLayout.LayoutParams(dp(126),dp(170));
-        arlp.setMargins(dp(4),0,dp(-4),0);
-        heroRow.addView(arch,arlp);
+        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(218),-1);
+        htlp.gravity=Gravity.LEFT|Gravity.CENTER_VERTICAL;
+        hero.addView(heroText,htlp);
 
-        hero.addView(heroRow);
-        hero.setOnClickListener(v->continueMindCourse());
-        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);
-        hp.setMargins(0,dp(4),0,dp(7));
+        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(214));
+        hp.setMargins(0,dp(2),0,dp(8));
         page.addView(hero,hp);
 
-        LinearLayout cont=newSurface(dark?Color.rgb(40,48,44):Color.rgb(253,250,243),22,14,3);
+        // Resume card.
+        LinearLayout cont=newSurface(
+                dark?Color.rgb(40,48,44):Color.rgb(253,250,244),
+                22,14,3);
         LinearLayout contTop=new LinearLayout(this);
         contTop.setOrientation(LinearLayout.HORIZONTAL);
         contTop.setGravity(Gravity.CENTER_VERTICAL);
 
         ImageView contIcon=new ImageView(this);
-        contIcon.setImageResource(R.drawable.ic_book);
-        contIcon.setColorFilter(C_SAGE);
-        contIcon.setPadding(dp(11),dp(11),dp(11),dp(11));
-        contIcon.setBackground(solidBg(dark?Color.rgb(45,62,54):Color.rgb(226,236,229),99,0));
-        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        contIcon.setImageResource(R.drawable.icon_quran_3d);
+        contIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        contIcon.setBackground(solidBg(
+                dark?Color.rgb(45,57,50):Color.rgb(246,240,229),16,0));
+        contIcon.setClipToOutline(true);
+        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(58),dp(58)));
 
         LinearLayout contText=new LinearLayout(this);
         contText.setOrientation(LinearLayout.VERTICAL);
-        contText.setPadding(dp(11),0,dp(5),0);
-        contText.addView(text("Продолжить",12.5f,C_SAGE,false));
+        contText.setPadding(dp(12),0,dp(5),0);
+        TextView resumeLabel=text("Продолжить обучение",12.3f,C_SAGE,false);
+        resumeLabel.setPadding(0,0,0,dp(1));
+        contText.addView(resumeLabel);
+
         String resume=mindCourseResumeLine();
         if(resume.startsWith("Продолжить · "))resume=resume.substring("Продолжить · ".length());
-        if("Начать курс".equals(resume))resume="С первой части";
-        contText.addView(text(resume,17.5f,ink(),true));
-        contText.addView(text("Осознанное чтение Аль-Фатихи",12.5f,muted(),false));
+        if("Начать курс".equals(resume))resume="Часть 1 из 8";
+        TextView resumeTitle=text(resume,18.2f,ink(),true);
+        resumeTitle.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        resumeTitle.setPadding(0,0,0,0);
+        contText.addView(resumeTitle);
+        TextView resumeSub=text("Осознанное чтение Аль-Фатихи",12.3f,muted(),false);
+        resumeSub.setPadding(0,dp(1),0,0);
+        contText.addView(resumeSub);
         contTop.addView(contText,new LinearLayout.LayoutParams(0,-2,1));
 
-        TextView chevron=text("›",27,muted(),false);
+        TextView chevron=text("›",25,ink(),false);
         chevron.setGravity(Gravity.CENTER);
-        contTop.addView(chevron,new LinearLayout.LayoutParams(dp(30),dp(44)));
+        chevron.setBackground(surfaceBg(
+                dark?Color.rgb(45,52,48):Color.rgb(250,247,240),
+                dark?Color.rgb(41,48,44):Color.rgb(246,242,234),
+                20,line()));
+        chevron.setElevation(dp(1));
+        contTop.addView(chevron,new LinearLayout.LayoutParams(dp(40),dp(40)));
         cont.addView(contTop);
 
-        LinearLayout.LayoutParams pbar=new LinearLayout.LayoutParams(-1,dp(8));
-        pbar.setMargins(dp(59),dp(3),dp(10),0);
-        cont.addView(progressBar(pct,C_SAGE),pbar);
+        LinearLayout progressRow=new LinearLayout(this);
+        progressRow.setOrientation(LinearLayout.HORIZONTAL);
+        progressRow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams pbar=new LinearLayout.LayoutParams(0,dp(8),1);
+        pbar.setMargins(dp(70),dp(5),dp(8),0);
+        progressRow.addView(progressBar(pct,C_SAGE),pbar);
+        TextView pctText=text(pct+"%",11.5f,muted(),false);
+        pctText.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
+        pctText.setPadding(0,dp(3),0,0);
+        progressRow.addView(pctText,new LinearLayout.LayoutParams(dp(38),dp(24)));
+        cont.addView(progressRow,new LinearLayout.LayoutParams(-1,-2));
+
         cont.setOnClickListener(v->continueMindCourse());
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
-        cp.setMargins(0,dp(6),0,dp(7));
+        cp.setMargins(0,dp(2),0,dp(8));
         page.addView(cont,cp);
 
+        // Four primary sections — same visual system and 3D icon language.
         LinearLayout row1=new LinearLayout(this);
         row1.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout f1=homeFeature(R.drawable.ic_book,"Осознанное чтение\nАль-Фатихи","Слова и глубокий смысл",sageSoft(),C_SAGE,()->renderMindHub(true));
-        LinearLayout f2=homeFeature(R.drawable.ic_mosque,"Тайны молитвы","Действия, слова и состояние сердца",sandSoft(),Color.rgb(145,104,42),()->renderPrayerSecretsHub(true));
+        LinearLayout f1=homeFeature(
+                R.drawable.icon_quran_3d,
+                "Осознанное\nчтение Аль-Фатихи",
+                "Слова и глубокий смысл",
+                sageSoft(),()->renderMindHub(true));
+        LinearLayout f2=homeFeature(
+                R.drawable.icon_mosque_3d,
+                "Тайны молитвы",
+                "Действия, слова\nи состояние сердца",
+                sandSoft(),()->renderPrayerSecretsHub(true));
         LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,-2,1);
-        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,-2,1);r1b.setMargins(dp(8),0,0,0);
-        row1.addView(f1,r1a);row1.addView(f2,r1b);
+        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,-2,1);
+        r1b.setMargins(dp(8),0,0,0);
+        row1.addView(f1,r1a);
+        row1.addView(f2,r1b);
         page.addView(row1,new LinearLayout.LayoutParams(-1,-2));
 
         LinearLayout row2=new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout f3=homeFeature(R.drawable.ic_quiz,"Викторины","Проверка понимания",blueSoft(),C_BLUE,()->renderQuizCenter(true));
-        LinearLayout f4=homeFeature(R.drawable.ic_azkar,"Азкары","Утро и вечер",lavSoft(),Color.rgb(112,96,134),this::openAzkar);
+        LinearLayout f3=homeFeature(
+                R.drawable.icon_quiz_3d,
+                "Викторины",
+                "Проверка понимания",
+                blueSoft(),()->renderQuizCenter(true));
+        LinearLayout f4=homeFeature(
+                R.drawable.icon_azkar_3d,
+                "Азкары",
+                "Утро и вечер",
+                lavSoft(),this::openAzkar);
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,-2,1);
-        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,-2,1);r2b.setMargins(dp(8),0,0,0);
-        LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);row2lp.setMargins(0,dp(8),0,dp(5));
-        row2.addView(f3,r2a);row2.addView(f4,r2b);
+        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,-2,1);
+        r2b.setMargins(dp(8),0,0,0);
+        LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
+        row2lp.setMargins(0,dp(8),0,dp(6));
+        row2.addView(f3,r2a);
+        row2.addView(f4,r2b);
         page.addView(row2,row2lp);
-
-        int due=analytics().reviewNowCount();
-        if(due>0){
-            LinearLayout review=newSurface(dark?Color.rgb(40,48,44):Color.rgb(249,247,241),18,12,2);
-            LinearLayout rr=new LinearLayout(this);rr.setOrientation(LinearLayout.HORIZONTAL);rr.setGravity(Gravity.CENTER_VERTICAL);
-            rr.addView(text("Повторить сегодня · "+due,13.5f,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
-            TextView ra=text("›",23,muted(),false);ra.setGravity(Gravity.CENTER);rr.addView(ra,new LinearLayout.LayoutParams(dp(28),dp(38)));
-            review.addView(rr);review.setOnClickListener(v->renderReviewToday(true));
-            LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(-1,-2);rlp.setMargins(0,dp(2),0,dp(4));
-            page.addView(review,rlp);
-        }
     }
 
-    private LinearLayout homeFeature(int iconRes,String title,String sub,int tone,int accent,Runnable open){
-        LinearLayout c=newSurface(tone,21,14,3);
-        c.setMinimumHeight(dp(136));
+    private LinearLayout homeFeature(
+            int iconRes,String title,String sub,int tone,Runnable open){
+
+        int cardTone=dark?tone:blend(tone,Color.WHITE,.62f);
+        LinearLayout c=newSurface(cardTone,21,13,3);
+        c.setMinimumHeight(dp(148));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -1115,25 +1177,31 @@ public class MainActivity extends Activity {
 
         ImageView badge=new ImageView(this);
         badge.setImageResource(iconRes);
-        badge.setColorFilter(accent);
-        badge.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        badge.setPadding(dp(11),dp(11),dp(11),dp(11));
-        badge.setBackground(solidBg(dark?blend(accent,Color.BLACK,.55f):blend(accent,Color.WHITE,.76f),99,0));
-        top.addView(badge,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        badge.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        badge.setBackground(solidBg(
+                dark?Color.rgb(45,52,48):Color.rgb(248,243,233),17,0));
+        badge.setClipToOutline(true);
+        top.addView(badge,new LinearLayout.LayoutParams(dp(62),dp(62)));
 
-        TextView arrow=text("›",24,muted(),false);
+        TextView arrow=text("›",23,ink(),false);
         arrow.setGravity(Gravity.CENTER);
+        arrow.setBackground(surfaceBg(
+                dark?Color.rgb(45,52,48):Color.rgb(251,248,242),
+                dark?Color.rgb(41,48,44):Color.rgb(247,244,237),
+                19,line()));
+        arrow.setElevation(dp(1));
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
-        top.addView(arrow,new LinearLayout.LayoutParams(dp(28),dp(42)));
+        top.addView(arrow,new LinearLayout.LayoutParams(dp(38),dp(38)));
         c.addView(top);
 
-        TextView t=text(title,15.8f,ink(),true);
-        t.setLineSpacing(dp(1),1.01f);
+        TextView t=text(title,16.6f,ink(),true);
+        t.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        t.setLineSpacing(0,1.00f);
         t.setPadding(0,dp(8),0,dp(1));
         c.addView(t);
 
         TextView st=text(sub,11.8f,muted(),false);
-        st.setLineSpacing(dp(1),1.02f);
+        st.setLineSpacing(dp(1),1.01f);
         st.setPadding(0,0,0,0);
         c.addView(st);
 
