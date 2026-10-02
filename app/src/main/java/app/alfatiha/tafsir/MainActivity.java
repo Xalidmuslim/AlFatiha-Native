@@ -258,9 +258,10 @@ public class MainActivity extends Activity {
         LinearLayout c=new LinearLayout(this);
         c.setOrientation(LinearLayout.VERTICAL);
         c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
-        int end=dark?color:blend(color,Color.WHITE,0.10f);
-        c.setBackground(surfaceBg(color,end,radius,0));
-        c.setElevation(dp(elevation));
+        int end=dark?color:blend(color,Color.WHITE,0.07f);
+        int stroke=dark?Color.rgb(62,71,66):Color.rgb(235,230,221);
+        c.setBackground(surfaceBg(color,end,radius,stroke));
+        c.setElevation(dp(Math.min(elevation,2f)));
         return c;
     }
 
@@ -835,6 +836,35 @@ public class MainActivity extends Activity {
         return t;
     }
 
+    private TextView homeText(String value,float size,int color,boolean bold){
+        TextView t=new TextView(this);
+        t.setText(value==null?"":value);
+        // Home/dashboard typography is layout chrome, not reading content:
+        // changing the reader font size must never reflow the dashboard.
+        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(size));
+        t.setTextColor(color);
+        t.setTypeface(Typeface.create(bold?"serif":"sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));
+        t.setIncludeFontPadding(false);
+        t.setLineSpacing(dp(1),1.03f);
+        t.setPadding(0,0,0,0);
+        return t;
+    }
+
+    private Button homeAction(String label,int color){
+        Button b=new Button(this);
+        b.setText(label);
+        b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(14.2f));
+        b.setTextColor(Color.WHITE);
+        b.setAllCaps(false);
+        b.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(dp(14),0,dp(14),0);
+        b.setMinHeight(0); b.setMinimumHeight(0);
+        b.setBackground(surfaceBg(color,blend(color,Color.BLACK,.06f),19,0));
+        b.setElevation(dp(2));
+        return b;
+    }
+
     private Button chromeMiniButton(String label){
         Button b=new Button(this);
         b.setText(label);
@@ -1014,7 +1044,8 @@ public class MainActivity extends Activity {
                 25,0));
         hero.setElevation(dp(4));
         hero.setClipToOutline(true);
-        hero.setOnClickListener(v->continueMindCourse());
+        hero.setContentDescription("Открыть курс Аль-Фатихи");
+        hero.setOnClickListener(v->renderMindHub(true));
 
         ImageView heroArt=new ImageView(this);
         heroArt.setImageResource(R.drawable.heart_prayer_hero_exact);
@@ -1032,7 +1063,7 @@ public class MainActivity extends Activity {
                         Color.TRANSPARENT
                 });
         wash.setBackground(washBg);
-        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(242), -1);
+        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(276), -1);
         wlp.gravity=Gravity.LEFT;
         hero.addView(wash,wlp);
 
@@ -1041,32 +1072,29 @@ public class MainActivity extends Activity {
         heroText.setGravity(Gravity.CENTER_VERTICAL);
         heroText.setPadding(dp(18),dp(14),dp(5),dp(14));
 
-        TextView heroTitle=text("Аль-Фатиха\nи сердце молитвы",24.0f,
-                dark?Color.rgb(239,241,238):Color.rgb(32,48,42),true);
-        heroTitle.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        TextView heroTitle=homeText("Аль-Фатиха\nи сердце молитвы",22.4f,
+                dark?Color.rgb(239,241,238):Color.rgb(27,50,42),true);
         heroTitle.setLineSpacing(0,1.00f);
-        heroTitle.setPadding(0,0,0,dp(5));
+        heroTitle.setPadding(0,0,0,dp(7));
         heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
 
-        TextView heroSub=text("Понимай то, что читаешь,\nи укрепляй сердце в молитве.",
-                13.0f,dark?Color.rgb(200,207,202):Color.rgb(86,96,90),false);
+        TextView heroSub=homeText("Понимай то, что читаешь,\nи укрепляй сердце в молитве.",
+                12.1f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
         heroSub.setLineSpacing(dp(1),1.04f);
-        heroSub.setPadding(0,0,0,dp(5));
+        heroSub.setPadding(0,0,0,dp(8));
         heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
 
-        Button heroAction=action(seen>0?"Продолжить":"Начать обучение",C_SAGE);
-        heroAction.setTextSize(sz(14.5f));
-        heroAction.setTypeface(Typeface.create("serif",Typeface.BOLD));
-        heroAction.setOnClickListener(v->continueMindCourse());
-        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(184),dp(48));
+        Button heroAction=homeAction("Открыть курс",C_SAGE);
+        heroAction.setOnClickListener(v->renderMindHub(true));
+        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(174),dp(48));
         hap.setMargins(0,dp(3),0,0);
         heroText.addView(heroAction,hap);
 
-        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(242),-1);
+        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(268),-1);
         htlp.gravity=Gravity.LEFT|Gravity.CENTER_VERTICAL;
         hero.addView(heroText,htlp);
 
-        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(220));
+        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(214));
         hp.setMargins(0,dp(2),0,dp(8));
         page.addView(hero,hp);
 
@@ -1090,28 +1118,27 @@ public class MainActivity extends Activity {
         LinearLayout contText=new LinearLayout(this);
         contText.setOrientation(LinearLayout.VERTICAL);
         contText.setPadding(dp(12),0,dp(5),0);
-        TextView resumeLabel=text("Продолжить обучение",12.3f,C_SAGE,false);
+        TextView resumeLabel=homeText(seen>0?"Продолжить с места":"Начать с первой части",12.2f,C_SAGE,false);
         resumeLabel.setPadding(0,0,0,dp(1));
         contText.addView(resumeLabel);
 
         String resume=mindCourseResumeLine();
         if(resume.startsWith("Продолжить · "))resume=resume.substring("Продолжить · ".length());
         if("Начать курс".equals(resume))resume="Часть 1 из 8";
-        TextView resumeTitle=text(resume,18.2f,ink(),true);
-        resumeTitle.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        TextView resumeTitle=homeText(resume,18.0f,ink(),true);
         resumeTitle.setPadding(0,0,0,0);
         contText.addView(resumeTitle);
-        TextView resumeSub=text("Осознанное чтение Аль-Фатихи",12.3f,muted(),false);
+        TextView resumeSub=homeText("Осознанное чтение Аль-Фатихи",12.1f,muted(),false);
         resumeSub.setPadding(0,dp(1),0,0);
         contText.addView(resumeSub);
         contTop.addView(contText,new LinearLayout.LayoutParams(0,-2,1));
 
-        TextView chevron=text("›",25,ink(),false);
+        TextView chevron=homeText("›",25,ink(),false);
         chevron.setGravity(Gravity.CENTER);
         chevron.setBackground(surfaceBg(
                 dark?Color.rgb(45,52,48):Color.rgb(250,247,240),
                 dark?Color.rgb(41,48,44):Color.rgb(246,242,234),
-                20,line()));
+                20,dark?line():Color.rgb(232,226,216)));
         chevron.setElevation(dp(1));
         contTop.addView(chevron,new LinearLayout.LayoutParams(dp(40),dp(40)));
         cont.addView(contTop);
@@ -1122,12 +1149,13 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams pbar=new LinearLayout.LayoutParams(0,dp(8),1);
         pbar.setMargins(dp(70),dp(5),dp(8),0);
         progressRow.addView(progressBar(pct,C_SAGE),pbar);
-        TextView pctText=text(pct+"%",11.5f,muted(),false);
+        TextView pctText=homeText(pct+"%",11.4f,muted(),false);
         pctText.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
         pctText.setPadding(0,dp(3),0,0);
         progressRow.addView(pctText,new LinearLayout.LayoutParams(dp(38),dp(24)));
         cont.addView(progressRow,new LinearLayout.LayoutParams(-1,-2));
 
+        cont.setContentDescription(seen>0?"Продолжить обучение с места остановки":"Начать обучение с первой части");
         cont.setOnClickListener(v->continueMindCourse());
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);
         cp.setMargins(0,dp(2),0,dp(8));
@@ -1180,7 +1208,7 @@ public class MainActivity extends Activity {
 
         int cardTone=dark?tone:blend(tone,Color.WHITE,.62f);
         LinearLayout c=homeSurface(cardTone,22,13,3);
-        c.setMinimumHeight(dp(150));
+        c.setMinimumHeight(dp(148));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -1188,14 +1216,14 @@ public class MainActivity extends Activity {
 
         ImageView badge=new ImageView(this);
         badge.setImageResource(iconRes);
-        badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        badge.setPadding(dp(1),dp(1),dp(1),dp(1));
+        badge.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        badge.setPadding(0,0,0,0);
         badge.setBackground(solidBg(
                 dark?Color.rgb(45,52,48):Color.rgb(248,243,233),18,0));
         badge.setClipToOutline(true);
-        top.addView(badge,new LinearLayout.LayoutParams(dp(64),dp(64)));
+        top.addView(badge,new LinearLayout.LayoutParams(dp(66),dp(66)));
 
-        TextView arrow=text("›",23,ink(),false);
+        TextView arrow=homeText("›",23,ink(),false);
         arrow.setGravity(Gravity.CENTER);
         arrow.setBackground(surfaceBg(
                 dark?Color.rgb(45,52,48):Color.rgb(252,249,243),
@@ -1206,13 +1234,12 @@ public class MainActivity extends Activity {
         top.addView(arrow,new LinearLayout.LayoutParams(dp(38),dp(38)));
         c.addView(top);
 
-        TextView t=text(title,16.4f,ink(),true);
-        t.setTypeface(Typeface.create("serif",Typeface.BOLD));
+        TextView t=homeText(title,16.0f,ink(),true);
         t.setLineSpacing(0,1.00f);
         t.setPadding(0,dp(8),0,dp(1));
         c.addView(t);
 
-        TextView st=text(sub,11.8f,muted(),false);
+        TextView st=homeText(sub,11.5f,muted(),false);
         st.setLineSpacing(dp(1),1.01f);
         st.setPadding(0,0,0,0);
         c.addView(st);
@@ -2443,8 +2470,35 @@ public class MainActivity extends Activity {
 
     private void toggleInline(View holder,Button b,String closed,String open){
         boolean show=holder.getVisibility()!=View.VISIBLE;
-        if(show){holder.setAlpha(0f);holder.setTranslationY(-dp(5));holder.setVisibility(View.VISIBLE);holder.animate().alpha(1f).translationY(0).setDuration(170).start();}
-        else holder.setVisibility(View.GONE);
+        holder.animate().cancel();
+
+        if(show){
+            holder.setAlpha(0f);
+            holder.setScaleY(.985f);
+            holder.setTranslationY(-dp(4));
+            holder.setVisibility(View.VISIBLE);
+            holder.animate()
+                    .alpha(1f)
+                    .scaleY(1f)
+                    .translationY(0f)
+                    .setDuration(155)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                    .start();
+        }else{
+            holder.animate()
+                    .alpha(0f)
+                    .scaleY(.985f)
+                    .translationY(-dp(3))
+                    .setDuration(125)
+                    .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                    .withEndAction(()->{
+                        holder.setVisibility(View.GONE);
+                        holder.setAlpha(1f);
+                        holder.setScaleY(1f);
+                        holder.setTranslationY(0f);
+                    })
+                    .start();
+        }
         b.setText(show?open:closed);
     }
 
