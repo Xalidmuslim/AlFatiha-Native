@@ -383,7 +383,8 @@ fun AzkarReaderScreen(
         onNext = next,
     )
     val transitionModifier = Modifier.graphicsLayer {
-        translationY = transitionOffset.value
+        // Fade only. Moving the full card vertically made its lower shadow
+        // visibly jump while switching azkars on some GPU/drivers.
         alpha = transitionAlpha.value
     }
 
