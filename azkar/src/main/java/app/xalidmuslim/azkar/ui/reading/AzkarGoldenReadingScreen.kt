@@ -611,7 +611,6 @@ internal fun AzkarDhikrCard(
     val cardModifier = Modifier
         .fillMaxWidth()
         .then(if (maxHeight != null) Modifier.heightIn(max = maxHeight) else Modifier)
-        .then(interactionModifier)
         .testTag(AzkarReadingTestTags.Card)
 
     AzkarCardSurface(
@@ -622,6 +621,7 @@ internal fun AzkarDhikrCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(interactionModifier)
                 .testTag(AzkarReadingTestTags.ReadingArea)
                 .then(if (scrollState != null) Modifier.verticalScroll(scrollState) else Modifier),
         ) {
