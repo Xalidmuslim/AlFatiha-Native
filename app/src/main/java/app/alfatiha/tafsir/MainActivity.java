@@ -1108,8 +1108,8 @@ public class MainActivity extends Activity {
 
         ImageView contIcon=new ImageView(this);
         contIcon.setImageResource(R.drawable.icon_quran_3d);
-        contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        contIcon.setPadding(dp(2),dp(2),dp(2),dp(2));
+        contIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        contIcon.setPadding(0,0,0,0);
         contIcon.setBackground(solidBg(
                 dark?Color.rgb(45,57,50):Color.rgb(248,243,233),17,0));
         contIcon.setClipToOutline(true);
