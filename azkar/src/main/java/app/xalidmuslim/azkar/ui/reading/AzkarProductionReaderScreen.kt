@@ -144,7 +144,7 @@ internal fun AzkarProductionReaderScreen(
     val launchBackground = if (sharedDark) {
         Color(0xFF171C1A)
     } else {
-        Color(0xFFF5F1E8)
+        Color(0xFFF3EEE4)
     }
 
     Box(
