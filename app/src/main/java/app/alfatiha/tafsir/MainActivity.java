@@ -3126,6 +3126,26 @@ public class MainActivity extends Activity {
         JSONArray pe=arr("prayer_heart_errors.json");
         for(int i=0;i<pe.length();i++){JSONObject o=pe.optJSONObject(i);if(o!=null)out.add(new ContentSearchEntry(o.optString("title"),"Ошибка сердца в молитве",o.optString("stage")+" "+o.optString("outward")+" "+o.optString("hidden")+" "+o.optString("why")+" "+o.optString("return_to"),"prayerError",String.valueOf(i)));}
 
+        JSONArray minor=arr("minor_shirk_course.json");
+        for(int i=0;i<minor.length();i++){
+            JSONObject o=minor.optJSONObject(i);if(o==null)continue;
+            String body=o.optString("short")+" "+o.optString("understand")+" "+o.optString("element")+" "+o.optString("boundary")+" "+o.optString("example")+" "+o.optString("deep");
+            out.add(new ContentSearchEntry(o.optString("title"),"Малый ширк · курс",body,"minorShirkCourse",String.valueOf(i)));
+        }
+
+        JSONArray minorDaily=arr("minor_shirk_daily.json");
+        for(int i=0;i<minorDaily.length();i++){
+            JSONObject o=minorDaily.optJSONObject(i);if(o==null)continue;
+            String body=o.optString("case")+" "+o.optString("verdict")+" "+o.optString("inner")+" "+o.optString("element")+" "+o.optString("boundary")+" "+o.optString("correct");
+            out.add(new ContentSearchEntry(o.optString("title"),"Малый ширк · жизненная ситуация",body,"minorShirkDaily",String.valueOf(i)));
+        }
+
+        ArrayList<MedicineChapter> medicine=medicineChapters();
+        for(int i=0;i<medicine.size();i++){
+            MedicineChapter ch=medicine.get(i);
+            out.add(new ContentSearchEntry(ch.title,"Медицина Пророка ﷺ",ch.body,"medicineChapter",String.valueOf(i)));
+        }
+
         return out;
     }
 
@@ -3137,13 +3157,16 @@ public class MainActivity extends Activity {
             case"mindMistake":renderMindMistakes(parseInt(e.arg),true);break;
             case"mindLife":renderMindLife(parseInt(e.arg),true);break;
             case"prayerError":renderPrayerError(parseInt(e.arg),true);break;
+            case"minorShirkCourse":renderMinorShirkCourse(parseInt(e.arg),true);break;
+            case"minorShirkDaily":renderMinorShirkDaily(parseInt(e.arg),true);break;
+            case"medicineChapter":renderMedicineChapter(parseInt(e.arg),true);break;
             default:renderHome(true);
         }
     }
 
     private void renderSearch(boolean push){
         clearActiveFlow();clear("search","",push);currentSection="search";appTop();
-        header("Поиск по приложению","Ищет по Аль-Фатихе, «Тайнам молитвы», словарю, ошибкам и жизненным ситуациям.");
+        header("Поиск по приложению","Единый поиск по Аль-Фатихе, «Тайнам молитвы», малому ширку и «Медицине Пророка ﷺ».");
         final ArrayList<ContentSearchEntry> index=buildSearchIndex();
 
         EditText input=new EditText(this);
@@ -5047,7 +5070,7 @@ public class MainActivity extends Activity {
 
     private LinearLayout sectionDialogCard(String title,String sub,String detail,int accent){LinearLayout c=newSurface(panel(),18,11,1);c.addView(text(title,16,ink(),true));c.addView(text(sub,11.8f,muted(),false));c.addView(text(detail,11.8f,accent,true));return c;}
 
-    private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("quiz"))renderQuizCenter(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else if(currentSection.equals("search"))renderSearch(true);else renderHome(true);}
+    private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("minorShirk"))renderMinorShirkHub(true);else if(currentSection.equals("medicine"))renderMedicineHub(true);else if(currentSection.equals("quiz"))renderQuizCenter(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else if(currentSection.equals("search"))renderSearch(true);else renderHome(true);}
     private void goBack(){
         if(!history.isEmpty()){
             Screen s=history.pop();
@@ -5057,7 +5080,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"medicineHub":renderMedicineHub(false);break;case"medicineSearch":renderMedicineSearch(s.arg,false);break;case"medicineChapter":renderMedicineChapter(Integer.parseInt(s.arg),false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
