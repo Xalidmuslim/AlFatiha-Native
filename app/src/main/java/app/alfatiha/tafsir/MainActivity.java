@@ -17,12 +17,12 @@ import java.util.*;
 
 public class MainActivity extends Activity {
     // Palette based on the final 19.05 UI: warm paper, sage, muted blue, low-contrast borders.
-    private static final int C_BG = Color.rgb(245,241,232);
-    private static final int C_BG_2 = Color.rgb(238,232,219);
-    private static final int C_PANEL = Color.rgb(255,254,250);
+    private static final int C_BG = Color.rgb(243,238,228);
+    private static final int C_BG_2 = Color.rgb(235,227,216);
+    private static final int C_PANEL = Color.rgb(251,247,240);
     private static final int C_INK = Color.rgb(29,36,33);
-    private static final int C_MUTED = Color.rgb(109,116,111);
-    private static final int C_LINE = Color.rgb(222,221,214);
+    private static final int C_MUTED = Color.rgb(110,106,99);
+    private static final int C_LINE = Color.rgb(230,221,208);
     private static final int C_SAGE = Color.rgb(53,109,87);
     private static final int C_SAGE_2 = Color.rgb(38,79,64);
     private static final int C_SAGE_SOFT = Color.rgb(228,238,233);
@@ -201,7 +201,7 @@ public class MainActivity extends Activity {
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setGravity(Gravity.CENTER);
         bottom.setPadding(dp(8),dp(6),dp(8),dp(6));
-        bottom.setBackground(surfaceBg(dark?Color.rgb(31,37,34):Color.rgb(250,248,242),dark?Color.rgb(28,33,31):Color.rgb(246,243,235),28,line()));
+        bottom.setBackground(surfaceBg(dark?Color.rgb(31,37,34):Color.rgb(251,247,240),dark?Color.rgb(28,33,31):Color.rgb(247,242,233),28,line()));
         bottom.setElevation(dp(6));
         LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(66));
         blp.setMargins(dp(8),0,dp(8),dp(8));
@@ -287,7 +287,7 @@ public class MainActivity extends Activity {
         c.setOrientation(LinearLayout.VERTICAL);
         c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
         int end=dark?blend(color,Color.BLACK,.015f):blend(color,Color.WHITE,.035f);
-        int stroke=dark?Color.rgb(58,67,62):Color.rgb(236,230,220);
+        int stroke=dark?Color.rgb(58,67,62):Color.rgb(230,221,208);
         c.setBackground(surfaceBg(color,end,radius,stroke));
         c.setElevation(dp(1));
         return c;
@@ -922,7 +922,7 @@ public class MainActivity extends Activity {
     }
 
     private void appTop(){
-        LinearLayout top=homeSurface(dark?Color.rgb(36,43,39):Color.rgb(252,250,245),22,7,4);
+        LinearLayout top=homeSurface(dark?Color.rgb(36,43,39):Color.rgb(251,247,240),22,7,4);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
 
@@ -1079,16 +1079,16 @@ public class MainActivity extends Activity {
         final int heroH;
         final int resumeH;
         if(screenH<=700){
-            heroH=180; resumeH=92; homeTileHeightDp=130; homeTileIconDp=52;
+            heroH=180; resumeH=92; homeTileHeightDp=126; homeTileIconDp=52;
             homeTileTitleSp=12.9f; homeTileSubSp=9.7f;
         }else if(screenH<=760){
-            heroH=198; resumeH=100; homeTileHeightDp=138; homeTileIconDp=56;
-            homeTileTitleSp=13.5f; homeTileSubSp=10.0f;
+            heroH=198; resumeH=100; homeTileHeightDp=132; homeTileIconDp=55;
+            homeTileTitleSp=13.4f; homeTileSubSp=10.0f;
         }else{
             // Same vertical composition as the approved mockup:
             // more breathing room in hero/resume, less empty space inside the 4 tiles.
-            heroH=222; resumeH=108; homeTileHeightDp=168; homeTileIconDp=66;
-            homeTileTitleSp=14.5f; homeTileSubSp=10.6f;
+            heroH=222; resumeH=108; homeTileHeightDp=152; homeTileIconDp=62;
+            homeTileTitleSp=14.2f; homeTileSubSp=10.4f;
         }
 
         int seen=seenMindCount();
@@ -1097,8 +1097,8 @@ public class MainActivity extends Activity {
         // Hero: real native text/actions over the approved interior artwork.
         FrameLayout hero=new FrameLayout(this);
         hero.setBackground(surfaceBg(
-                dark?Color.rgb(39,45,41):Color.rgb(249,245,236),
-                dark?Color.rgb(35,41,38):Color.rgb(254,251,244),
+                dark?Color.rgb(39,45,41):Color.rgb(248,243,234),
+                dark?Color.rgb(35,41,38):Color.rgb(252,248,241),
                 25,0));
         hero.setElevation(dp(1));
         hero.setClipToOutline(true);
@@ -1120,8 +1120,8 @@ public class MainActivity extends Activity {
         GradientDrawable washBg=new GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
                 new int[]{
-                        dark?Color.argb(220,31,37,34):Color.argb(242,249,245,236),
-                        dark?Color.argb(112,31,37,34):Color.argb(120,249,245,236),
+                        dark?Color.argb(220,31,37,34):Color.argb(242,248,243,234),
+                        dark?Color.argb(112,31,37,34):Color.argb(120,248,243,234),
                         Color.TRANSPARENT
                 });
         wash.setBackground(washBg);
@@ -1162,8 +1162,9 @@ public class MainActivity extends Activity {
         page.addView(hero,hp);
 
         // Resume card.
-        int dashboardCard=dark?Color.rgb(40,47,43):Color.rgb(253,250,244);
+        int dashboardCard=dark?Color.rgb(40,47,43):Color.rgb(251,247,240);
         LinearLayout cont=homeSurface(dashboardCard,20,8,1);
+        cont.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout contTop=new LinearLayout(this);
         contTop.setOrientation(LinearLayout.HORIZONTAL);
         contTop.setGravity(Gravity.CENTER_VERTICAL);
@@ -1196,9 +1197,9 @@ public class MainActivity extends Activity {
         TextView chevron=homeText("›",22,ink(),false);
         chevron.setGravity(Gravity.CENTER);
         chevron.setBackground(surfaceBg(
-                dark?Color.rgb(45,52,48):Color.rgb(250,247,240),
-                dark?Color.rgb(41,48,44):Color.rgb(246,242,234),
-                20,dark?line():Color.rgb(232,226,216)));
+                dark?Color.rgb(45,52,48):Color.rgb(249,245,238),
+                dark?Color.rgb(41,48,44):Color.rgb(245,239,230),
+                20,dark?line():Color.rgb(230,221,208)));
         chevron.setElevation(0f);
         contTop.addView(chevron,new LinearLayout.LayoutParams(dp(34),dp(34)));
         cont.addView(contTop);
@@ -1292,9 +1293,9 @@ public class MainActivity extends Activity {
         TextView arrow=homeText("›",20,ink(),false);
         arrow.setGravity(Gravity.CENTER);
         arrow.setBackground(surfaceBg(
-                dark?Color.rgb(45,52,48):Color.rgb(252,249,243),
-                dark?Color.rgb(41,48,44):Color.rgb(248,245,239),
-                19,dark?line():Color.rgb(236,230,220)));
+                dark?Color.rgb(45,52,48):Color.rgb(249,245,238),
+                dark?Color.rgb(41,48,44):Color.rgb(245,239,230),
+                19,dark?line():Color.rgb(230,221,208)));
         arrow.setElevation(0f);
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
         top.addView(arrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
@@ -1304,7 +1305,7 @@ public class MainActivity extends Activity {
         t.setMaxLines(3);
         t.setEllipsize(null);
         t.setLineSpacing(0,1.00f);
-        t.setPadding(0,dp(4),0,0);
+        t.setPadding(0,dp(3),0,0);
         c.addView(t);
 
         TextView st=homeText(sub,homeTileSubSp,muted(),false);
