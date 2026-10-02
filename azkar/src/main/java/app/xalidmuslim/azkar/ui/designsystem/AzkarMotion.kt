@@ -8,6 +8,7 @@ object AzkarMotion {
     // page fade + 7dp lift ~155ms, small reveals ~170ms.
     const val dhikrPageDurationMillis = 155
     const val sheetDurationMillis = 170
+    const val sheetExitDurationMillis = 140
     const val progressDurationMillis = 155
     const val toggleDurationMillis = 170
     const val stateTransitionDurationMillis = 155
