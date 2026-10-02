@@ -531,7 +531,9 @@ internal fun AzkarReaderToolbar(
         horizontalArrangement = Arrangement.spacedBy(AzkarSpacing.readingToolbarGap),
     ) {
         Box(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp, end = 4.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicText(
