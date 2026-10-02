@@ -50,6 +50,7 @@ public class MainActivity extends Activity {
     private float homeTileTitleSp=14.2f;
     private float homeTileSubSp=10.5f;
     private KnowledgeAnalytics.Catalog knowledgeCatalog;
+    private ArrayList<MedicineChapter> medicineCache;
     private final ArrayList<KnowledgeAnalytics.QuestionRef> activeFlow=new ArrayList<>();
     private final LinkedHashMap<String,Boolean> activeFlowResults=new LinkedHashMap<>();
     private String activeFlowKind="";
@@ -72,6 +73,11 @@ public class MainActivity extends Activity {
     static class SavedMaterialInfo {
         String id,title,section,snippet;
         SavedMaterialInfo(String id,String title,String section,String snippet){this.id=id;this.title=title;this.section=section;this.snippet=snippet;}
+    }
+
+    static class MedicineChapter {
+        String title,body;
+        MedicineChapter(String title,String body){this.title=title;this.body=body;}
     }
 
     @Override public void onCreate(Bundle b) {
@@ -1079,16 +1085,16 @@ public class MainActivity extends Activity {
         final int heroH;
         final int resumeH;
         if(screenH<=700){
-            heroH=180; resumeH=92; homeTileHeightDp=126; homeTileIconDp=52;
-            homeTileTitleSp=12.9f; homeTileSubSp=9.7f;
+            heroH=180; resumeH=0; homeTileHeightDp=112; homeTileIconDp=46;
+            homeTileTitleSp=12.6f; homeTileSubSp=9.4f;
         }else if(screenH<=760){
-            heroH=198; resumeH=100; homeTileHeightDp=132; homeTileIconDp=55;
-            homeTileTitleSp=13.4f; homeTileSubSp=10.0f;
+            heroH=198; resumeH=0; homeTileHeightDp=120; homeTileIconDp=48;
+            homeTileTitleSp=13.0f; homeTileSubSp=9.7f;
         }else{
-            // Same vertical composition as the approved mockup:
-            // more breathing room in hero/resume, less empty space inside the 4 tiles.
-            heroH=222; resumeH=108; homeTileHeightDp=152; homeTileIconDp=62;
-            homeTileTitleSp=14.2f; homeTileSubSp=10.4f;
+            // The standalone resume card is merged into the hero.
+            // Three compact rows now fit six primary sections.
+            heroH=222; resumeH=0; homeTileHeightDp=128; homeTileIconDp=52;
+            homeTileTitleSp=13.4f; homeTileSubSp=10.0f;
         }
 
         int seen=seenMindCount();
@@ -1147,13 +1153,42 @@ public class MainActivity extends Activity {
         heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
 
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
-        Button heroAction=homeAction("Открыть курс",mutedHeroGreen);
-        heroAction.setOnClickListener(v->renderHeartCourseHub(true));
-        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(174),dp(44));
-        hap.setMargins(0,dp(3),0,0);
-        heroText.addView(heroAction,hap);
 
-        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(258),-1);
+        LinearLayout heroResume=new LinearLayout(this);
+        heroResume.setOrientation(LinearLayout.VERTICAL);
+        heroResume.setPadding(dp(10),dp(7),dp(10),dp(7));
+        heroResume.setBackground(surfaceBg(
+                dark?Color.rgb(43,51,47):Color.rgb(250,246,238),
+                dark?Color.rgb(39,47,43):Color.rgb(247,241,231),
+                16,
+                dark?line():Color.rgb(229,219,205)
+        ));
+        heroResume.setOnClickListener(v->continueMindCourse());
+
+        TextView heroResumeLabel=homeText(
+                mindCourseResumeLine(),
+                10.4f,
+                dark?Color.rgb(214,220,216):Color.rgb(53,73,65),
+                true
+        );
+        heroResume.addView(heroResumeLabel,new LinearLayout.LayoutParams(-1,-2));
+
+        LinearLayout heroProgressRow=new LinearLayout(this);
+        heroProgressRow.setOrientation(LinearLayout.HORIZONTAL);
+        heroProgressRow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams heroBarLp=new LinearLayout.LayoutParams(0,dp(5),1);
+        heroBarLp.setMargins(0,dp(5),dp(7),0);
+        heroProgressRow.addView(progressBar(pct,mutedHeroGreen),heroBarLp);
+        TextView heroPct=homeText(pct+"%",9.5f,dark?Color.rgb(190,199,194):Color.rgb(103,101,94),false);
+        heroPct.setGravity(Gravity.CENTER);
+        heroProgressRow.addView(heroPct,new LinearLayout.LayoutParams(dp(32),dp(18)));
+        heroResume.addView(heroProgressRow,new LinearLayout.LayoutParams(-1,-2));
+
+        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(206),dp(58));
+        hap.setMargins(0,dp(2),0,0);
+        heroText.addView(heroResume,hap);
+
+        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(270),-1);
         htlp.gravity=Gravity.LEFT|Gravity.CENTER_VERTICAL;
         hero.addView(heroText,htlp);
 
@@ -1161,72 +1196,13 @@ public class MainActivity extends Activity {
         hp.setMargins(0,0,0,dp(7));
         page.addView(hero,hp);
 
-        // Resume card.
+        // Six primary sections. Continue/progress now lives inside the hero.
         int dashboardCard=dark?Color.rgb(40,47,43):Color.rgb(251,247,240);
-        LinearLayout cont=homeSurface(dashboardCard,20,8,1);
-        cont.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout contTop=new LinearLayout(this);
-        contTop.setOrientation(LinearLayout.HORIZONTAL);
-        contTop.setGravity(Gravity.CENTER_VERTICAL);
 
-        ImageView contIcon=new ImageView(this);
-        contIcon.setImageResource(R.drawable.home_book_mockup);
-        contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        contIcon.setPadding(0,0,0,0);
-        contIcon.setBackgroundColor(Color.TRANSPARENT);
-        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(48),dp(48)));
-
-        LinearLayout contText=new LinearLayout(this);
-        contText.setOrientation(LinearLayout.VERTICAL);
-        contText.setPadding(dp(9),0,dp(4),0);
-        TextView resumeLabel=homeText(seen>0?"Продолжить с места":"Начать с первой части",10.6f,C_SAGE,false);
-        resumeLabel.setPadding(0,0,0,dp(1));
-        contText.addView(resumeLabel);
-
-        String resume=mindCourseResumeLine();
-        if(resume.startsWith("Продолжить · "))resume=resume.substring("Продолжить · ".length());
-        if("Начать курс".equals(resume))resume="Часть 1 из 8";
-        TextView resumeTitle=homeText(resume,16.0f,ink(),true);
-        resumeTitle.setPadding(0,0,0,0);
-        contText.addView(resumeTitle);
-        TextView resumeSub=homeText("Осознанное чтение Аль-Фатихи",10.8f,muted(),false);
-        resumeSub.setPadding(0,dp(1),0,0);
-        contText.addView(resumeSub);
-        contTop.addView(contText,new LinearLayout.LayoutParams(0,-2,1));
-
-        TextView chevron=homeText("›",22,ink(),false);
-        chevron.setGravity(Gravity.CENTER);
-        chevron.setBackground(surfaceBg(
-                dark?Color.rgb(45,52,48):Color.rgb(249,245,238),
-                dark?Color.rgb(41,48,44):Color.rgb(245,239,230),
-                20,dark?line():Color.rgb(230,221,208)));
-        chevron.setElevation(0f);
-        contTop.addView(chevron,new LinearLayout.LayoutParams(dp(34),dp(34)));
-        cont.addView(contTop);
-
-        LinearLayout progressRow=new LinearLayout(this);
-        progressRow.setOrientation(LinearLayout.HORIZONTAL);
-        progressRow.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams pbar=new LinearLayout.LayoutParams(0,dp(6),1);
-        pbar.setMargins(dp(57),dp(2),dp(6),0);
-        progressRow.addView(progressBar(pct,C_SAGE),pbar);
-        TextView pctText=homeText(pct+"%",10.1f,muted(),false);
-        pctText.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
-        pctText.setPadding(0,dp(3),0,0);
-        progressRow.addView(pctText,new LinearLayout.LayoutParams(dp(34),dp(18)));
-        cont.addView(progressRow,new LinearLayout.LayoutParams(-1,-2));
-
-        cont.setContentDescription(seen>0?"Продолжить обучение с места остановки":"Начать обучение с первой части");
-        cont.setOnClickListener(v->continueMindCourse());
-        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,dp(resumeH));
-        cp.setMargins(0,0,0,dp(7));
-        page.addView(cont,cp);
-
-        // Four primary sections — same visual system and 3D icon language.
         LinearLayout row1=new LinearLayout(this);
         row1.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout f1=homeFeature(
-                R.drawable.home_resume_mockup,
+                R.drawable.home_book_mockup,
                 "Осознанное\nчтение Аль-Фатихи",
                 "Слова и глубокий смысл",
                 dashboardCard,()->renderMindHub(true));
@@ -1245,10 +1221,10 @@ public class MainActivity extends Activity {
         LinearLayout row2=new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout f3=homeFeature(
-                R.drawable.home_quiz_mockup,
-                "Викторины",
-                "Проверка понимания",
-                dashboardCard,()->renderQuizCenter(true));
+                R.drawable.ic_home_shirk_colored,
+                "Малый ширк",
+                "Защита единобожия",
+                dashboardCard,()->renderMinorShirkHub(true));
         LinearLayout f4=homeFeature(
                 R.drawable.home_azkar_mockup,
                 "Азкары",
@@ -1257,18 +1233,39 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         r2b.setMargins(dp(6),0,0,0);
-        LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
-        row2lp.setMargins(0,dp(6),0,0);
         row2.addView(f3,r2a);
         row2.addView(f4,r2b);
+        LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
+        row2lp.setMargins(0,dp(6),0,0);
         page.addView(row2,row2lp);
+
+        LinearLayout row3=new LinearLayout(this);
+        row3.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout f5=homeFeature(
+                R.drawable.home_quiz_mockup,
+                "Викторины",
+                "Проверка понимания",
+                dashboardCard,()->renderQuizCenter(true));
+        LinearLayout f6=homeFeature(
+                R.drawable.ic_home_medicine_colored,
+                "Медицина\nПророка ﷺ",
+                "Книга Ибн аль-Каййима",
+                dashboardCard,()->renderMedicineHub(true));
+        LinearLayout.LayoutParams r3a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
+        LinearLayout.LayoutParams r3b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
+        r3b.setMargins(dp(6),0,0,0);
+        row3.addView(f5,r3a);
+        row3.addView(f6,r3b);
+        LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
+        row3lp.setMargins(0,dp(6),0,0);
+        page.addView(row3,row3lp);
     }
 
     private LinearLayout homeFeature(
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=tone;
-        LinearLayout c=homeSurface(cardTone,20,9,1);
+        LinearLayout c=homeSurface(cardTone,20,8,1);
         c.setMinimumHeight(dp(homeTileHeightDp));
 
         // Keep the icon + text composition vertically balanced inside the fixed
