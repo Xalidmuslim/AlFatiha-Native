@@ -7,8 +7,13 @@ def uploadKeyPassword = System.getenv('ANDROID_UPLOAD_KEY_PASSWORD')
 def hasUploadSigning = uploadStoreFile && uploadStorePassword && uploadKeyAlias && uploadKeyPassword
 
 def heartGeneratedRes = layout.buildDirectory.dir('generated/heart-design/res').get().asFile
+def heartHeroParts = [
+    file('src/main/icon/heart_prayer_hero.part1'),
+    file('src/main/icon/heart_prayer_hero.part2'),
+    file('src/main/icon/heart_prayer_hero.part3'),
+    file('src/main/icon/heart_prayer_hero.part4'),
+]
 def heartDesignAssets = [
-    [src: file('src/main/icon/heart_prayer_hero.b64'), out: 'heart_prayer_hero_exact.webp'],
     [src: file('src/main/icon/heart_prayer_logo.b64'), out: 'heart_prayer_logo_exact.webp'],
     [src: file('src/main/icon/icon_quran.b64'), out: 'icon_quran_3d.webp'],
     [src: file('src/main/icon/icon_mosque.b64'), out: 'icon_mosque_3d.webp'],
@@ -18,10 +23,16 @@ def heartDesignAssets = [
 
 tasks.register('prepareHeartDesignAssets') {
     def outputDir = new File(heartGeneratedRes, 'drawable-nodpi')
-    inputs.files(heartDesignAssets.collect { it.src })
+    inputs.files(heartDesignAssets.collect { it.src } + heartHeroParts)
     outputs.dir(outputDir)
     doLast {
         outputDir.mkdirs()
+
+        String heroEncoded = heartHeroParts.collect { it.getText('UTF-8') }.join('').replaceAll('\\s+','')
+        byte[] heroBytes = java.util.Base64.decoder.decode(heroEncoded)
+        if (heroBytes.length < 5000) throw new GradleException('Invalid Heart Prayer hero asset')
+        new File(outputDir, 'heart_prayer_hero_exact.webp').bytes = heroBytes
+
         heartDesignAssets.each { spec ->
             String encoded = spec.src.getText('UTF-8').replaceAll('\\s+','')
             byte[] bytes = java.util.Base64.decoder.decode(encoded)
