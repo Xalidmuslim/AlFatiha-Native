@@ -129,6 +129,7 @@ fun AzkarGoldenReadingScreen(
     readingScrollState: ScrollState? = null,
     readingAreaModifier: Modifier = Modifier,
     onOpenSettings: () -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onOpenContents: () -> Unit = {},
@@ -168,6 +169,7 @@ fun AzkarGoldenReadingScreen(
                 // Верхняя зона остаётся на месте. Прокручивается только карточка азкара.
                 AzkarHeader(
                     onOpenSettings = onOpenSettings,
+                    onOpenSearch = onOpenSearch,
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = onToggleTheme,
                 )
@@ -214,6 +216,7 @@ fun AzkarGoldenReadingScreen(
 @Composable
 internal fun AzkarHeader(
     onOpenSettings: () -> Unit,
+    onOpenSearch: () -> Unit = {},
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
 ) {
@@ -266,8 +269,21 @@ internal fun AzkarHeader(
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            AzkarIconButton(
+                onClick = onOpenSearch,
+                modifier = Modifier
+                    .semantics { contentDescription = "Поиск по приложению" },
+            ) {
+                BasicText(
+                    text = "⌕",
+                    style = AzkarThemeValues.typography.translation.copy(
+                        color = colors.foreground,
+                        fontSize = 19.sp,
+                    ),
+                )
+            }
             AzkarIconButton(
                 onClick = onToggleTheme,
                 modifier = Modifier
@@ -295,10 +311,10 @@ internal fun AzkarHeader(
                     .testTag(AzkarReadingTestTags.OpenSettingsTop),
             ) {
                 BasicText(
-                    text = "⚙",
+                    text = "Aa",
                     style = AzkarThemeValues.typography.translation.copy(
                         color = colors.foreground,
-                        fontSize = AzkarDimensions.settingsIconGlyphSp.sp,
+                        fontSize = 15.sp,
                     ),
                 )
             }
