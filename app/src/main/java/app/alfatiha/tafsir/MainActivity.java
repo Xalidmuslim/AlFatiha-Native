@@ -1107,7 +1107,7 @@ public class MainActivity extends Activity {
         contTop.setGravity(Gravity.CENTER_VERTICAL);
 
         ImageView contIcon=new ImageView(this);
-        contIcon.setImageResource(R.drawable.icon_quran_3d);
+        contIcon.setImageResource(R.drawable.ic_home_book_colored);
         contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         contIcon.setPadding(dp(3),dp(3),dp(3),dp(3));
         contIcon.setBackground(solidBg(
@@ -1165,7 +1165,7 @@ public class MainActivity extends Activity {
         LinearLayout row1=new LinearLayout(this);
         row1.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout f1=homeFeature(
-                R.drawable.icon_quran_3d,
+                R.drawable.ic_home_book_colored,
                 "Осознанное\nчтение Аль-Фатихи",
                 "Слова и глубокий смысл",
                 dashboardCard,()->renderMindHub(true));
