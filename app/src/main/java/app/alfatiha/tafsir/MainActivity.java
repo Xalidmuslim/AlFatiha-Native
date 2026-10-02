@@ -1168,12 +1168,12 @@ public class MainActivity extends Activity {
                 R.drawable.icon_quran_3d,
                 "Осознанное\nчтение Аль-Фатихи",
                 "Слова и глубокий смысл",
-                sageSoft(),()->renderMindHub(true));
+                dark?Color.rgb(39,47,43):Color.rgb(249,248,243),()->renderMindHub(true));
         LinearLayout f2=homeFeature(
                 R.drawable.icon_mosque_3d,
                 "Тайны молитвы",
                 "Действия, слова\nи состояние сердца",
-                sandSoft(),()->renderPrayerSecretsHub(true));
+                dark?Color.rgb(48,45,38):Color.rgb(250,247,239),()->renderPrayerSecretsHub(true));
         LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,-2,1);
         LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,-2,1);
         r1b.setMargins(dp(8),0,0,0);
@@ -1187,12 +1187,12 @@ public class MainActivity extends Activity {
                 R.drawable.icon_quiz_3d,
                 "Викторины",
                 "Проверка понимания",
-                blueSoft(),()->renderQuizCenter(true));
+                dark?Color.rgb(39,45,49):Color.rgb(249,249,247),()->renderQuizCenter(true));
         LinearLayout f4=homeFeature(
                 R.drawable.icon_azkar_3d,
                 "Азкары",
                 "Утро и вечер",
-                lavSoft(),this::openAzkar);
+                dark?Color.rgb(44,42,47):Color.rgb(250,248,244),this::openAzkar);
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,-2,1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,-2,1);
         r2b.setMargins(dp(8),0,0,0);
@@ -1206,7 +1206,7 @@ public class MainActivity extends Activity {
     private LinearLayout homeFeature(
             int iconRes,String title,String sub,int tone,Runnable open){
 
-        int cardTone=dark?tone:blend(tone,Color.WHITE,.62f);
+        int cardTone=tone;
         LinearLayout c=homeSurface(cardTone,22,13,3);
         c.setMinimumHeight(dp(148));
 
