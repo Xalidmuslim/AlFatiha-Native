@@ -398,6 +398,7 @@ fun AzkarReaderScreen(
         Box(
             modifier = modifier
                 .fillMaxSize()
+                .background(AzkarThemeValues.colors.background)
                 .then(
                     if (readerUi.viewMode == AzkarReaderViewMode.Cards) pagingModifier
                     else Modifier,
