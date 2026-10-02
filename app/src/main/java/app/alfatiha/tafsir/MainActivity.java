@@ -1134,13 +1134,13 @@ public class MainActivity extends Activity {
         heroText.setGravity(Gravity.CENTER_VERTICAL);
         heroText.setPadding(dp(16),dp(10),dp(5),dp(10));
 
-        TextView heroTitle=homeText("Аль-Фатиха\nи сердце молитвы",22.0f,
+        TextView heroTitle=homeText("Аль-Фатиха\nи тайны молитвы",22.0f,
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),true);
         heroTitle.setLineSpacing(0,1.00f);
         heroTitle.setPadding(0,0,0,dp(6));
         heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
 
-        TextView heroSub=homeText("Понимай то, что читаешь,\nи укрепляй сердце в молитве.",
+        TextView heroSub=homeText("Осознай то, что читаешь,\nи укрепляй сердце в молитве.",
                 11.8f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
         heroSub.setLineSpacing(dp(1),1.04f);
         heroSub.setPadding(0,0,0,dp(7));
@@ -1374,7 +1374,7 @@ public class MainActivity extends Activity {
         appTop();
 
         header(
-                "Аль-Фатиха и сердце молитвы",
+                "Аль-Фатиха и тайны молитвы",
                 "Два связанных направления: понимание Аль-Фатихи и осознанность в самой молитве."
         );
 
