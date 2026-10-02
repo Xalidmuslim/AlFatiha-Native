@@ -303,19 +303,8 @@ fun AzkarReaderScreen(
     BackHandler(enabled = readerUi.activeSheet != AzkarReaderSheet.None) {
         resolvedUiController.closeSheet()
     }
-    BackHandler(
-        enabled = readerUi.activeSheet == AzkarReaderSheet.None &&
-            navigation.history.isNotEmpty(),
-    ) {
-        if (controller.back() && readerUi.viewMode == AzkarReaderViewMode.List) {
-            val destination = controller.state.activeIndex
-            scope.launch {
-                listState.animateScrollToItem(
-                    index = AzkarListCardStartIndex + destination,
-                    scrollOffset = -listScrollMarginPx,
-                )
-            }
-        }
+    BackHandler(enabled = readerUi.activeSheet == AzkarReaderSheet.None) {
+        navigateToHeartPrayer(context, "home")
     }
 
     val haptic = LocalHapticFeedback.current
