@@ -272,7 +272,7 @@ internal fun AzkarHeader(
             }
             Column {
                 BasicText(
-                    text = "Азкар",
+                    text = "Азкары",
                     style = AzkarThemeValues.typography.brandTitle.copy(color = colors.foreground),
                 )
                 BasicText(
