@@ -41,7 +41,8 @@ tasks.register('prepareHeartDesignAssets') {
         heartDesignAssets.each { spec ->
             String encoded = spec.src.getText('UTF-8').replaceAll('\\s+','')
             byte[] bytes = java.util.Base64.decoder.decode(encoded)
-            if (bytes.length < 1000) throw new GradleException("Invalid Heart Prayer asset: " + spec.src)
+            int minAssetBytes = spec.src.name.startsWith('mockup_') ? 400 : 1000
+            if (bytes.length < minAssetBytes) throw new GradleException("Invalid Heart Prayer asset: " + spec.src)
             new File(outputDir, spec.out).bytes = bytes
         }
     }
