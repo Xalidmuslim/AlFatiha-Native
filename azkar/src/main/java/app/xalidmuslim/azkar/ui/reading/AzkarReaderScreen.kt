@@ -181,6 +181,20 @@ fun AzkarReaderScreen(
         return
     }
     val settings = readerUi.settings
+    val globalUiPreferences = remember(context) {
+        context.getSharedPreferences("alfatiha_native", android.content.Context.MODE_PRIVATE)
+    }
+
+    // One day/night state for the whole integrated application.
+    LaunchedEffect(readerUi.isHydrated) {
+        if (readerUi.isHydrated) {
+            val sharedDark = globalUiPreferences.getBoolean("dark", false)
+            val sharedMode = if (sharedDark) AzkarThemeMode.Dark else AzkarThemeMode.Light
+            if (settings.themeMode != sharedMode) {
+                resolvedUiController.updateSettings { it.copy(themeMode = sharedMode) }
+            }
+        }
+    }
 
     val systemDarkTheme = isSystemInDarkTheme()
     val isDarkTheme = when (settings.themeMode) {
@@ -189,9 +203,11 @@ fun AzkarReaderScreen(
         AzkarThemeMode.System -> systemDarkTheme
     }
     val toggleTheme: () -> Unit = {
+        val nextDark = !isDarkTheme
+        globalUiPreferences.edit().putBoolean("dark", nextDark).apply()
         resolvedUiController.updateSettings {
             it.copy(
-                themeMode = if (isDarkTheme) AzkarThemeMode.Light else AzkarThemeMode.Dark,
+                themeMode = if (nextDark) AzkarThemeMode.Dark else AzkarThemeMode.Light,
             )
         }
     }
@@ -441,6 +457,7 @@ fun AzkarReaderScreen(
                         readingScrollState = readingScrollState,
                         readingAreaModifier = transitionModifier,
                         onOpenSettings = resolvedUiController::openSettings,
+                        onOpenSearch = { navigateToHeartPrayer(context, "search") },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = toggleTheme,
                         onOpenContents = resolvedUiController::openContents,
@@ -481,6 +498,7 @@ fun AzkarReaderScreen(
                             .fillMaxSize()
                             .padding(bottom = 84.dp),
                         onOpenSettings = resolvedUiController::openSettings,
+                        onOpenSearch = { navigateToHeartPrayer(context, "search") },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = toggleTheme,
                         onOpenContents = resolvedUiController::openContents,
