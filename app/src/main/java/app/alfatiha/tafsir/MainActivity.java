@@ -1138,7 +1138,7 @@ public class MainActivity extends Activity {
         hero.addView(heroText,htlp);
 
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(heroH));
-        hp.setMargins(0,dp(1),0,dp(5));
+        hp.setMargins(0,0,0,dp(6));
         page.addView(hero,hp);
 
         // Resume card.
@@ -1198,7 +1198,7 @@ public class MainActivity extends Activity {
         cont.setContentDescription(seen>0?"Продолжить обучение с места остановки":"Начать обучение с первой части");
         cont.setOnClickListener(v->continueMindCourse());
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,dp(resumeH));
-        cp.setMargins(0,dp(1),0,dp(5));
+        cp.setMargins(0,0,0,dp(6));
         page.addView(cont,cp);
 
         // Four primary sections — same visual system and 3D icon language.
