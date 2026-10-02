@@ -38,6 +38,7 @@ internal fun AzkarListReadingScreen(
     settings: AzkarReaderSettings,
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit,
+    onOpenSearch: () -> Unit = {},
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onOpenContents: () -> Unit,
@@ -82,6 +83,7 @@ internal fun AzkarListReadingScreen(
                 // Keep the brand/header stationary in list mode too.
                 AzkarHeader(
                     onOpenSettings = onOpenSettings,
+                    onOpenSearch = onOpenSearch,
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = onToggleTheme,
                 )
