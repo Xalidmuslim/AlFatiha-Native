@@ -1316,6 +1316,256 @@ public class MainActivity extends Activity {
         return c;
     }
 
+
+    // --- Малый ширк: native integration of preserved v3.4 content ---
+
+    private int minorShirkSeenCount(String key){
+        return prefs.getStringSet(key,new HashSet<>()).size();
+    }
+
+    private void markMinorShirkSeen(String key,int idx){
+        HashSet<String> set=new HashSet<>(prefs.getStringSet(key,new HashSet<>()));
+        set.add(String.valueOf(idx));
+        prefs.edit().putStringSet(key,set).apply();
+    }
+
+    private void renderMinorShirkHub(boolean push){
+        clearActiveFlow();clear("minorShirkHub","",push);currentSection="minorShirk";appTop();
+        JSONArray course=arr("minor_shirk_course.json");
+        JSONArray daily=arr("minor_shirk_daily.json");
+        JSONArray quiz=arr("minor_shirk_quiz.json");
+
+        header("Малый ширк","Практический курс о защите единобожия: намерение, причины, упование, страх, надежда и состояние сердца.");
+
+        LinearLayout courseCard=card(sageSoft());
+        courseCard.addView(kicker("КУРС",C_SAGE));
+        courseCard.addView(text("Основы и тонкие границы",20.5f,ink(),true));
+        courseCard.addView(text(course.length()+" тем · пройдено "+minorShirkSeenCount("minor_shirk_course_seen")+"/"+course.length(),13.8f,muted(),false));
+        Button cb=action("Открыть курс",C_SAGE);
+        cb.setOnClickListener(v->renderMinorShirkCourseList(true));
+        courseCard.addView(cb);
+        courseCard.setOnClickListener(v->renderMinorShirkCourseList(true));
+
+        LinearLayout dailyCard=card(blueSoft());
+        dailyCard.addView(kicker("ПОВСЕДНЕВНАЯ ЖИЗНЬ",C_BLUE));
+        dailyCard.addView(text("Разбор реальных ситуаций",20.5f,ink(),true));
+        dailyCard.addView(text(daily.length()+" кейсов · сердце, причина, опасная грань и правильное состояние",13.8f,muted(),false));
+        Button db=action("Открыть кейсы",C_BLUE);
+        db.setOnClickListener(v->renderMinorShirkDailyList(true));
+        dailyCard.addView(db);
+        dailyCard.setOnClickListener(v->renderMinorShirkDailyList(true));
+
+        int answered=minorShirkSeenCount("minor_shirk_quiz_answered");
+        LinearLayout quizCard=card(lavSoft());
+        quizCard.addView(kicker("ВИКТОРИНА",Color.rgb(112,96,134)));
+        quizCard.addView(text("Проверка понимания",20.5f,ink(),true));
+        quizCard.addView(text(quiz.length()+" сложных вопросов · отвечено "+answered+"/"+quiz.length(),13.8f,muted(),false));
+        Button qb=action(answered>=quiz.length()?"Посмотреть результат":"Продолжить",Color.rgb(112,96,134));
+        qb.setOnClickListener(v->continueMinorShirkQuiz());
+        quizCard.addView(qb);
+        quizCard.setOnClickListener(v->continueMinorShirkQuiz());
+
+        LinearLayout note=card(sandSoft());
+        note.addView(kicker("ВАЖНАЯ ГРАНИЦА",Color.rgb(145,104,42)));
+        note.addView(text("Не каждый грех автоматически называется малым ширком.",16.5f,ink(),true));
+        note.addView(text("В курсе отдельно разбирается внешний поступок и конкретный механизм сердца. Общая классификация действия не переносится автоматически на конкретного человека.",13.5f,muted(),false));
+    }
+
+    private void renderMinorShirkCourseList(boolean push){
+        clear("minorShirkCourseList","",push);currentSection="minorShirk";appTop();
+        JSONArray a=arr("minor_shirk_course.json");
+        header("Малый ширк · курс","Выберите тему. Материал перенесён из нашего незаконченного проекта без WebView.");
+        Set<String> seen=prefs.getStringSet("minor_shirk_course_seen",new HashSet<>());
+        for(int i=0;i<a.length();i++){
+            JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
+            LinearLayout c=card(i%3==0?sageSoft():i%3==1?blueSoft():sandSoft());
+            c.addView(kicker(String.format(Locale.ROOT,"%02d",i+1),i%3==0?C_SAGE:i%3==1?C_BLUE:Color.rgb(145,104,42)));
+            c.addView(text(o.optString("title"),18.2f,ink(),true));
+            c.addView(text(o.optString("short"),13.2f,muted(),false));
+            if(seen.contains(String.valueOf(i)))c.addView(text("✓ Пройдено",11.8f,C_GOOD,true));
+            c.setOnClickListener(v->renderMinorShirkCourse(idx,true));
+        }
+    }
+
+    private void renderMinorShirkCourse(int idx,boolean push){
+        JSONArray a=arr("minor_shirk_course.json");if(a.length()==0)return;
+        if(idx<0||idx>=a.length())idx=0;
+        clear("minorShirkCourse",String.valueOf(idx),push);currentSection="minorShirk";appTop();
+        final int currentIdx=idx;
+        JSONObject o=a.optJSONObject(idx);if(o==null)return;
+        markMinorShirkSeen("minor_shirk_course_seen",idx);
+
+        header(o.optString("title"),"Тема "+(idx+1)+" из "+a.length());
+        sectionCard("Коротко",o.optString("short"),sageSoft(),C_SAGE);
+
+        JSONArray terms=o.optJSONArray("terms");
+        if(terms!=null&&terms.length()>0){
+            LinearLayout tc=card(panel());tc.addView(kicker("ТЕРМИНЫ",C_BLUE));
+            for(int i=0;i<terms.length();i++){
+                JSONArray t=terms.optJSONArray(i);if(t==null)continue;
+                tc.addView(text(t.optString(0),14.5f,ink(),true));
+                TextView meaning=text(t.optString(1),13.4f,muted(),false);
+                meaning.setPadding(0,0,0,dp(7));
+                tc.addView(meaning);
+            }
+        }
+
+        sectionCard("Как понять",o.optString("understand"),blueSoft(),C_BLUE);
+        sectionCard("Где элемент малого ширка",o.optString("element"),sandSoft(),Color.rgb(145,104,42));
+        sectionCard("Тонкая граница",o.optString("boundary"),lavSoft(),Color.rgb(112,96,134));
+        sectionCard("Пример",o.optString("example"),panel(),C_SAGE);
+        sectionCard("Глубже",o.optString("deep"),sageSoft(),C_SAGE);
+
+        JSONArray src=o.optJSONArray("sources");
+        if(src!=null){
+            LinearLayout sc=card(panel());sc.addView(kicker("ИСТОЧНИКИ",C_BLUE));
+            for(int i=0;i<src.length();i++)sc.addView(text("• "+src.optString(i),12.8f,muted(),false));
+        }
+
+        LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);
+        Button prev=outline("← Предыдущая");prev.setEnabled(idx>0);prev.setAlpha(idx>0?1f:.45f);
+        if(idx>0){final int p=idx-1;prev.setOnClickListener(v->renderMinorShirkCourse(p,true));}
+        Button next=action(idx==a.length()-1?"К содержанию":"Следующая →",C_SAGE);
+        next.setOnClickListener(v->{if(currentIdx+1<a.length())renderMinorShirkCourse(currentIdx+1,true);else renderMinorShirkCourseList(true);});
+        nav.addView(prev,new LinearLayout.LayoutParams(0,dp(52),1));
+        LinearLayout.LayoutParams nlp=new LinearLayout.LayoutParams(0,dp(52),1);nlp.setMargins(dp(7),0,0,0);nav.addView(next,nlp);
+        page.addView(nav);
+    }
+
+    private void renderMinorShirkDailyList(boolean push){
+        clear("minorShirkDailyList","",push);currentSection="minorShirk";appTop();
+        JSONArray a=arr("minor_shirk_daily.json");
+        header("Повседневные ситуации","Реальный случай → что происходит в сердце → опасная грань → правильное состояние.");
+        for(int i=0;i<a.length();i++){
+            JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
+            LinearLayout c=card(i%2==0?blueSoft():panel());
+            c.addView(kicker("КЕЙС "+(i+1),i%2==0?C_BLUE:C_SAGE));
+            c.addView(text(o.optString("title"),17.8f,ink(),true));
+            c.addView(text(shortText(o.optString("case"),150),13.1f,muted(),false));
+            c.setOnClickListener(v->renderMinorShirkDaily(idx,true));
+        }
+    }
+
+    private void renderMinorShirkDaily(int idx,boolean push){
+        JSONArray a=arr("minor_shirk_daily.json");if(a.length()==0)return;
+        if(idx<0||idx>=a.length())idx=0;
+        clear("minorShirkDaily",String.valueOf(idx),push);currentSection="minorShirk";appTop();
+        final int currentIdx=idx;
+        JSONObject o=a.optJSONObject(idx);if(o==null)return;
+        markMinorShirkSeen("minor_shirk_daily_seen",idx);
+
+        header(o.optString("title"),"Повседневная ситуация · "+(idx+1)+" из "+a.length());
+        sectionCard("Ситуация",o.optString("case"),panel(),C_BLUE);
+
+        JSONArray levels=o.optJSONArray("levels");
+        if(levels!=null&&levels.length()>0){
+            LinearLayout lc=card(blueSoft());lc.addView(kicker("ГРАНИЦЫ СИТУАЦИИ",C_BLUE));
+            for(int i=0;i<levels.length();i++){
+                JSONArray row=levels.optJSONArray(i);if(row==null)continue;
+                lc.addView(text((i+1)+". "+row.optString(0),14.2f,ink(),true));
+                TextView d=text(row.optString(1),13.2f,muted(),false);
+                d.setPadding(0,0,0,dp(6));lc.addView(d);
+            }
+        }
+
+        sectionCard("Итог",o.optString("verdict"),sageSoft(),C_SAGE);
+        sectionCard("Что происходит в сердце",o.optString("inner"),panel(),C_BLUE);
+        sectionCard("Где элемент малого ширка",o.optString("element"),sandSoft(),Color.rgb(145,104,42));
+        sectionCard("Кому или чему сердце отдало лишнюю долю",o.optString("partner"),lavSoft(),Color.rgb(112,96,134));
+        sectionCard("Где опасность",o.optString("danger"),dark?Color.rgb(64,42,41):C_BAD_BG,C_BAD);
+        sectionCard("Тонкая граница",o.optString("boundary"),blueSoft(),C_BLUE);
+        sectionCard("Правильное состояние сердца",o.optString("correct"),sageSoft(),C_SAGE);
+
+        String source=o.optString("source");
+        if(!source.isEmpty())sectionCard("Источник и основание",source,panel(),C_BLUE);
+
+        LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);
+        Button prev=outline("← Предыдущий");prev.setEnabled(idx>0);prev.setAlpha(idx>0?1f:.45f);
+        if(idx>0){final int p=idx-1;prev.setOnClickListener(v->renderMinorShirkDaily(p,true));}
+        Button next=action(idx==a.length()-1?"К списку":"Следующий →",C_BLUE);
+        next.setOnClickListener(v->{if(currentIdx+1<a.length())renderMinorShirkDaily(currentIdx+1,true);else renderMinorShirkDailyList(true);});
+        nav.addView(prev,new LinearLayout.LayoutParams(0,dp(52),1));
+        LinearLayout.LayoutParams nlp=new LinearLayout.LayoutParams(0,dp(52),1);nlp.setMargins(dp(7),0,0,0);nav.addView(next,nlp);
+        page.addView(nav);
+    }
+
+    private int nextMinorShirkQuizIndex(){
+        JSONArray a=arr("minor_shirk_quiz.json");
+        Set<String> answered=prefs.getStringSet("minor_shirk_quiz_answered",new HashSet<>());
+        for(int i=0;i<a.length();i++)if(!answered.contains(String.valueOf(i)))return i;
+        return -1;
+    }
+
+    private void continueMinorShirkQuiz(){
+        int next=nextMinorShirkQuizIndex();
+        if(next<0)renderMinorShirkQuizResult(true);else renderMinorShirkQuiz(next,true);
+    }
+
+    private void saveMinorShirkQuizAnswer(int idx,boolean ok){
+        HashSet<String> answered=new HashSet<>(prefs.getStringSet("minor_shirk_quiz_answered",new HashSet<>()));
+        HashSet<String> correct=new HashSet<>(prefs.getStringSet("minor_shirk_quiz_correct",new HashSet<>()));
+        String id=String.valueOf(idx);
+        answered.add(id);if(ok)correct.add(id);else correct.remove(id);
+        prefs.edit().putStringSet("minor_shirk_quiz_answered",answered).putStringSet("minor_shirk_quiz_correct",correct).apply();
+    }
+
+    private void renderMinorShirkQuiz(int idx,boolean push){
+        JSONArray a=arr("minor_shirk_quiz.json");if(a.length()==0)return;
+        if(idx<0||idx>=a.length())idx=0;
+        clear("minorShirkQuiz",String.valueOf(idx),push);currentSection="minorShirk";appTop();
+        final int currentIdx=idx;
+        JSONObject q=a.optJSONObject(idx);if(q==null)return;
+
+        header("Викторина · Малый ширк","Вопрос "+(idx+1)+" из "+a.length()+" · варианты намеренно близкие.");
+        LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,dp(7));pp.setMargins(0,0,0,dp(8));
+        page.addView(progressBar((idx+1)*100/a.length(),C_SAGE),pp);
+
+        LinearLayout qc=card(panel());
+        qc.addView(text(q.optString("q"),19.2f,ink(),true));
+        JSONArray opts=q.optJSONArray("o");
+        int correct=q.optInt("c",-1);
+        ArrayList<ChoiceView> choices=new ArrayList<>();
+        final boolean[] locked={false};
+
+        for(int i=0;i<(opts==null?0:opts.length());i++){
+            ChoiceView cv=choice(i,opts.optString(i),false);
+            choices.add(cv);final int selected=i;
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(5),0,dp(5));qc.addView(cv.root,lp);
+            cv.root.setOnClickListener(v->{
+                if(locked[0])return;locked[0]=true;
+                boolean ok=selected==correct;saveMinorShirkQuizAnswer(currentIdx,ok);
+                for(ChoiceView x:choices){
+                    renderChoice(x,x.index==selected,x.index==correct,x.index==selected&&!ok);
+                    x.root.setOnClickListener(null);
+                }
+                LinearLayout result=card(ok?(dark?Color.rgb(36,60,48):C_GOOD_BG):(dark?Color.rgb(64,42,41):C_BAD_BG));
+                result.addView(text(ok?"✓ Верно":"✕ Нужно уточнить",18,ok?C_GOOD:C_BAD,true));
+                result.addView(text(q.optString("e"),14.2f,ink(),false));
+                Button next=action(currentIdx==a.length()-1?"Результат":"Следующий вопрос",C_SAGE);
+                next.setOnClickListener(x->{if(currentIdx+1<a.length())renderMinorShirkQuiz(currentIdx+1,true);else renderMinorShirkQuizResult(true);});
+                result.addView(next);
+                result.post(()->scroll.smoothScrollTo(0,Math.max(0,result.getTop()-dp(12))));
+            });
+        }
+    }
+
+    private void renderMinorShirkQuizResult(boolean push){
+        clear("minorShirkQuizResult","",push);currentSection="minorShirk";appTop();
+        JSONArray a=arr("minor_shirk_quiz.json");
+        int answered=minorShirkSeenCount("minor_shirk_quiz_answered");
+        int correct=prefs.getStringSet("minor_shirk_quiz_correct",new HashSet<>()).size();
+        int pct=answered==0?0:Math.round(correct*100f/answered);
+        header("Результат · Малый ширк","Проверка точности понимания границ и сердечных механизмов.");
+        LinearLayout c=card(sageSoft());
+        c.addView(kicker("РЕЗУЛЬТАТ",C_SAGE));
+        c.addView(text(correct+" из "+answered+" верно",23,ink(),true));
+        c.addView(text(pct+"% точности · всего "+a.length()+" вопросов",13.5f,muted(),false));
+        c.addView(progressBar(pct,C_SAGE),new LinearLayout.LayoutParams(-1,dp(9)));
+        Button again=outline("Пройти заново");
+        again.setOnClickListener(v->{prefs.edit().remove("minor_shirk_quiz_answered").remove("minor_shirk_quiz_correct").apply();renderMinorShirkQuiz(0,true);});
+        c.addView(again,new LinearLayout.LayoutParams(-1,dp(52)));
+    }
+
     private void addHeartReminder(){
         final String[][] reminders={
             {
