@@ -111,7 +111,7 @@ object AzkarSpacing {
 
 object AzkarRadius {
     val brandIcon = 13.dp
-    val settingsIcon = 12.dp
+    val settingsIcon = 15.dp
     val sourceNote = 12.dp
     val periodTabs = 12.dp
     val periodButton = 9.dp
@@ -177,7 +177,7 @@ object AzkarDimensions {
     val shellMaxWidth = 760.dp
     val topBarMinHeight = 58.dp
     val brandIcon = 34.dp
-    val settingsIconButton = 42.dp
+    val settingsIconButton = 38.dp
     val compactIconButton = 44.dp
     val periodButtonMinHeight = 36.dp
     val progressTrackHeight = 5.dp
