@@ -434,7 +434,7 @@ fun AzkarReaderScreen(
                         state = uiState,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(bottom = 104.dp),
+                            .padding(bottom = 84.dp),
                         onPrevious = previous,
                         onNext = next,
                         shellScrollState = shellScrollState,
@@ -479,7 +479,7 @@ fun AzkarReaderScreen(
                         settings = settings,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(bottom = 104.dp),
+                            .padding(bottom = 84.dp),
                         onOpenSettings = resolvedUiController::openSettings,
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = toggleTheme,
