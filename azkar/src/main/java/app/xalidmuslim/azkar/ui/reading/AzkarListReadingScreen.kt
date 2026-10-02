@@ -67,8 +67,7 @@ internal fun AzkarListReadingScreen(
     AzkarSurface(modifier = modifier.fillMaxSize()) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val narrow = maxWidth <= AzkarDimensions.responsiveBreakpoint
-            LazyColumn(
-                state = listState,
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxSize()
@@ -78,25 +77,33 @@ internal fun AzkarListReadingScreen(
                             WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
                         ),
                     )
-                    .padding(horizontal = AzkarSpacing.shellHorizontal)
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-                    .padding(bottom = AzkarSpacing.shellBottomBase)
-                    .testTag(AzkarReadingTestTags.List),
+                    .padding(horizontal = AzkarSpacing.shellHorizontal),
             ) {
-                item(key = "reader-header") {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        AzkarHeader(
-                            onOpenSettings = onOpenSettings,
-                            isDarkTheme = isDarkTheme,
-                            onToggleTheme = onToggleTheme,
-                        )
-                        AzkarSourceNote(onOpenSourceInfo)
-                        AzkarPeriodTabs(period, onPeriodChange)
-                        AzkarProgressCard(summaryState, onResetProgress)
-                    }
-                }
+                // Keep the brand/header stationary in list mode too.
+                AzkarHeader(
+                    onOpenSettings = onOpenSettings,
+                    isDarkTheme = isDarkTheme,
+                    onToggleTheme = onToggleTheme,
+                )
 
-                stickyHeader(key = "reader-toolbar") {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                        .padding(bottom = AzkarSpacing.shellBottomBase)
+                        .testTag(AzkarReadingTestTags.List),
+                ) {
+                    item(key = "reader-header") {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            AzkarSourceNote(onOpenSourceInfo)
+                            AzkarPeriodTabs(period, onPeriodChange)
+                            AzkarProgressCard(summaryState, onResetProgress)
+                        }
+                    }
+
+                    stickyHeader(key = "reader-toolbar") {
                     AzkarReaderToolbar(
                         state = summaryState,
                         narrow = narrow,
@@ -151,8 +158,8 @@ internal fun AzkarListReadingScreen(
                     if (index != visibleEntries.lastIndex) {
                         Spacer(modifier = Modifier.height(AzkarSpacing.pagerTop))
                     }
+                    }
                 }
-
             }
         }
     }
