@@ -7,6 +7,7 @@ plugins {
 def azkarGoogleFontsCommit = '23e54b51ddffbc7713c583748e3bd86f62b1fa4a'
 def azkarGeneratedFontRes = layout.buildDirectory.dir('generated/azkar-fonts/res').get().asFile
 def azkarGeneratedIconRes = layout.buildDirectory.dir('generated/azkar-icon/res').get().asFile
+def heartAzkarGeneratedRes = layout.buildDirectory.dir('generated/heart-azkar/res').get().asFile
 def azkarIconChunks = (1..4).collect { index -> file("src/main/icon/azkar_launcher_exact.b64." + index) }
 def azkarFontSpecs = [
     [file: 'literata_variable.ttf', path: 'ofl/literata/Literata%5Bopsz%2Cwght%5D.ttf', gitBlobSha: '0a81b4984a4a4eb101e0ddc28babc85bb137efef', size: 955132L],
@@ -56,6 +57,21 @@ tasks.register('prepareAzkarIcon') {
     }
 }
 
+tasks.register('prepareHeartAzkarArt') {
+    def outputDir = new File(heartAzkarGeneratedRes, 'drawable-nodpi')
+    def source = file('src/main/icon/heart_prayer_azkar.b64')
+    def target = new File(outputDir, 'heart_prayer_azkar_exact.webp')
+    inputs.file(source)
+    outputs.file(target)
+    doLast {
+        outputDir.mkdirs()
+        String encoded = source.getText('UTF-8').replaceAll('\\s+','')
+        byte[] bytes = java.util.Base64.decoder.decode(encoded)
+        if (bytes.length < 1000) throw new GradleException('Invalid Heart Prayer Azkar asset')
+        target.bytes = bytes
+    }
+}
+
 tasks.register('prepareAzkarFonts') {
     def outputDir = new File(azkarGeneratedFontRes, 'font')
     outputs.dir(outputDir)
@@ -98,6 +114,7 @@ android {
         main {
             res.srcDir azkarGeneratedFontRes
             res.srcDir azkarGeneratedIconRes
+            res.srcDir heartAzkarGeneratedRes
         }
     }
 
@@ -115,6 +132,7 @@ android {
 tasks.named('preBuild').configure {
     dependsOn tasks.named('prepareAzkarFonts')
     dependsOn tasks.named('prepareAzkarIcon')
+    dependsOn tasks.named('prepareHeartAzkarArt')
 }
 
 dependencies {
