@@ -39,3 +39,8 @@ android {
         }
     }
 }
+
+
+dependencies {
+    implementation project(':azkar')
+}
