@@ -1566,6 +1566,240 @@ public class MainActivity extends Activity {
         c.addView(again,new LinearLayout.LayoutParams(-1,dp(52)));
     }
 
+
+    // --- Медицина Пророка ﷺ: native reader over the preserved complete text ---
+
+    private String assetText(String name){
+        try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){
+            byte[] buf=new byte[8192];
+            int n;
+            while((n=in.read(buf))>0)out.write(buf,0,n);
+            return out.toString("UTF-8");
+        }catch(Exception e){
+            return "";
+        }
+    }
+
+    private ArrayList<MedicineChapter> medicineChapters(){
+        if(medicineCache!=null)return medicineCache;
+        medicineCache=new ArrayList<>();
+
+        StringBuilder all=new StringBuilder();
+        for(int i=1;i<=6;i++){
+            String part=assetText("medicine_part_"+i+".txt");
+            if(!part.isEmpty()){
+                if(all.length()>0)all.append("\n");
+                all.append(part);
+            }
+        }
+
+        String currentTitle=null;
+        StringBuilder body=new StringBuilder();
+
+        for(String raw:all.toString().split("\n",-1)){
+            String line=raw.replace("\r","");
+            if(line.startsWith("# ")&&!line.startsWith("## ")){
+                if(currentTitle!=null){
+                    medicineCache.add(new MedicineChapter(
+                            currentTitle,
+                            cleanMedicineMarkdown(body.toString().trim())
+                    ));
+                }
+                currentTitle=line.substring(2).trim();
+                body.setLength(0);
+            }else if(line.startsWith("## ")||line.startsWith("### ")){
+                String h=line.replaceFirst("^#+\\s*","").trim();
+                if(!h.isEmpty())body.append("\n\n").append(h).append("\n");
+            }else{
+                body.append(line).append("\n");
+            }
+        }
+
+        if(currentTitle!=null){
+            medicineCache.add(new MedicineChapter(
+                    currentTitle,
+                    cleanMedicineMarkdown(body.toString().trim())
+            ));
+        }
+
+        return medicineCache;
+    }
+
+    private String cleanMedicineMarkdown(String raw){
+        String t=raw.replace("**","").replace("__","");
+        t=t.replaceAll("(?m)^>\\s?","");
+        t=t.replaceAll("(?m)^[-*]\\s+","• ");
+        t=t.replaceAll("\\[([^\\]]+)\\]\\([^\\)]+\\)","$1");
+        t=t.replaceAll("\\n{3,}","\n\n");
+        return t.trim();
+    }
+
+    private boolean isMedicineBookmarked(int idx){
+        return prefs.getStringSet("medicine_bookmarks",new HashSet<>()).contains(String.valueOf(idx));
+    }
+
+    private void toggleMedicineBookmark(int idx){
+        HashSet<String> set=new HashSet<>(prefs.getStringSet("medicine_bookmarks",new HashSet<>()));
+        String id=String.valueOf(idx);
+        if(!set.add(id))set.remove(id);
+        prefs.edit().putStringSet("medicine_bookmarks",set).apply();
+    }
+
+    private void renderMedicineHub(boolean push){
+        clearActiveFlow();clear("medicineHub","",push);currentSection="medicine";appTop();
+        ArrayList<MedicineChapter> chapters=medicineChapters();
+        header("Медицина Пророка ﷺ","Полный русский текст книги Ибн аль-Каййима в нативном читателе: содержание, поиск, прогресс и сохранение главы.");
+
+        int last=prefs.getInt("medicine_last_idx",-1);
+        if(last>=0&&last<chapters.size()){
+            MedicineChapter ch=chapters.get(last);
+            LinearLayout resume=card(sageSoft());
+            resume.addView(kicker("ПРОДОЛЖИТЬ ЧТЕНИЕ",C_SAGE));
+            resume.addView(text(ch.title,17.8f,ink(),true));
+            resume.addView(text("Глава "+(last+1)+" из "+chapters.size(),12.5f,muted(),false));
+            final int li=last;
+            resume.setOnClickListener(v->renderMedicineChapter(li,true));
+        }
+
+        LinearLayout searchCard=card(blueSoft());
+        searchCard.addView(kicker("ПОИСК ПО КНИГЕ",C_BLUE));
+        EditText input=new EditText(this);
+        input.setHint("Например: хиджама, мёд, тревога…");
+        input.setSingleLine(true);
+        input.setTextSize(sz(15.5f));
+        input.setTextColor(ink());
+        input.setHintTextColor(muted());
+        input.setPadding(dp(12),0,dp(12),0);
+        input.setBackground(surfaceBg(panel(),panel(),16,line()));
+        searchCard.addView(input,new LinearLayout.LayoutParams(-1,dp(52)));
+
+        Button sb=action("Найти",C_BLUE);
+        sb.setOnClickListener(v->{
+            String q=input.getText().toString().trim();
+            hideKeyboard(input);
+            if(q.length()<2)toast("Введите минимум 2 буквы");
+            else renderMedicineSearch(q,true);
+        });
+        searchCard.addView(sb);
+
+        TextView contents=kicker("СОДЕРЖАНИЕ · "+chapters.size()+" ГЛАВ",C_SAGE);
+        contents.setPadding(dp(4),dp(9),0,dp(4));
+        page.addView(contents);
+
+        for(int i=0;i<chapters.size();i++){
+            MedicineChapter ch=chapters.get(i);
+            final int idx=i;
+            LinearLayout row=newSurface(panel(),16,11,1);
+            row.addView(text((i+1)+". "+ch.title,14.2f,ink(),false));
+            if(isMedicineBookmarked(i))row.addView(text("★ Сохранено",10.8f,C_SAGE,true));
+            row.setOnClickListener(v->renderMedicineChapter(idx,true));
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(0,dp(3),0,dp(3));
+            page.addView(row,lp);
+        }
+    }
+
+    private void renderMedicineSearch(String query,boolean push){
+        clear("medicineSearch",query,push);currentSection="medicine";appTop();
+        header("Поиск · Медицина Пророка ﷺ","Результаты по полному тексту книги.");
+
+        EditText input=new EditText(this);
+        input.setText(query);
+        input.setSingleLine(true);
+        input.setTextSize(sz(15.5f));
+        input.setTextColor(ink());
+        input.setPadding(dp(12),0,dp(12),0);
+        input.setBackground(surfaceBg(panel(),panel(),16,line()));
+        page.addView(input,new LinearLayout.LayoutParams(-1,dp(52)));
+
+        Button search=action("Искать",C_BLUE);
+        page.addView(search,new LinearLayout.LayoutParams(-1,dp(48)));
+        search.setOnClickListener(v->{
+            String q=input.getText().toString().trim();
+            hideKeyboard(input);
+            if(q.length()>=2)renderMedicineSearch(q,true);
+        });
+
+        String q=query.toLowerCase(Locale.ROOT);
+        int shown=0;
+        ArrayList<MedicineChapter> chapters=medicineChapters();
+
+        for(int i=0;i<chapters.size();i++){
+            MedicineChapter ch=chapters.get(i);
+            String hay=(ch.title+" "+ch.body).toLowerCase(Locale.ROOT);
+            int pos=hay.indexOf(q);
+            if(pos<0)continue;
+
+            String body=ch.body;
+            String lowBody=body.toLowerCase(Locale.ROOT);
+            int bodyPos=lowBody.indexOf(q);
+            if(bodyPos<0)bodyPos=0;
+            int start=Math.max(0,bodyPos-90);
+            int finish=Math.min(body.length(),bodyPos+180);
+            String snippet=body.substring(start,finish).replace("\n"," ").trim();
+
+            final int idx=i;
+            LinearLayout item=card(shown%2==0?panel():blueSoft());
+            item.addView(text(ch.title,16.2f,ink(),true));
+            if(!snippet.isEmpty())item.addView(text("…"+snippet+"…",12.8f,muted(),false));
+            item.setOnClickListener(v->renderMedicineChapter(idx,true));
+            shown++;
+            if(shown>=40)break;
+        }
+
+        if(shown==0){
+            LinearLayout empty=card(sandSoft());
+            empty.addView(text("Ничего не найдено. Попробуйте более короткую форму слова.",14,muted(),false));
+        }
+    }
+
+    private void renderMedicineChapter(int idx,boolean push){
+        ArrayList<MedicineChapter> chapters=medicineChapters();
+        if(chapters.isEmpty())return;
+        if(idx<0||idx>=chapters.size())idx=0;
+
+        clear("medicineChapter",String.valueOf(idx),push);currentSection="medicine";appTop();
+        final int currentIdx=idx;
+        MedicineChapter ch=chapters.get(idx);
+        prefs.edit().putInt("medicine_last_idx",idx).apply();
+
+        header(ch.title,"Глава "+(idx+1)+" из "+chapters.size());
+
+        LinearLayout body=card(panel());
+        addParagraphs(body,ch.body,14.7f);
+
+        Button bookmark=outline(isMedicineBookmarked(idx)?"★ Сохранено":"☆ Сохранить главу");
+        bookmark.setOnClickListener(v->{
+            toggleMedicineBookmark(currentIdx);
+            bookmark.setText(isMedicineBookmarked(currentIdx)?"★ Сохранено":"☆ Сохранить главу");
+        });
+        body.addView(bookmark,new LinearLayout.LayoutParams(-1,dp(50)));
+        body.addView(contentActions("medicine:"+idx,ch.title+"\n\n"+ch.body,true));
+
+        LinearLayout nav=new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button prev=outline("← Предыдущая");
+        prev.setEnabled(idx>0);
+        prev.setAlpha(idx>0?1f:.45f);
+        if(idx>0){
+            final int p=idx-1;
+            prev.setOnClickListener(v->renderMedicineChapter(p,true));
+        }
+
+        Button next=action(idx==chapters.size()-1?"К содержанию":"Следующая →",C_SAGE);
+        next.setOnClickListener(v->{
+            if(currentIdx+1<chapters.size())renderMedicineChapter(currentIdx+1,true);
+            else renderMedicineHub(true);
+        });
+
+        nav.addView(prev,new LinearLayout.LayoutParams(0,dp(52),1));
+        LinearLayout.LayoutParams nlp=new LinearLayout.LayoutParams(0,dp(52),1);
+        nlp.setMargins(dp(7),0,0,0);
+        nav.addView(next,nlp);
+        page.addView(nav);
+    }
+
     private void addHeartReminder(){
         final String[][] reminders={
             {
