@@ -1061,14 +1061,16 @@ public class MainActivity extends Activity {
         final int heroH;
         final int resumeH;
         if(screenH<=700){
-            heroH=158; resumeH=88; homeTileHeightDp=145; homeTileIconDp=56;
-            homeTileTitleSp=13.1f; homeTileSubSp=9.8f;
+            heroH=180; resumeH=92; homeTileHeightDp=130; homeTileIconDp=52;
+            homeTileTitleSp=12.9f; homeTileSubSp=9.7f;
         }else if(screenH<=760){
-            heroH=172; resumeH=96; homeTileHeightDp=156; homeTileIconDp=60;
-            homeTileTitleSp=13.8f; homeTileSubSp=10.1f;
+            heroH=198; resumeH=100; homeTileHeightDp=138; homeTileIconDp=56;
+            homeTileTitleSp=13.5f; homeTileSubSp=10.0f;
         }else{
-            heroH=188; resumeH=100; homeTileHeightDp=168; homeTileIconDp=64;
-            homeTileTitleSp=14.4f; homeTileSubSp=10.6f;
+            // Same vertical composition as the approved mockup:
+            // more breathing room in hero/resume, less empty space inside the 4 tiles.
+            heroH=222; resumeH=108; homeTileHeightDp=145; homeTileIconDp=60;
+            homeTileTitleSp=14.1f; homeTileSubSp=10.4f;
         }
 
         int seen=seenMindCount();
@@ -1112,18 +1114,18 @@ public class MainActivity extends Activity {
         LinearLayout heroText=new LinearLayout(this);
         heroText.setOrientation(LinearLayout.VERTICAL);
         heroText.setGravity(Gravity.CENTER_VERTICAL);
-        heroText.setPadding(dp(16),dp(7),dp(5),dp(7));
+        heroText.setPadding(dp(16),dp(10),dp(5),dp(10));
 
         TextView heroTitle=homeText("Аль-Фатиха\nи сердце молитвы",20.2f,
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),true);
         heroTitle.setLineSpacing(0,1.00f);
-        heroTitle.setPadding(0,0,0,dp(4));
+        heroTitle.setPadding(0,0,0,dp(6));
         heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
 
         TextView heroSub=homeText("Понимай то, что читаешь,\nи укрепляй сердце в молитве.",
                 10.9f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
         heroSub.setLineSpacing(dp(1),1.04f);
-        heroSub.setPadding(0,0,0,dp(5));
+        heroSub.setPadding(0,0,0,dp(7));
         heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
 
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
@@ -1138,7 +1140,7 @@ public class MainActivity extends Activity {
         hero.addView(heroText,htlp);
 
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(heroH));
-        hp.setMargins(0,0,0,dp(6));
+        hp.setMargins(0,0,0,dp(7));
         page.addView(hero,hp);
 
         // Resume card.
@@ -1198,7 +1200,7 @@ public class MainActivity extends Activity {
         cont.setContentDescription(seen>0?"Продолжить обучение с места остановки":"Начать обучение с первой части");
         cont.setOnClickListener(v->continueMindCourse());
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,dp(resumeH));
-        cp.setMargins(0,0,0,dp(6));
+        cp.setMargins(0,0,0,dp(7));
         page.addView(cont,cp);
 
         // Four primary sections — same visual system and 3D icon language.
