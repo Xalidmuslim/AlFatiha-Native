@@ -53,6 +53,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.xalidmuslim.azkar.R
 import app.xalidmuslim.azkar.ui.designsystem.AzkarDimensions
 import app.xalidmuslim.azkar.ui.designsystem.AzkarMotion
@@ -572,6 +573,7 @@ fun AzkarReaderScreen(
             )
         }
     }
+}
 
 private fun navigateToHeartPrayer(context: android.content.Context, destination: String) {
     val intent = Intent()
@@ -667,4 +669,3 @@ private fun HeartPrayerNavItem(
     }
 }
 
-}
