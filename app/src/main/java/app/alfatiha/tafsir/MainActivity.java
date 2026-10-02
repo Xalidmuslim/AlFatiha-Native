@@ -88,6 +88,28 @@ public class MainActivity extends Activity {
 
         buildShell();
         renderHome(false);
+        handleHeartNavIntent(getIntent());
+    }
+
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleHeartNavIntent(intent);
+    }
+
+    private void handleHeartNavIntent(Intent intent){
+        if(intent==null)return;
+        String target=intent.getStringExtra("heart_nav");
+        if(target==null||target.isEmpty())return;
+        intent.removeExtra("heart_nav");
+        if("home".equals(target)){
+            renderHome(false);
+        }else if("progress".equals(target)){
+            renderProfile(false);
+        }else if("menu".equals(target)){
+            renderHome(false);
+            page.post(this::showSectionsDialog);
+        }
     }
 
     private int bg(){return dark?Color.rgb(23,28,26):C_BG;}
@@ -840,12 +862,12 @@ public class MainActivity extends Activity {
         mark.setScaleType(ImageView.ScaleType.CENTER_CROP);
         mark.setPadding(0,0,0,0);
         mark.setBackground(surfaceBg(
-                dark?Color.rgb(45,63,54):Color.rgb(244,239,229),
-                dark?Color.rgb(42,58,50):Color.rgb(250,247,239),
-                16,
-                dark?Color.rgb(67,88,77):Color.rgb(225,218,205)));
+                dark?Color.rgb(45,63,54):Color.rgb(247,242,232),
+                dark?Color.rgb(42,58,50):Color.rgb(252,249,242),
+                17,
+                0));
         mark.setClipToOutline(true);
-        top.addView(mark,new LinearLayout.LayoutParams(dp(50),dp(50)));
+        top.addView(mark,new LinearLayout.LayoutParams(dp(56),dp(56)));
 
         LinearLayout titles=new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
@@ -1003,11 +1025,11 @@ public class MainActivity extends Activity {
         heroRow.addView(heroText,new LinearLayout.LayoutParams(0,-2,1));
 
         ImageView arch=new ImageView(this);
-        arch.setImageResource(R.drawable.ic_hero_arch);
-        arch.setColorFilter(dark?blend(C_SAGE,Color.WHITE,.28f):C_SAGE);
+        arch.setImageResource(R.drawable.heart_prayer_icon);
         arch.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        LinearLayout.LayoutParams arlp=new LinearLayout.LayoutParams(dp(106),dp(152));
-        arlp.setMargins(dp(6),0,0,0);
+        arch.setAlpha(dark?.88f:.98f);
+        LinearLayout.LayoutParams arlp=new LinearLayout.LayoutParams(dp(126),dp(170));
+        arlp.setMargins(dp(4),0,dp(-4),0);
         heroRow.addView(arch,arlp);
 
         hero.addView(heroRow);
