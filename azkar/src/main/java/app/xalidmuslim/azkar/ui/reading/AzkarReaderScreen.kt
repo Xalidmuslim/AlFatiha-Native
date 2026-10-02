@@ -1,19 +1,31 @@
 package app.xalidmuslim.azkar.ui.reading
 
+import android.app.Activity
+import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -32,11 +44,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.xalidmuslim.azkar.R
 import app.xalidmuslim.azkar.ui.designsystem.AzkarDimensions
@@ -414,7 +429,9 @@ fun AzkarReaderScreen(
                 AzkarReaderViewMode.Cards -> {
                     AzkarGoldenReadingScreen(
                         state = uiState,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 88.dp),
                         onPrevious = previous,
                         onNext = next,
                         shellScrollState = shellScrollState,
@@ -457,7 +474,9 @@ fun AzkarReaderScreen(
                         activeIndex = activeIndex,
                         listState = listState,
                         settings = settings,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 88.dp),
                         onOpenSettings = resolvedUiController::openSettings,
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = toggleTheme,
@@ -486,6 +505,22 @@ fun AzkarReaderScreen(
                     )
                 }
             }
+
+            HeartPrayerBottomNav(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                onHome = {
+                    navigateToHeartPrayer(context, "home")
+                },
+                onContents = {
+                    resolvedUiController.openContents()
+                },
+                onProgress = {
+                    navigateToHeartPrayer(context, "progress")
+                },
+                onMenu = {
+                    navigateToHeartPrayer(context, "menu")
+                },
+            )
 
             AzkarReaderSheetHost(
                 activeSheet = readerUi.activeSheet,
@@ -537,4 +572,99 @@ fun AzkarReaderScreen(
             )
         }
     }
+
+private fun navigateToHeartPrayer(context: android.content.Context, destination: String) {
+    val intent = Intent()
+        .setClassName(context.packageName, "app.alfatiha.tafsir.MainActivity")
+        .putExtra("heart_nav", destination)
+        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    context.startActivity(intent)
+    (context as? Activity)?.finish()
+}
+
+@Composable
+private fun HeartPrayerBottomNav(
+    modifier: Modifier = Modifier,
+    onHome: () -> Unit,
+    onContents: () -> Unit,
+    onProgress: () -> Unit,
+    onMenu: () -> Unit,
+) {
+    val colors = AzkarThemeValues.colors
+    val shape = RoundedCornerShape(28.dp)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 8.dp)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+            .background(colors.card.copy(alpha = 0.98f), shape)
+            .border(1.dp, colors.border.copy(alpha = 0.72f), shape)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        HeartPrayerNavItem(
+            iconRes = R.drawable.ic_nav_home,
+            label = "Главная",
+            color = colors.primary,
+            onClick = onHome,
+            modifier = Modifier.weight(1f),
+        )
+        HeartPrayerNavItem(
+            iconRes = R.drawable.ic_nav_contents,
+            label = "Содержание",
+            color = colors.muted,
+            onClick = onContents,
+            modifier = Modifier.weight(1f),
+        )
+        HeartPrayerNavItem(
+            iconRes = R.drawable.ic_nav_progress,
+            label = "Прогресс",
+            color = colors.muted,
+            onClick = onProgress,
+            modifier = Modifier.weight(1f),
+        )
+        HeartPrayerNavItem(
+            iconRes = R.drawable.ic_nav_menu,
+            label = "Меню",
+            color = colors.muted,
+            onClick = onMenu,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun HeartPrayerNavItem(
+    iconRes: Int,
+    label: String,
+    color: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = label }
+            .padding(vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Image(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            colorFilter = ColorFilter.tint(color),
+        )
+        BasicText(
+            text = label,
+            style = AzkarThemeValues.typography.sourceNote.copy(
+                color = color,
+                fontSize = 11.sp,
+            ),
+        )
+    }
+}
+
 }
