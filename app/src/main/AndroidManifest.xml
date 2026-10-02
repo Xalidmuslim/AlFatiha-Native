@@ -2,8 +2,8 @@
     <application
         android:allowBackup="true"
         android:label="Сердце молитвы"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@drawable/heart_prayer_icon"
+        android:roundIcon="@drawable/heart_prayer_icon"
         android:theme="@style/AppTheme"
         android:supportsRtl="true">
         <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true">
