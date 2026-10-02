@@ -83,13 +83,13 @@ object AzkarColors {
     )
 
     val Light: AzkarColorScheme = scheme(
-        background = Color(0xFFF4F0E7),
-        foreground = Color(0xFF171C19),
-        card = Color(0xFFFBF8F1),
-        surface = Color(0xFFEEE8DC),
-        muted = Color(0xFF646A66),
-        border = Color(0xFFD8D0C1),
-        primary = Color(0xFF526B61),
+        background = Color(0xFFF3EEE4),
+        foreground = Color(0xFF1D2421),
+        card = Color(0xFFFBF7F0),
+        surface = Color(0xFFEAE3D8),
+        muted = Color(0xFF6E6A63),
+        border = Color(0xFFE6DDD0),
+        primary = Color(0xFF5E756A),
         accent = Color(0xFFE0E5E1),
         warning = Color(0xFF9D6A20),
         success = Color(0xFF60776C),
