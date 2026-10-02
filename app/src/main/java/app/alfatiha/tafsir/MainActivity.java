@@ -1399,6 +1399,10 @@ public class MainActivity extends Activity {
         try{
             Intent i=new Intent(this,app.xalidmuslim.azkar.MainActivity.class);
             startActivity(i);
+            overridePendingTransition(
+                    app.xalidmuslim.azkar.R.anim.azkar_enter,
+                    app.xalidmuslim.azkar.R.anim.azkar_exit
+            );
         }catch(Exception e){
             toast("Не удалось открыть раздел азкаров");
         }
