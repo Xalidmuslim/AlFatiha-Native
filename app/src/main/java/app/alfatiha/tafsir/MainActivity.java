@@ -166,7 +166,7 @@ public class MainActivity extends Activity {
         topHost=new LinearLayout(this);
         topHost.setOrientation(LinearLayout.VERTICAL);
         topHost.setBackgroundColor(bg());
-        topHost.setPadding(dp(18),dp(8),dp(18),dp(2));
+        topHost.setPadding(dp(8),dp(6),dp(8),dp(1));
         root.addView(topHost,new LinearLayout.LayoutParams(-1,-2));
 
         scroll=new ScrollView(this);
@@ -175,18 +175,18 @@ public class MainActivity extends Activity {
         scroll.setBackgroundColor(bg());
         page=new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(18),dp(4),dp(18),dp(28));
+        page.setPadding(dp(8),dp(4),dp(8),dp(24));
         scroll.addView(page,new ScrollView.LayoutParams(-1,-2));
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
 
         bottom=new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setGravity(Gravity.CENTER);
-        bottom.setPadding(dp(8),dp(7),dp(8),dp(7));
+        bottom.setPadding(dp(8),dp(6),dp(8),dp(6));
         bottom.setBackground(surfaceBg(dark?Color.rgb(31,37,34):Color.rgb(250,248,242),dark?Color.rgb(28,33,31):Color.rgb(246,243,235),28,line()));
         bottom.setElevation(dp(10));
-        LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(76));
-        blp.setMargins(dp(18),0,dp(18),dp(12));
+        LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(72));
+        blp.setMargins(dp(8),0,dp(8),dp(8));
         root.addView(bottom,blp);
         setContentView(root);
         if(Build.VERSION.SDK_INT>=20){
@@ -829,7 +829,7 @@ public class MainActivity extends Activity {
         current=new Screen(type,arg);
         if(topHost!=null)topHost.removeAllViews();
         page.removeAllViews();
-        page.setPadding(dp(18),dp(4),dp(18),dp(28));
+        page.setPadding(dp(8),dp(4),dp(8),dp(24));
         page.setBackgroundColor(bg());
         scroll.setVerticalScrollBarEnabled(true);
         scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
@@ -897,20 +897,20 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(39,46,42):Color.rgb(247,244,237),
                 15,line()));
         b.setElevation(dp(1));
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(42),dp(42));
-        lp.setMargins(dp(5),0,0,0);
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(38),dp(38));
+        lp.setMargins(dp(4),0,0,0);
         b.setLayoutParams(lp);
         return b;
     }
 
     private void appTop(){
-        LinearLayout top=homeSurface(dark?Color.rgb(36,43,39):Color.rgb(252,250,245),24,10,5);
+        LinearLayout top=homeSurface(dark?Color.rgb(36,43,39):Color.rgb(252,250,245),22,7,4);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
 
         // Fixed chrome height: reading font size must never expand this card.
-        LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,dp(80));
-        tlp.setMargins(0,0,0,dp(7));
+        LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,dp(72));
+        tlp.setMargins(0,0,0,dp(6));
         LinearLayout host=topHost!=null?topHost:page;
         if(topHost!=null)topHost.removeAllViews();
         host.addView(top,tlp);
@@ -925,22 +925,22 @@ public class MainActivity extends Activity {
                 17,
                 0));
         mark.setClipToOutline(true);
-        top.addView(mark,new LinearLayout.LayoutParams(dp(56),dp(56)));
+        top.addView(mark,new LinearLayout.LayoutParams(dp(50),dp(50)));
 
         LinearLayout titles=new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
-        titles.setPadding(dp(10),0,dp(8),0);
+        titles.setPadding(dp(7),0,dp(4),0);
 
-        TextView title=chromeText("Сердце молитвы",16.2f,ink(),true);
+        TextView title=chromeText("Сердце молитвы",16.5f,ink(),true);
         title.setSingleLine(true);
         title.setGravity(Gravity.CENTER_VERTICAL);
         title.setTypeface(Typeface.create("serif",Typeface.BOLD));
         title.setTextScaleX(.96f);
-        titles.addView(title,new LinearLayout.LayoutParams(-1,dp(52)));
+        titles.addView(title,new LinearLayout.LayoutParams(-1,dp(48)));
 
-        top.addView(titles,new LinearLayout.LayoutParams(0,dp(52),1));
-        top.addView(new Space(this),new LinearLayout.LayoutParams(dp(6),1));
+        top.addView(titles,new LinearLayout.LayoutParams(0,dp(48),1));
+        top.addView(new Space(this),new LinearLayout.LayoutParams(dp(4),1));
 
         Button search=chromeMiniButton("⌕");
         search.setContentDescription("Поиск по приложению");
@@ -1054,7 +1054,7 @@ public class MainActivity extends Activity {
 
         // Home is intentionally a one-screen dashboard. Scale only its chrome
         // to the available phone height; course/reader typography is untouched.
-        page.setPadding(dp(18),dp(1),dp(18),dp(5));
+        page.setPadding(dp(8),dp(1),dp(8),dp(4));
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         int screenH=getResources().getConfiguration().screenHeightDp;
@@ -1069,8 +1069,8 @@ public class MainActivity extends Activity {
         }else{
             // Same vertical composition as the approved mockup:
             // more breathing room in hero/resume, less empty space inside the 4 tiles.
-            heroH=222; resumeH=108; homeTileHeightDp=145; homeTileIconDp=60;
-            homeTileTitleSp=14.1f; homeTileSubSp=10.4f;
+            heroH=208; resumeH=102; homeTileHeightDp=138; homeTileIconDp=58;
+            homeTileTitleSp=13.8f; homeTileSubSp=10.2f;
         }
 
         int seen=seenMindCount();
@@ -1155,7 +1155,7 @@ public class MainActivity extends Activity {
         contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         contIcon.setPadding(0,0,0,0);
         contIcon.setBackgroundColor(Color.TRANSPARENT);
-        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(46),dp(46)));
+        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(48),dp(48)));
 
         LinearLayout contText=new LinearLayout(this);
         contText.setOrientation(LinearLayout.VERTICAL);
@@ -1189,7 +1189,7 @@ public class MainActivity extends Activity {
         progressRow.setOrientation(LinearLayout.HORIZONTAL);
         progressRow.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams pbar=new LinearLayout.LayoutParams(0,dp(6),1);
-        pbar.setMargins(dp(55),dp(2),dp(6),0);
+        pbar.setMargins(dp(57),dp(2),dp(6),0);
         progressRow.addView(progressBar(pct,C_SAGE),pbar);
         TextView pctText=homeText(pct+"%",10.1f,muted(),false);
         pctText.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
@@ -1273,7 +1273,7 @@ public class MainActivity extends Activity {
                 19,dark?line():Color.rgb(236,230,220)));
         arrow.setElevation(0f);
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
-        top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(32)));
+        top.addView(arrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
         c.addView(top);
 
         TextView t=homeText(title,homeTileTitleSp,ink(),true);
