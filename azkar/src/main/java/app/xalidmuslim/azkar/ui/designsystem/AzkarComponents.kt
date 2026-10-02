@@ -96,9 +96,11 @@ fun AzkarCardSurface(
     Box(
         modifier = modifier
             .shadow(
-                elevation = 2.dp,
+                elevation = 1.dp,
                 shape = shape,
                 clip = false,
+                ambientColor = colors.border.copy(alpha = 0.18f),
+                spotColor = colors.border.copy(alpha = 0.18f),
             )
             .clip(shape)
             .background(cardBackground)
