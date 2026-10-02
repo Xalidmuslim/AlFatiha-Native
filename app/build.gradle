@@ -6,6 +6,31 @@ def uploadKeyAlias = System.getenv('ANDROID_UPLOAD_KEY_ALIAS')
 def uploadKeyPassword = System.getenv('ANDROID_UPLOAD_KEY_PASSWORD')
 def hasUploadSigning = uploadStoreFile && uploadStorePassword && uploadKeyAlias && uploadKeyPassword
 
+def heartGeneratedRes = layout.buildDirectory.dir('generated/heart-design/res').get().asFile
+def heartDesignAssets = [
+    [src: file('src/main/icon/heart_prayer_hero.b64'), out: 'heart_prayer_hero_exact.webp'],
+    [src: file('src/main/icon/heart_prayer_logo.b64'), out: 'heart_prayer_logo_exact.webp'],
+    [src: file('src/main/icon/icon_quran.b64'), out: 'icon_quran_3d.webp'],
+    [src: file('src/main/icon/icon_mosque.b64'), out: 'icon_mosque_3d.webp'],
+    [src: file('src/main/icon/icon_quiz.b64'), out: 'icon_quiz_3d.webp'],
+    [src: file('src/main/icon/icon_azkar.b64'), out: 'icon_azkar_3d.webp'],
+]
+
+tasks.register('prepareHeartDesignAssets') {
+    def outputDir = new File(heartGeneratedRes, 'drawable-nodpi')
+    inputs.files(heartDesignAssets.collect { it.src })
+    outputs.dir(outputDir)
+    doLast {
+        outputDir.mkdirs()
+        heartDesignAssets.each { spec ->
+            String encoded = spec.src.getText('UTF-8').replaceAll('\\s+','')
+            byte[] bytes = java.util.Base64.decoder.decode(encoded)
+            if (bytes.length < 1000) throw new GradleException("Invalid Heart Prayer asset: " + spec.src)
+            new File(outputDir, spec.out).bytes = bytes
+        }
+    }
+}
+
 android {
     namespace 'app.alfatiha.tafsir'
     compileSdk 36
@@ -35,6 +60,12 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    sourceSets {
+        main {
+            res.srcDir heartGeneratedRes
+        }
+    }
+
     buildTypes {
         release {
             if (hasUploadSigning) {
@@ -50,4 +81,9 @@ android {
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     implementation project(':azkar')
+}
+
+
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('prepareHeartDesignAssets')
 }
