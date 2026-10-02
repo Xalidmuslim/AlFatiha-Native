@@ -254,6 +254,16 @@ public class MainActivity extends Activity {
         return c;
     }
 
+    private LinearLayout homeSurface(int color,float radius,int padding,float elevation){
+        LinearLayout c=new LinearLayout(this);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
+        int end=dark?color:blend(color,Color.WHITE,0.10f);
+        c.setBackground(surfaceBg(color,end,radius,0));
+        c.setElevation(dp(elevation));
+        return c;
+    }
+
     private LinearLayout card(int color){
         LinearLayout c=newSurface(color,24,18,4);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
@@ -848,7 +858,7 @@ public class MainActivity extends Activity {
     }
 
     private void appTop(){
-        LinearLayout top=newSurface(dark?Color.rgb(36,43,39):Color.rgb(252,250,245),24,10,5);
+        LinearLayout top=homeSurface(dark?Color.rgb(36,43,39):Color.rgb(252,250,245),24,10,5);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
 
@@ -1001,7 +1011,7 @@ public class MainActivity extends Activity {
         hero.setBackground(surfaceBg(
                 dark?Color.rgb(39,45,41):Color.rgb(249,245,236),
                 dark?Color.rgb(35,41,38):Color.rgb(254,251,244),
-                25,line()));
+                25,0));
         hero.setElevation(dp(4));
         hero.setClipToOutline(true);
         hero.setOnClickListener(v->continueMindCourse());
@@ -1022,7 +1032,7 @@ public class MainActivity extends Activity {
                         Color.TRANSPARENT
                 });
         wash.setBackground(washBg);
-        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams((int)(dp(210)), -1);
+        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(242), -1);
         wlp.gravity=Gravity.LEFT;
         hero.addView(wash,wlp);
 
@@ -1031,7 +1041,7 @@ public class MainActivity extends Activity {
         heroText.setGravity(Gravity.CENTER_VERTICAL);
         heroText.setPadding(dp(18),dp(14),dp(5),dp(14));
 
-        TextView heroTitle=text("Аль-Фатиха и\nсердце молитвы",25.0f,
+        TextView heroTitle=text("Аль-Фатиха\nи сердце молитвы",24.0f,
                 dark?Color.rgb(239,241,238):Color.rgb(32,48,42),true);
         heroTitle.setTypeface(Typeface.create("serif",Typeface.BOLD));
         heroTitle.setLineSpacing(0,1.00f);
@@ -1048,20 +1058,20 @@ public class MainActivity extends Activity {
         heroAction.setTextSize(sz(14.5f));
         heroAction.setTypeface(Typeface.create("serif",Typeface.BOLD));
         heroAction.setOnClickListener(v->continueMindCourse());
-        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(158),dp(48));
+        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(184),dp(48));
         hap.setMargins(0,dp(3),0,0);
         heroText.addView(heroAction,hap);
 
-        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(218),-1);
+        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(242),-1);
         htlp.gravity=Gravity.LEFT|Gravity.CENTER_VERTICAL;
         hero.addView(heroText,htlp);
 
-        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(214));
+        LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(220));
         hp.setMargins(0,dp(2),0,dp(8));
         page.addView(hero,hp);
 
         // Resume card.
-        LinearLayout cont=newSurface(
+        LinearLayout cont=homeSurface(
                 dark?Color.rgb(40,48,44):Color.rgb(253,250,244),
                 22,14,3);
         LinearLayout contTop=new LinearLayout(this);
@@ -1070,11 +1080,12 @@ public class MainActivity extends Activity {
 
         ImageView contIcon=new ImageView(this);
         contIcon.setImageResource(R.drawable.icon_quran_3d);
-        contIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        contIcon.setPadding(dp(2),dp(2),dp(2),dp(2));
         contIcon.setBackground(solidBg(
-                dark?Color.rgb(45,57,50):Color.rgb(246,240,229),16,0));
+                dark?Color.rgb(45,57,50):Color.rgb(248,243,233),17,0));
         contIcon.setClipToOutline(true);
-        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(58),dp(58)));
+        contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(60),dp(60)));
 
         LinearLayout contText=new LinearLayout(this);
         contText.setOrientation(LinearLayout.VERTICAL);
@@ -1168,8 +1179,8 @@ public class MainActivity extends Activity {
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=dark?tone:blend(tone,Color.WHITE,.62f);
-        LinearLayout c=newSurface(cardTone,21,13,3);
-        c.setMinimumHeight(dp(148));
+        LinearLayout c=homeSurface(cardTone,22,13,3);
+        c.setMinimumHeight(dp(150));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -1177,24 +1188,25 @@ public class MainActivity extends Activity {
 
         ImageView badge=new ImageView(this);
         badge.setImageResource(iconRes);
-        badge.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        badge.setPadding(dp(1),dp(1),dp(1),dp(1));
         badge.setBackground(solidBg(
-                dark?Color.rgb(45,52,48):Color.rgb(248,243,233),17,0));
+                dark?Color.rgb(45,52,48):Color.rgb(248,243,233),18,0));
         badge.setClipToOutline(true);
-        top.addView(badge,new LinearLayout.LayoutParams(dp(62),dp(62)));
+        top.addView(badge,new LinearLayout.LayoutParams(dp(64),dp(64)));
 
         TextView arrow=text("›",23,ink(),false);
         arrow.setGravity(Gravity.CENTER);
         arrow.setBackground(surfaceBg(
-                dark?Color.rgb(45,52,48):Color.rgb(251,248,242),
-                dark?Color.rgb(41,48,44):Color.rgb(247,244,237),
-                19,line()));
+                dark?Color.rgb(45,52,48):Color.rgb(252,249,243),
+                dark?Color.rgb(41,48,44):Color.rgb(248,245,239),
+                19,dark?line():Color.rgb(236,230,220)));
         arrow.setElevation(dp(1));
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
         top.addView(arrow,new LinearLayout.LayoutParams(dp(38),dp(38)));
         c.addView(top);
 
-        TextView t=text(title,16.6f,ink(),true);
+        TextView t=text(title,16.4f,ink(),true);
         t.setTypeface(Typeface.create("serif",Typeface.BOLD));
         t.setLineSpacing(0,1.00f);
         t.setPadding(0,dp(8),0,dp(1));
