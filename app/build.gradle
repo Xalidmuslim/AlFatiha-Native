@@ -19,6 +19,11 @@ def heartDesignAssets = [
     [src: file('src/main/icon/icon_mosque.b64'), out: 'icon_mosque_3d.webp'],
     [src: file('src/main/icon/icon_quiz.b64'), out: 'icon_quiz_3d.webp'],
     [src: file('src/main/icon/icon_azkar.b64'), out: 'icon_azkar_3d.webp'],
+    [src: file('src/main/icon/mockup_resume_book.b64'), out: 'home_resume_mockup.webp'],
+    [src: file('src/main/icon/mockup_book.b64'), out: 'home_book_mockup.webp'],
+    [src: file('src/main/icon/mockup_mihrab.b64'), out: 'home_mihrab_mockup.webp'],
+    [src: file('src/main/icon/mockup_quiz.b64'), out: 'home_quiz_mockup.webp'],
+    [src: file('src/main/icon/mockup_azkar.b64'), out: 'home_azkar_mockup.webp'],
 ]
 
 tasks.register('prepareHeartDesignAssets') {
@@ -50,8 +55,8 @@ android {
         applicationId 'app.alfatiha.tafsir'
         minSdk 24
         targetSdk 36
-        versionCode 8
-        versionName '1.2.4'
+        versionCode 9
+        versionName '1.2.5'
     }
 
     signingConfigs {
