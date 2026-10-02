@@ -1252,6 +1252,12 @@ public class MainActivity extends Activity {
         LinearLayout c=homeSurface(cardTone,20,9,1);
         c.setMinimumHeight(dp(homeTileHeightDp));
 
+        // Keep the icon + text composition vertically balanced inside the fixed
+        // dashboard tile instead of pinning the whole group to the top.
+        // This preserves the approved tile/icon/font sizes while distributing
+        // the free space above and below the content more evenly.
+        c.setGravity(Gravity.CENTER_VERTICAL);
+
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
