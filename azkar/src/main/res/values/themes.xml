@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.Azkar" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">@color/azkar_window_background</item>
+        <item name="android:statusBarColor">@color/azkar_window_background</item>
+        <item name="android:navigationBarColor">@color/azkar_window_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorAccent">@color/azkar_launcher_background</item>
+    </style>
+</resources>
