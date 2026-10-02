@@ -46,6 +46,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -126,6 +127,15 @@ internal fun AzkarReaderSheetHost(
     onViewModeChange: (AzkarReaderViewMode) -> Unit,
     onUpdateSettings: ((AzkarReaderSettings) -> AzkarReaderSettings) -> Unit,
 ) {
+    var lastVisibleSheet by remember { mutableStateOf(AzkarReaderSheet.None) }
+    LaunchedEffect(activeSheet) {
+        if (activeSheet != AzkarReaderSheet.None) {
+            lastVisibleSheet = activeSheet
+        }
+    }
+    val renderedSheet = if (activeSheet != AzkarReaderSheet.None) activeSheet else lastVisibleSheet
+
+
     AnimatedVisibility(
         visible = activeSheet != AzkarReaderSheet.None,
         enter = fadeIn(tween(AzkarMotion.sheetDurationMillis)) +
@@ -136,16 +146,16 @@ internal fun AzkarReaderSheetHost(
                 ),
                 initialOffsetY = { (it * 0.02f).roundToInt().coerceAtLeast(1) },
             ),
-        exit = fadeOut(tween(AzkarMotion.sheetDurationMillis)) +
+        exit = fadeOut(tween(AzkarMotion.sheetExitDurationMillis)) +
             slideOutVertically(
                 animationSpec = tween(
-                    durationMillis = AzkarMotion.sheetDurationMillis,
+                    durationMillis = AzkarMotion.sheetExitDurationMillis,
                     easing = AzkarMotion.sheetEasing,
                 ),
                 targetOffsetY = { (it * 0.02f).roundToInt().coerceAtLeast(1) },
             ),
     ) {
-        when (activeSheet) {
+        when (renderedSheet) {
             AzkarReaderSheet.Settings -> AzkarSettingsSheet(
                 settings = settings,
                 viewMode = viewMode,
