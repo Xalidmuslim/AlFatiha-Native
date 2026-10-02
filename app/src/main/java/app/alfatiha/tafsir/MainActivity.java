@@ -1049,8 +1049,8 @@ public class MainActivity extends Activity {
                 Color.TRANSPARENT,
                 25,
                 dark?Color.rgb(58,67,62):Color.rgb(236,230,220)));
-        hero.setContentDescription("Открыть курс Аль-Фатихи");
-        hero.setOnClickListener(v->renderMindHub(true));
+        hero.setContentDescription("Открыть Аль-Фатиху и Тайны молитвы");
+        hero.setOnClickListener(v->renderHeartCourseHub(true));
 
         ImageView heroArt=new ImageView(this);
         heroArt.setImageResource(R.drawable.heart_prayer_hero_exact);
@@ -1090,7 +1090,7 @@ public class MainActivity extends Activity {
         heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
 
         Button heroAction=homeAction("Открыть курс",C_SAGE);
-        heroAction.setOnClickListener(v->renderMindHub(true));
+        heroAction.setOnClickListener(v->renderHeartCourseHub(true));
         LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(174),dp(48));
         hap.setMargins(0,dp(3),0,0);
         heroText.addView(heroAction,hap);
@@ -1111,12 +1111,10 @@ public class MainActivity extends Activity {
         contTop.setGravity(Gravity.CENTER_VERTICAL);
 
         ImageView contIcon=new ImageView(this);
-        contIcon.setImageResource(R.drawable.ic_home_book_colored);
+        contIcon.setImageResource(R.drawable.home_resume_mockup);
         contIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        contIcon.setPadding(dp(5),dp(5),dp(5),dp(5));
-        contIcon.setBackground(solidBg(
-                dark?Color.rgb(45,57,50):Color.rgb(248,243,233),17,0));
-        contIcon.setClipToOutline(true);
+        contIcon.setPadding(0,0,0,0);
+        contIcon.setBackgroundColor(Color.TRANSPARENT);
         contTop.addView(contIcon,new LinearLayout.LayoutParams(dp(60),dp(60)));
 
         LinearLayout contText=new LinearLayout(this);
@@ -1169,12 +1167,12 @@ public class MainActivity extends Activity {
         LinearLayout row1=new LinearLayout(this);
         row1.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout f1=homeFeature(
-                R.drawable.ic_home_book_colored,
+                R.drawable.home_book_mockup,
                 "Осознанное\nчтение Аль-Фатихи",
                 "Слова и глубокий смысл",
                 dashboardCard,()->renderMindHub(true));
         LinearLayout f2=homeFeature(
-                R.drawable.ic_home_mihrab_colored,
+                R.drawable.home_mihrab_mockup,
                 "Тайны молитвы",
                 "Действия, слова\nи состояние сердца",
                 dashboardCard,()->renderPrayerSecretsHub(true));
@@ -1188,12 +1186,12 @@ public class MainActivity extends Activity {
         LinearLayout row2=new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout f3=homeFeature(
-                R.drawable.ic_home_quiz_colored,
+                R.drawable.home_quiz_mockup,
                 "Викторины",
                 "Проверка понимания",
                 dashboardCard,()->renderQuizCenter(true));
         LinearLayout f4=homeFeature(
-                R.drawable.ic_home_azkar_colored,
+                R.drawable.home_azkar_mockup,
                 "Азкары",
                 "Утро и вечер",
                 dashboardCard,this::openAzkar);
@@ -1221,12 +1219,10 @@ public class MainActivity extends Activity {
         ImageView badge=new ImageView(this);
         badge.setImageResource(iconRes);
         badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        badge.setPadding(dp(5),dp(5),dp(5),dp(5));
-        badge.setBackground(solidBg(
-                dark?Color.rgb(45,52,48):Color.rgb(248,243,233),18,0));
-        badge.setClipToOutline(true);
-        int iconWidth=iconRes==R.drawable.ic_home_azkar_colored?dp(82):dp(68);
-        int iconHeight=dp(68);
+        badge.setPadding(0,0,0,0);
+        badge.setBackgroundColor(Color.TRANSPARENT);
+        int iconWidth=iconRes==R.drawable.home_azkar_mockup?dp(86):dp(72);
+        int iconHeight=dp(72);
         top.addView(badge,new LinearLayout.LayoutParams(iconWidth,iconHeight));
 
         TextView arrow=homeText("›",23,ink(),false);
@@ -1305,6 +1301,34 @@ public class MainActivity extends Activity {
         TextView source=text(r[0],12.3f,Color.rgb(145,104,42),true);
         source.setGravity(Gravity.END);
         box.addView(source);
+    }
+
+    private void renderHeartCourseHub(boolean push){
+        clearActiveFlow();
+        clear("heartCourseHub","",push);
+        currentSection="home";
+        appTop();
+
+        header(
+                "Аль-Фатиха и сердце молитвы",
+                "Два связанных направления: понимание Аль-Фатихи и осознанность в самой молитве."
+        );
+
+        LinearLayout fatiha=card(sageSoft());
+        fatiha.addView(kicker("АЛЬ-ФАТИХА",C_SAGE));
+        fatiha.addView(text("Осознанное чтение Аль-Фатихи",20.5f,ink(),true));
+        fatiha.addView(text("Слова и глубокий смысл",13.5f,muted(),false));
+        Button fatihaOpen=action("Открыть раздел",C_SAGE);
+        fatihaOpen.setOnClickListener(v->renderMindHub(true));
+        fatiha.addView(fatihaOpen);
+
+        LinearLayout prayer=card(sandSoft());
+        prayer.addView(kicker("МОЛИТВА",Color.rgb(145,104,42)));
+        prayer.addView(text("Тайны молитвы",20.5f,ink(),true));
+        prayer.addView(text("Действия, слова и состояние сердца",13.5f,muted(),false));
+        Button prayerOpen=action("Открыть раздел",Color.rgb(154,104,36));
+        prayerOpen.setOnClickListener(v->renderPrayerSecretsHub(true));
+        prayer.addView(prayerOpen);
     }
 
     private void openAzkar(){
@@ -4483,7 +4507,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
