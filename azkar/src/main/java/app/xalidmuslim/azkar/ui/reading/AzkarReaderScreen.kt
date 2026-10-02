@@ -582,7 +582,11 @@ private fun navigateToHeartPrayer(context: android.content.Context, destination:
         .putExtra("heart_nav", destination)
         .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     context.startActivity(intent)
-    (context as? Activity)?.finish()
+    (context as? Activity)?.let { activity ->
+        activity.finish()
+        @Suppress("DEPRECATION")
+        activity.overridePendingTransition(R.anim.azkar_enter, R.anim.azkar_exit)
+    }
 }
 
 @Composable
