@@ -1847,7 +1847,6 @@ public class MainActivity extends Activity {
         badge.setImageResource(iconRes);
         badge.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         badge.setPadding(dp(10),dp(10),dp(10),dp(10));
-        badge.setColorFilter(minorShirkAccent());
         badge.setBackground(surfaceBg(
                 dark?Color.rgb(49,57,53):Color.rgb(241,242,237),
                 dark?Color.rgb(46,53,50):Color.rgb(245,244,239),
@@ -1927,7 +1926,7 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(1,0,1)
         );
 
-        TextView f=text(footer+"  ›",11.3f,C_SAGE,false);
+        TextView f=text(footer+"  ›",11.3f,minorShirkAccent(),false);
         f.setPadding(0,0,0,0);
         c.addView(f,new LinearLayout.LayoutParams(-1,-2));
 
