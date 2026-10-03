@@ -933,8 +933,12 @@ public class MainActivity extends Activity {
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
 
-        // Fixed chrome height: reading font size must never expand this card.
-        LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,dp(72));
+        final boolean homeTop="home".equals(current.type);
+
+        // Home gets a little more vertical room for the motto; all other screens
+        // keep the compact approved chrome height.
+        LinearLayout.LayoutParams tlp=
+                new LinearLayout.LayoutParams(-1,dp(homeTop?84:72));
         tlp.setMargins(0,0,0,dp(6));
         LinearLayout host=topHost!=null?topHost:page;
         if(topHost!=null)topHost.removeAllViews();
@@ -956,15 +960,38 @@ public class MainActivity extends Activity {
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(7),0,dp(4),0);
+        if(homeTop)titles.setTranslationY(-dp(2));
 
         TextView title=chromeText("Путь сердца",16.5f,ink(),true);
         title.setSingleLine(true);
-        title.setGravity(Gravity.CENTER_VERTICAL);
+        title.setGravity(homeTop?Gravity.BOTTOM:Gravity.CENTER_VERTICAL);
         title.setTypeface(Typeface.create("serif",Typeface.BOLD));
         title.setTextScaleX(.96f);
-        titles.addView(title,new LinearLayout.LayoutParams(-1,dp(48)));
 
-        top.addView(titles,new LinearLayout.LayoutParams(0,dp(48),1));
+        if(homeTop){
+            titles.addView(title,new LinearLayout.LayoutParams(-1,dp(25)));
+
+            TextView motto=chromeText(
+                    "Поклонение без присутствия сердца —\nкак тело без души.",
+                    9.4f,
+                    muted(),
+                    false
+            );
+            motto.setSingleLine(false);
+            motto.setMaxLines(2);
+            motto.setEllipsize(null);
+            motto.setGravity(Gravity.TOP|Gravity.LEFT);
+            motto.setLineSpacing(0,1.02f);
+            LinearLayout.LayoutParams mottoLp=
+                    new LinearLayout.LayoutParams(-1,dp(31));
+            mottoLp.setMargins(0,dp(2),0,0);
+            titles.addView(motto,mottoLp);
+            top.addView(titles,new LinearLayout.LayoutParams(0,dp(58),1));
+        }else{
+            titles.addView(title,new LinearLayout.LayoutParams(-1,dp(48)));
+            top.addView(titles,new LinearLayout.LayoutParams(0,dp(48),1));
+        }
+
         top.addView(new Space(this),new LinearLayout.LayoutParams(dp(4),1));
 
         Button search=chromeMiniButton("⌕");
@@ -1211,32 +1238,65 @@ public class MainActivity extends Activity {
                         Color.TRANSPARENT
                 });
         wash.setBackground(washBg);
-        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(276), -1);
+        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(292), -1);
         wlp.gravity=Gravity.LEFT;
         hero.addView(wash,wlp);
 
         LinearLayout heroText=new LinearLayout(this);
         heroText.setOrientation(LinearLayout.VERTICAL);
-        heroText.setGravity(Gravity.CENTER_VERTICAL);
-        heroText.setPadding(dp(16),dp(10),dp(5),dp(10));
-
-        TextView heroTitle=homeText("Продолжить путь",22.0f,
-                dark?Color.rgb(239,241,238):Color.rgb(27,50,42),true);
-        heroTitle.setLineSpacing(0,1.00f);
-        heroTitle.setPadding(0,0,0,dp(6));
-        heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
-
-        TextView heroSub=homeText("Возвращайся к тому,\nна чём остановился.",
-                12.3f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
-        heroSub.setLineSpacing(dp(1),1.04f);
-        heroSub.setPadding(0,0,0,dp(7));
-        heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
+        heroText.setGravity(Gravity.TOP);
+        heroText.setPadding(dp(16),dp(12),dp(5),dp(10));
 
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
 
+        TextView reminder=homeText(
+                "▤  Напоминание",
+                10.8f,
+                dark?Color.rgb(205,216,209):Color.rgb(86,104,94),
+                true
+        );
+        reminder.setGravity(Gravity.CENTER);
+        reminder.setBackground(surfaceBg(
+                dark?Color.argb(210,53,64,58):Color.argb(210,235,228,215),
+                dark?Color.argb(210,47,57,52):Color.argb(210,241,235,224),
+                99,
+                0
+        ));
+        reminder.setPadding(dp(10),0,dp(10),0);
+        heroText.addView(reminder,new LinearLayout.LayoutParams(-2,dp(28)));
+
+        float hadithSp=heroH<=180?17.8f:heroH<=198?19.2f:21.0f;
+        TextView hadith=homeText(
+                "«Если сердце\nисправно — исправно\nвсё тело».",
+                hadithSp,
+                dark?Color.rgb(239,241,238):Color.rgb(27,50,42),
+                true
+        );
+        hadith.setMaxLines(3);
+        hadith.setEllipsize(null);
+        hadith.setLineSpacing(0,1.00f);
+        LinearLayout.LayoutParams hadithLp=
+                new LinearLayout.LayoutParams(-1,-2);
+        hadithLp.setMargins(0,dp(8),0,0);
+        heroText.addView(hadith,hadithLp);
+
+        TextView hadithSource=homeText(
+                "аль-Бухари, Муслим",
+                heroH<=180?10.8f:11.6f,
+                dark?Color.rgb(198,205,201):Color.rgb(103,101,94),
+                false
+        );
+        LinearLayout.LayoutParams sourceLp=
+                new LinearLayout.LayoutParams(-1,-2);
+        sourceLp.setMargins(0,dp(5),0,0);
+        heroText.addView(hadithSource,sourceLp);
+
+        heroText.addView(new Space(this),new LinearLayout.LayoutParams(1,0,1f));
+
         LinearLayout heroResume=new LinearLayout(this);
-        heroResume.setOrientation(LinearLayout.VERTICAL);
-        heroResume.setPadding(dp(10),dp(7),dp(10),dp(7));
+        heroResume.setOrientation(LinearLayout.HORIZONTAL);
+        heroResume.setGravity(Gravity.CENTER_VERTICAL);
+        heroResume.setPadding(dp(10),dp(7),dp(8),dp(7));
         heroResume.setBackground(surfaceBg(
                 dark?Color.rgb(43,51,47):Color.rgb(250,246,238),
                 dark?Color.rgb(39,47,43):Color.rgb(247,241,231),
@@ -1245,36 +1305,82 @@ public class MainActivity extends Activity {
         ));
         heroResume.setOnClickListener(v->continuePrimaryLearning());
 
+        LinearLayout heroResumeLeft=new LinearLayout(this);
+        heroResumeLeft.setOrientation(LinearLayout.VERTICAL);
+        heroResumeLeft.setGravity(Gravity.CENTER_VERTICAL);
+
         String heroResumeText=primaryLearningResumeText();
         TextView heroResumeLabel=homeText(
                 heroResumeText,
-                11.0f,
+                11.2f,
                 dark?Color.rgb(214,220,216):Color.rgb(53,73,65),
                 true
         );
-        heroResume.addView(heroResumeLabel,new LinearLayout.LayoutParams(-1,-2));
+        heroResumeLeft.addView(
+                heroResumeLabel,
+                new LinearLayout.LayoutParams(-1,-2)
+        );
 
         LinearLayout heroProgressRow=new LinearLayout(this);
         heroProgressRow.setOrientation(LinearLayout.HORIZONTAL);
         heroProgressRow.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams heroBarLp=new LinearLayout.LayoutParams(0,dp(5),1);
+        LinearLayout.LayoutParams heroBarLp=
+                new LinearLayout.LayoutParams(0,dp(5),1);
         heroBarLp.setMargins(0,dp(5),dp(7),0);
-        heroProgressRow.addView(progressBar(pct,mutedHeroGreen),heroBarLp);
-        TextView heroPct=homeText(pct+"%",10.1f,dark?Color.rgb(190,199,194):Color.rgb(103,101,94),false);
+        heroProgressRow.addView(
+                progressBar(pct,mutedHeroGreen),
+                heroBarLp
+        );
+        TextView heroPct=homeText(
+                pct+"%",
+                10.1f,
+                dark?Color.rgb(190,199,194):Color.rgb(103,101,94),
+                false
+        );
         heroPct.setGravity(Gravity.CENTER);
-        heroProgressRow.addView(heroPct,new LinearLayout.LayoutParams(dp(32),dp(18)));
-        heroResume.addView(heroProgressRow,new LinearLayout.LayoutParams(-1,-2));
+        heroProgressRow.addView(
+                heroPct,
+                new LinearLayout.LayoutParams(dp(32),dp(18))
+        );
+        heroResumeLeft.addView(
+                heroProgressRow,
+                new LinearLayout.LayoutParams(-1,-2)
+        );
 
-        LinearLayout.LayoutParams hap=new LinearLayout.LayoutParams(dp(206),dp(58));
-        hap.setMargins(0,dp(2),0,0);
+        heroResume.addView(
+                heroResumeLeft,
+                new LinearLayout.LayoutParams(0,-1,1f)
+        );
+
+        TextView continueBtn=homeText(
+                "Продолжить  ›",
+                12.8f,
+                Color.WHITE,
+                true
+        );
+        continueBtn.setGravity(Gravity.CENTER);
+        continueBtn.setBackground(surfaceBg(
+                dark?Color.rgb(64,91,79):Color.rgb(49,92,75),
+                dark?Color.rgb(58,84,73):Color.rgb(43,82,67),
+                19,
+                0
+        ));
+        continueBtn.setOnClickListener(v->continuePrimaryLearning());
+        LinearLayout.LayoutParams continueLp=
+                new LinearLayout.LayoutParams(dp(100),dp(40));
+        continueLp.setMargins(dp(8),0,0,0);
+        heroResume.addView(continueBtn,continueLp);
+
+        LinearLayout.LayoutParams hap=
+                new LinearLayout.LayoutParams(dp(260),dp(58));
         heroText.addView(heroResume,hap);
 
-        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(270),-1);
+        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(286),-1);
         htlp.gravity=Gravity.LEFT|Gravity.CENTER_VERTICAL;
         hero.addView(heroText,htlp);
 
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(heroH));
-        hp.setMargins(0,0,0,dp(7));
+        hp.setMargins(0,0,0,dp(10));
         page.addView(hero,hp);
 
         int quizTotal=Math.max(1,lastQuizTotal());
@@ -1331,7 +1437,7 @@ public class MainActivity extends Activity {
         quizResume.addView(qrProgress,qrpLp);
 
         LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(54));
-        qrLp.setMargins(0,0,0,dp(5));
+        qrLp.setMargins(0,0,0,dp(2));
         page.addView(quizResume,qrLp);
 
         // Six primary sections. Continue/progress now lives inside the hero.
