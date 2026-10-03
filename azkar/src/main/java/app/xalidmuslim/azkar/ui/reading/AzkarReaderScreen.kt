@@ -3,6 +3,7 @@ package app.xalidmuslim.azkar.ui.reading
 import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
+import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -42,12 +43,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -307,7 +307,7 @@ fun AzkarReaderScreen(
         navigateToHeartPrayer(context, "home")
     }
 
-    val haptic = LocalHapticFeedback.current
+    val rootView = LocalView.current
     val animationsEnabled = remember {
         Settings.Global.getFloat(
             context.contentResolver,
@@ -447,9 +447,8 @@ fun AzkarReaderScreen(
                         onOpenExplanation = resolvedUiController::openExplanation,
                         onOpenActions = resolvedUiController::openActions,
                         onIncrementCount = { itemId, target ->
-                            val finishing = resolvedUiController.currentCount(itemId) == target - 1
-                            if (resolvedUiController.incrementProgress(itemId, target) && finishing) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (resolvedUiController.incrementProgress(itemId, target)) {
+                                rootView.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             }
                         },
                         onResetProgress = {
@@ -485,9 +484,8 @@ fun AzkarReaderScreen(
                         onViewModeChange = { mode -> resolvedUiController.setViewMode(mode) },
                         onOpenSourceInfo = resolvedUiController::openSourceInfo,
                         onIncrementCount = { itemId, target ->
-                            val finishing = resolvedUiController.currentCount(itemId) == target - 1
-                            if (resolvedUiController.incrementProgress(itemId, target) && finishing) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (resolvedUiController.incrementProgress(itemId, target)) {
+                                rootView.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             }
                         },
                         onResetProgress = {
