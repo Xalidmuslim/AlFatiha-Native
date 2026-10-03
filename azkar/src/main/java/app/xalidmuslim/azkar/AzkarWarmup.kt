@@ -2,6 +2,7 @@ package app.xalidmuslim.azkar
 
 import android.content.Context
 import app.xalidmuslim.azkar.content.AzkarCatalog
+import app.xalidmuslim.azkar.persistence.AzkarPreferencesSnapshot
 import app.xalidmuslim.azkar.persistence.DataStoreAzkarPreferencesRepository
 import app.xalidmuslim.azkar.persistence.SystemAzkarDateProvider
 import java.util.concurrent.atomic.AtomicBoolean
@@ -19,6 +20,12 @@ object AzkarWarmup {
     private val started = AtomicBoolean(false)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    @Volatile
+    private var snapshotCache: AzkarPreferencesSnapshot? = null
+
+    @JvmStatic
+    fun snapshotOrNull(): AzkarPreferencesSnapshot? = snapshotCache
+
     @JvmStatic
     fun preload(context: Context) {
         if (!started.compareAndSet(false, true)) return
@@ -28,7 +35,7 @@ object AzkarWarmup {
                 val repository = DataStoreAzkarPreferencesRepository(
                     appContext.azkarPreferencesDataStore,
                 )
-                repository.observeSnapshot(
+                snapshotCache = repository.observeSnapshot(
                     date = SystemAzkarDateProvider.currentDate(),
                     visibleItemIds = AzkarCatalog.stableIds,
                 ).first()
