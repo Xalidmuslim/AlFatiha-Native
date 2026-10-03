@@ -1410,9 +1410,11 @@ public class MainActivity extends Activity {
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=tone;
-        int tilePad=homeTileHeightDp<=112?6:homeTileHeightDp<=120?7:9;
-        int titleZoneDp=homeTileHeightDp<=112?28:homeTileHeightDp<=120?32:36;
-        int subZoneDp=homeTileHeightDp<=112?22:homeTileHeightDp<=120?24:28;
+        // Exact vertical grid: icon + title zone + subtitle zone + top/bottom padding
+        // always fits the fixed tile height, so nothing clips and all six cards align.
+        int tilePad=homeTileHeightDp<=112?6:homeTileHeightDp<=120?7:8;
+        int titleZoneDp=homeTileHeightDp<=112?32:homeTileHeightDp<=120?34:36;
+        int subZoneDp=homeTileHeightDp<=112?22:24;
         LinearLayout c=homeSurface(cardTone,22,tilePad,2);
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
@@ -1448,16 +1450,16 @@ public class MainActivity extends Activity {
         c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
         TextView t=homeText(title,homeTileTitleSp,ink(),true);
-        t.setMinLines(2);
+        t.setMinLines(1);
         t.setMaxLines(2);
         t.setEllipsize(null);
-        t.setGravity(Gravity.TOP|Gravity.LEFT);
+        t.setGravity(Gravity.CENTER_VERTICAL|Gravity.LEFT);
         t.setLineSpacing(0,1.00f);
-        t.setPadding(0,dp(4),0,0);
+        t.setPadding(0,0,0,0);
         c.addView(t,new LinearLayout.LayoutParams(-1,dp(titleZoneDp)));
 
         TextView st=homeText(sub,homeTileSubSp,muted(),false);
-        st.setMinLines(2);
+        st.setMinLines(1);
         st.setMaxLines(2);
         st.setEllipsize(null);
         st.setGravity(Gravity.TOP|Gravity.LEFT);
