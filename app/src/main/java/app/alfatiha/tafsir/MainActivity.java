@@ -1651,7 +1651,9 @@ public class MainActivity extends Activity {
     private void renderMinorShirkQuiz(int idx,boolean push){
         JSONArray a=arr("minor_shirk_quiz.json");if(a.length()==0)return;
         if(idx<0||idx>=a.length())idx=0;
-        clear("minorShirkQuiz",String.valueOf(idx),push);currentSection="quiz";appTop();
+        clear("minorShirkQuiz",String.valueOf(idx),push);currentSection="quiz";
+        prefs.edit().putString("last_quiz_kind","minor_shirk").apply();
+        appTop();
         final int currentIdx=idx;
         JSONObject q=a.optJSONObject(idx);if(q==null)return;
 
@@ -2258,7 +2260,9 @@ public class MainActivity extends Activity {
     private void renderPrayerCheck(int idx,boolean push){
         JSONArray a=arr("prayer_check.json");if(a.length()==0)return;
         if(idx<0||idx>=a.length())idx=0;
-        clear("prayerCheck",String.valueOf(idx),push);currentSection="quiz";appTop();
+        clear("prayerCheck",String.valueOf(idx),push);currentSection="quiz";
+        prefs.edit().putString("last_quiz_kind","prayer_basic").apply();
+        appTop();
         JSONObject q=a.optJSONObject(idx);if(q==null)return;
 
         LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.HORIZONTAL);meta.setGravity(Gravity.CENTER_VERTICAL);
