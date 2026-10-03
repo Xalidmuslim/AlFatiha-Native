@@ -9,13 +9,22 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import kotlin.concurrent.thread
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        removeLegacyReminderNotifications()
         setContent {
             AzkarAppRoot()
+        }
+
+        // Never block the first frame with legacy cleanup.
+        val bootPrefs = getSharedPreferences("azkar_bootstrap", MODE_PRIVATE)
+        if (!bootPrefs.getBoolean("legacy_cleanup_done", false)) {
+            thread(start = true, isDaemon = true, name = "azkar-legacy-cleanup") {
+                runCatching { removeLegacyReminderNotifications() }
+                bootPrefs.edit().putBoolean("legacy_cleanup_done", true).apply()
+            }
         }
     }
 
