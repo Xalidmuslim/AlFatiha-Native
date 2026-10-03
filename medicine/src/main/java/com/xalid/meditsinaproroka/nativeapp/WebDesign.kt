@@ -128,6 +128,9 @@ fun WebHeader(
 private fun WebHomeHeader(
     title: String,
     author: String,
+    isDark: Boolean,
+    onSearch: () -> Unit,
+    onToggleTheme: () -> Unit,
     onSettings: () -> Unit,
 ) {
     Surface(
@@ -136,23 +139,23 @@ private fun WebHomeHeader(
     ) {
         Column {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Image(
                     painter = painterResource(R.drawable.medicine_launcher),
                     contentDescription = null,
-                    modifier = Modifier.size(62.dp).clip(RoundedCornerShape(14.dp)),
+                    modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)),
                     contentScale = ContentScale.Fit,
                 )
-                Spacer(Modifier.width(13.dp))
+                Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
                         title,
                         fontFamily = WebModernFont,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp,
-                        lineHeight = 23.sp,
+                        fontSize = 17.sp,
+                        lineHeight = 20.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -161,24 +164,44 @@ private fun WebHomeHeader(
                         author,
                         fontFamily = FontFamily.SansSerif,
                         fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                        lineHeight = 17.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 11.5.sp,
+                        lineHeight = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                IconButton(onClick = onSettings, modifier = Modifier.size(44.dp)) {
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = "Настройки",
-                        modifier = Modifier.size(27.dp),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
+                HeaderActionButton(onClick = onSearch) {
+                    Icon(Icons.Default.Search, contentDescription = "Поиск", modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(4.dp))
+                HeaderActionButton(onClick = onToggleTheme) {
+                    Text(if (isDark) "☀" else "☾", fontSize = 18.sp, fontFamily = WebSansFont)
+                }
+                Spacer(Modifier.width(4.dp))
+                HeaderActionButton(onClick = onSettings) {
+                    Text("Aa", fontSize = 15.sp, fontFamily = WebSerifFont, fontWeight = FontWeight.SemiBold)
                 }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.72f))
         }
+    }
+}
+
+@Composable
+private fun HeaderActionButton(
+    onClick: () -> Unit,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(38.dp),
+        shape = RoundedCornerShape(15.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 2.dp,
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center, content = content)
     }
 }
 
@@ -188,6 +211,8 @@ fun WebHomeScreen(
     store: AppStore,
     modifier: Modifier,
     navigate: (Route) -> Unit,
+    onGlobalSearch: () -> Unit,
+    onToggleTheme: () -> Unit,
 ) {
     val chaptersById = book.chapters.associateBy { it.id }
     val last = store.lastChapterId?.let(chaptersById::get)
@@ -206,7 +231,14 @@ fun WebHomeScreen(
     }
 
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        WebHomeHeader(book.title, book.author) { navigate(Route.Settings) }
+        WebHomeHeader(
+            title = book.title,
+            author = book.author,
+            isDark = store.settings.theme == "dark",
+            onSearch = onGlobalSearch,
+            onToggleTheme = onToggleTheme,
+            onSettings = { navigate(Route.Settings) },
+        )
 
         androidx.compose.foundation.lazy.LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -615,10 +647,10 @@ fun WebMoreScreen(modifier: Modifier, navigate: (Route) -> Unit) {
         MoreItem("≡", "Хадисы и источники", "Источники, указанные в тексте", Route.Hadiths),
         MoreItem("✎", "Мои заметки", "Выделения и личные записи", Route.Notes),
         MoreItem("◷", "История чтения", "Недавно открытые главы", Route.History),
-        MoreItem("↓", "Офлайн-копия", "Книга уже сохранена внутри приложения", Route.Offline),
+        MoreItem("↓", "Чтение без интернета", "Книга доступна без подключения к сети", Route.Offline),
         MoreItem("⚙", "Настройки чтения", "Шрифт, интервал и оформление", Route.Settings),
-        MoreItem("i", "О приложении", "Назначение и границы использования", Route.About),
-        MoreItem("§", "Об источнике текста", "Структура и полнота локального издания", Route.Source),
+        MoreItem("i", "О книге", "Автор, содержание и важное примечание", Route.About),
+        MoreItem("§", "Об издании", "Состав книги и указанные источники", Route.Source),
     )
 
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -727,15 +759,20 @@ fun WebSettingsScreen(store: AppStore, modifier: Modifier, back: () -> Unit) {
             item { WebSettingsPreview(store.settings) }
 
             item {
-                WebSettingCard("Тема") {
+                WebSettingCard("Оформление") {
+                    Text(
+                        "Светлая и тёмная тема общие для всех разделов «Пути сердца».",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = WebSansFont,
+                        fontSize = 11.5.sp,
+                    )
                     WebChoiceGrid(
                         options = listOf(
-                            "system" to "Система",
                             "light" to "Светлая",
                             "dark" to "Тёмная",
                         ),
                         selected = store.settings.theme,
-                        columns = 3,
+                        columns = 2,
                     ) { value ->
                         store.updateSettings { it.copy(theme = value) }
                     }
