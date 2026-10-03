@@ -315,10 +315,15 @@ fun AzkarReaderScreen(
             1f,
         ) > 0f
     }
-    val startOffsetPx = with(density) { AzkarMotion.pageStartOffsetY.toPx() }
-    val initialOffset = if (navigation.generation > 0L && animationsEnabled) startOffsetPx else 0f
+    var pageDirection by remember { mutableStateOf(1) }
+    val pageSlidePx = with(density) { 22.dp.toPx() }
+    val initialOffset = if (navigation.generation > 0L && animationsEnabled) {
+        pageSlidePx * pageDirection
+    } else {
+        0f
+    }
     val initialAlpha = if (navigation.generation > 0L && animationsEnabled) {
-        AzkarMotion.dhikrStartOpacity
+        0.82f
     } else {
         1f
     }
@@ -368,7 +373,10 @@ fun AzkarReaderScreen(
             readerUi.viewMode == AzkarReaderViewMode.Cards &&
             readerUi.activeSheet == AzkarReaderSheet.None
         ) {
-            previousTarget?.let(controller::navigateTo)
+            previousTarget?.let {
+                pageDirection = -1
+                controller.navigateTo(it)
+            }
         }
         Unit
     }
@@ -377,7 +385,10 @@ fun AzkarReaderScreen(
             readerUi.viewMode == AzkarReaderViewMode.Cards &&
             readerUi.activeSheet == AzkarReaderSheet.None
         ) {
-            nextTarget?.let(controller::navigateTo)
+            nextTarget?.let {
+                pageDirection = 1
+                controller.navigateTo(it)
+            }
         }
         Unit
     }
@@ -387,8 +398,7 @@ fun AzkarReaderScreen(
         onNext = next,
     )
     val transitionModifier = Modifier.graphicsLayer {
-        // Fade only. Moving the full card vertically made its lower shadow
-        // visibly jump while switching azkars on some GPU/drivers.
+        translationX = transitionOffset.value
         alpha = transitionAlpha.value
     }
 
@@ -503,7 +513,7 @@ fun AzkarReaderScreen(
                     navigateToHeartPrayer(context, "home")
                 },
                 onContents = {
-                    resolvedUiController.openContents()
+                    navigateToHeartPrayer(context, "menu")
                 },
                 onProgress = {
                     navigateToHeartPrayer(context, "progress")
@@ -609,7 +619,7 @@ private fun HeartPrayerBottomNav(
         )
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_contents,
-            label = "Содержание",
+            label = "Инструменты",
             color = colors.muted,
             onClick = onContents,
             modifier = Modifier.weight(1f),
