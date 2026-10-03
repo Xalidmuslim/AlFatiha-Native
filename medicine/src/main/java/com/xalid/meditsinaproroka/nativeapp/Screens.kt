@@ -404,10 +404,10 @@ fun MoreScreen(modifier: Modifier, navigate: (Route) -> Unit) {
         Triple("Хадисы и источники", "Источники, указанные в тексте", Route.Hadiths),
         Triple("Мои заметки", "Выделения и личные записи", Route.Notes),
         Triple("История чтения", "Недавно открытые главы", Route.History),
-        Triple("Офлайн-копия", "Книга уже сохранена внутри приложения", Route.Offline),
+        Triple("Чтение без интернета", "Книга доступна без подключения к сети", Route.Offline),
         Triple("Настройки чтения", "Шрифт, размер, интервал, тема", Route.Settings),
-        Triple("О приложении", "Назначение и границы использования", Route.About),
-        Triple("Об источнике текста", "Структура и полнота локального издания", Route.Source),
+        Triple("О книге", "Автор, содержание и важное примечание", Route.About),
+        Triple("Об издании", "Состав книги и указанные источники", Route.Source),
     )
     Column(modifier.fillMaxSize()) {
         PageHeader("Ещё")
@@ -798,14 +798,14 @@ fun SourceScreen(book: BookData, modifier: Modifier, back: () -> Unit) {
     val blocks = if (book.stats.blocks > 0) book.stats.blocks else book.chapters.sumOf { it.blocks.size }
     val words = book.stats.sourceWords
     Column(modifier.fillMaxSize()) {
-        PageHeader("Об источнике текста", null, back)
+        PageHeader("Об издании", null, back)
         Column(
             Modifier.verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text("Полный русский текст", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
             Text("Один источник данных", fontWeight = FontWeight.Bold, fontSize = 24.sp)
-            Text("Главы, темы, средства, поиск и справочники строятся из одной локальной копии текста, встроенной в приложение.")
+            Text("Главы, темы, средства, поиск и справочники собраны из одного полного текста книги.")
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MetricCard("Глав", (if (book.stats.chapters > 0) book.stats.chapters else book.chapters.size).toString(), Modifier.weight(1f)) {}
                 MetricCard("Блоков", blocks.toString(), Modifier.weight(1f)) {}
@@ -814,7 +814,7 @@ fun SourceScreen(book: BookData, modifier: Modifier, back: () -> Unit) {
                 MetricCard("Слов", if (words > 0) words.toString() else "—", Modifier.weight(1f)) {}
                 MetricCard("Средств", (if (book.stats.remedies > 0) book.stats.remedies else book.remedies.size).toString(), Modifier.weight(1f)) {}
             }
-            Text("Текст упакован в APK/AAB и не требует сети для чтения.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+            Text("Книга доступна для чтения без подключения к сети.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -826,7 +826,7 @@ fun OfflineScreen(book: BookData, modifier: Modifier, back: () -> Unit) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Icon(Icons.Default.OfflinePin, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(52.dp))
             Text("Полная книга доступна без интернета", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("Текст ${book.chapters.size} глав встроен непосредственно в APK/AAB. Поиск, закладки, заметки, настройки и прогресс чтения также работают локально.")
+            Text("Все ${book.chapters.size} глав доступны без подключения к сети. Поиск, закладки, заметки, настройки и прогресс чтения сохраняются на устройстве.")
             Text("Интернет для чтения книги не требуется.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
         }
     }
@@ -839,7 +839,7 @@ fun AboutScreen(book: BookData, modifier: Modifier, back: () -> Unit) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(book.title, fontFamily = WebModernFont, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Text(book.author, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("В приложении сохранён полный текущий текст издания, используемый в веб-версии, с исходным порядком глав и дополнительной тематической навигацией.")
+            Text("Здесь сохранён полный текст издания с исходным порядком глав и дополнительной тематической навигацией.")
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Важное примечание", fontWeight = FontWeight.Bold)
@@ -847,7 +847,7 @@ fun AboutScreen(book: BookData, modifier: Modifier, back: () -> Unit) {
                     Text("Это историко-религиозный текст, а не современное медицинское руководство. Описанные методы не заменяют диагностику и лечение врача; отдельные исторические средства могут быть устаревшими или небезопасными.")
                 }
             }
-            Text("Источники хадисов показываются только там, где они присутствуют в данных книги. Приложение не присваивает степень достоверности автоматически.")
+            Text("Источники хадисов показываются только там, где они указаны в тексте книги. Степень достоверности здесь автоматически не присваивается.")
         }
     }
 }
