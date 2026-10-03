@@ -12,6 +12,9 @@ object MedicineBookCache {
     private val loadLock = Any()
 
     @JvmStatic
+    fun peekOrNull(): BookData? = cached
+
+    @JvmStatic
     fun preload(context: Context) {
         if (cached != null || !preloadStarted.compareAndSet(false, true)) return
         val appContext = context.applicationContext
