@@ -1292,6 +1292,16 @@ public class MainActivity extends Activity {
         quizResume.setGravity(Gravity.CENTER_VERTICAL);
         quizResume.setPadding(dp(12),dp(6),dp(9),dp(6));
         quizResume.setElevation(dp(2));
+        int quizResumeTone=dark?Color.rgb(40,47,43):Color.rgb(251,247,240);
+        int quizResumeEnd=dark
+                ?blend(quizResumeTone,Color.BLACK,.03f)
+                :blend(quizResumeTone,Color.WHITE,.10f);
+        quizResume.setBackground(surfaceBg(
+                quizResumeTone,
+                quizResumeEnd,
+                20,
+                dark?Color.rgb(61,70,65):Color.rgb(228,218,204)
+        ));
         quizResume.setOnClickListener(v->continueLastQuiz());
 
         LinearLayout qrTop=new LinearLayout(this);
