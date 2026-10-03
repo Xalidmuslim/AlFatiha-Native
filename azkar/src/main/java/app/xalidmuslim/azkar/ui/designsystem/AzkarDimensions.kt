@@ -11,7 +11,7 @@ object AzkarSpacing {
     val topBarHorizontal = 2.dp
     val topBarVertical = 5.dp
     val brandGap = 10.dp
-    val brandSubtitleTop = 4.dp
+    val brandSubtitleTop = 1.dp
     val sourceNoteVertical = 4.dp
     val sourceNoteHorizontal = 11.dp
     val periodTop = 6.dp
@@ -175,8 +175,8 @@ object AzkarElevation {
 
 object AzkarDimensions {
     val shellMaxWidth = 760.dp
-    val topBarMinHeight = 58.dp
-    val brandIcon = 34.dp
+    val topBarMinHeight = 72.dp
+    val brandIcon = 52.dp
     val settingsIconButton = 38.dp
     val compactIconButton = 44.dp
     val periodButtonMinHeight = 36.dp
