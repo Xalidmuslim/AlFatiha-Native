@@ -34,9 +34,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.onDispose
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -148,16 +150,41 @@ fun AzkarReaderScreen(
     // state tree in place instead of showing a separate splash and replacing it.
     val settings = readerUi.settings
     val globalUiPreferences = remember(context) {
-        context.getSharedPreferences("alfatiha_native", android.content.Context.MODE_PRIVATE)
+        context.getSharedPreferences(
+            "alfatiha_native",
+            android.content.Context.MODE_PRIVATE,
+        )
+    }
+    var sharedDark by remember(globalUiPreferences) {
+        mutableStateOf(globalUiPreferences.getBoolean("dark", false))
     }
 
-    // One day/night state for the whole integrated application.
-    LaunchedEffect(readerUi.isHydrated) {
+    // Keep the Azkar module attached to the same theme switch as the host app
+    // even when this Activity stays alive while another section changes theme.
+    DisposableEffect(globalUiPreferences) {
+        val listener =
+            android.content.SharedPreferences.OnSharedPreferenceChangeListener {
+                    prefs,
+                    key,
+                ->
+                if (key == "dark") {
+                    sharedDark = prefs.getBoolean("dark", false)
+                }
+            }
+        globalUiPreferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            globalUiPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    LaunchedEffect(readerUi.isHydrated, sharedDark) {
         if (readerUi.isHydrated) {
-            val sharedDark = globalUiPreferences.getBoolean("dark", false)
-            val sharedMode = if (sharedDark) AzkarThemeMode.Dark else AzkarThemeMode.Light
+            val sharedMode =
+                if (sharedDark) AzkarThemeMode.Dark else AzkarThemeMode.Light
             if (settings.themeMode != sharedMode) {
-                resolvedUiController.updateSettings { it.copy(themeMode = sharedMode) }
+                resolvedUiController.updateSettings {
+                    it.copy(themeMode = sharedMode)
+                }
             }
         }
     }
@@ -169,11 +196,13 @@ fun AzkarReaderScreen(
         AzkarThemeMode.System -> systemDarkTheme
     }
     val toggleTheme: () -> Unit = {
-        val nextDark = !isDarkTheme
+        val nextDark = !sharedDark
+        sharedDark = nextDark
         globalUiPreferences.edit().putBoolean("dark", nextDark).apply()
         resolvedUiController.updateSettings {
             it.copy(
-                themeMode = if (nextDark) AzkarThemeMode.Dark else AzkarThemeMode.Light,
+                themeMode =
+                    if (nextDark) AzkarThemeMode.Dark else AzkarThemeMode.Light,
             )
         }
     }
