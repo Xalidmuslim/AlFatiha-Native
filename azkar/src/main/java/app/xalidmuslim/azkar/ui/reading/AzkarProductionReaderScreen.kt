@@ -131,7 +131,7 @@ internal fun AzkarProductionReaderScreen(
         readerUi.isHydrated && restoredPeriod && restoredInitialItem
     val contentAlpha by animateFloatAsState(
         targetValue = if (readyForFirstFrame) 1f else 0f,
-        animationSpec = tween(durationMillis = 145),
+        animationSpec = tween(durationMillis = 70),
         label = "azkar-entry-fade",
     )
 
