@@ -1167,15 +1167,15 @@ public class MainActivity extends Activity {
         final int resumeH;
         if(screenH<=700){
             heroH=180; resumeH=0; homeTileHeightDp=112; homeTileIconDp=46;
-            homeTileTitleSp=12.6f; homeTileSubSp=9.4f;
+            homeTileTitleSp=12.6f; homeTileSubSp=10.0f;
         }else if(screenH<=760){
             heroH=198; resumeH=0; homeTileHeightDp=120; homeTileIconDp=48;
-            homeTileTitleSp=13.0f; homeTileSubSp=9.7f;
+            homeTileTitleSp=13.0f; homeTileSubSp=10.4f;
         }else{
             // Restore the approved visual scale: icons and typography must not
             // shrink just to force the dashboard into a single viewport.
             heroH=222; resumeH=0; homeTileHeightDp=128; homeTileIconDp=52;
-            homeTileTitleSp=13.4f; homeTileSubSp=10.0f;
+            homeTileTitleSp=13.4f; homeTileSubSp=10.9f;
         }
 
         int pct=primaryLearningProgress();
@@ -1227,7 +1227,7 @@ public class MainActivity extends Activity {
         heroText.addView(heroTitle,new LinearLayout.LayoutParams(-1,-2));
 
         TextView heroSub=homeText("Возвращайся к тому,\nна чём остановился.",
-                11.8f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
+                12.3f,dark?Color.rgb(200,207,202):Color.rgb(82,91,86),false);
         heroSub.setLineSpacing(dp(1),1.04f);
         heroSub.setPadding(0,0,0,dp(7));
         heroText.addView(heroSub,new LinearLayout.LayoutParams(-1,-2));
@@ -1248,7 +1248,7 @@ public class MainActivity extends Activity {
         String heroResumeText=primaryLearningResumeText();
         TextView heroResumeLabel=homeText(
                 heroResumeText,
-                10.4f,
+                11.0f,
                 dark?Color.rgb(214,220,216):Color.rgb(53,73,65),
                 true
         );
@@ -1260,7 +1260,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams heroBarLp=new LinearLayout.LayoutParams(0,dp(5),1);
         heroBarLp.setMargins(0,dp(5),dp(7),0);
         heroProgressRow.addView(progressBar(pct,mutedHeroGreen),heroBarLp);
-        TextView heroPct=homeText(pct+"%",9.5f,dark?Color.rgb(190,199,194):Color.rgb(103,101,94),false);
+        TextView heroPct=homeText(pct+"%",10.1f,dark?Color.rgb(190,199,194):Color.rgb(103,101,94),false);
         heroPct.setGravity(Gravity.CENTER);
         heroProgressRow.addView(heroPct,new LinearLayout.LayoutParams(dp(32),dp(18)));
         heroResume.addView(heroProgressRow,new LinearLayout.LayoutParams(-1,-2));
@@ -1306,7 +1306,7 @@ public class MainActivity extends Activity {
         LinearLayout qrText=new LinearLayout(this);
         qrText.setOrientation(LinearLayout.VERTICAL);
         qrText.addView(homeText("Продолжить викторину",13.5f,ink(),true));
-        qrText.addView(homeText(lastQuizTitle()+" · "+quizDone+" из "+quizTotal,10.2f,muted(),false));
+        qrText.addView(homeText(lastQuizTitle()+" · "+quizDone+" из "+quizTotal,11.0f,muted(),false));
         qrTop.addView(qrText,new LinearLayout.LayoutParams(0,-2,1));
         TextView qrArrow=homeText("›",20,ink(),false);
         qrArrow.setGravity(Gravity.CENTER);
@@ -1320,7 +1320,7 @@ public class MainActivity extends Activity {
         LinearLayout qrProgress=new LinearLayout(this);
         qrProgress.setOrientation(LinearLayout.VERTICAL);
         qrProgress.setGravity(Gravity.CENTER_VERTICAL);
-        TextView qrPct=homeText(quizPct+"%",9.2f,muted(),false);
+        TextView qrPct=homeText(quizPct+"%",10.0f,muted(),false);
         qrPct.setGravity(Gravity.CENTER);
         qrProgress.addView(qrPct,new LinearLayout.LayoutParams(dp(38),dp(17)));
         LinearLayout.LayoutParams qrBarLp=new LinearLayout.LayoutParams(dp(38),dp(4));
@@ -1409,8 +1409,8 @@ public class MainActivity extends Activity {
         // Exact vertical grid: icon + title zone + subtitle zone + top/bottom padding
         // always fits the fixed tile height, so nothing clips and all six cards align.
         int tilePad=homeTileHeightDp<=112?6:homeTileHeightDp<=120?7:8;
-        int titleZoneDp=homeTileHeightDp<=112?32:homeTileHeightDp<=120?34:36;
-        int subZoneDp=homeTileHeightDp<=112?22:24;
+        int titleZoneDp=homeTileHeightDp<=112?30:homeTileHeightDp<=120?32:34;
+        int subZoneDp=homeTileHeightDp<=112?24:homeTileHeightDp<=120?26:26;
         LinearLayout c=homeSurface(cardTone,22,tilePad,2);
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
@@ -1449,7 +1449,7 @@ public class MainActivity extends Activity {
         t.setMinLines(1);
         t.setMaxLines(2);
         t.setEllipsize(null);
-        t.setGravity(Gravity.CENTER_VERTICAL|Gravity.LEFT);
+        t.setGravity(Gravity.BOTTOM|Gravity.LEFT);
         t.setLineSpacing(0,1.00f);
         t.setPadding(0,0,0,0);
         c.addView(t,new LinearLayout.LayoutParams(-1,dp(titleZoneDp)));
