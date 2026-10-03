@@ -1,5 +1,6 @@
 package app.xalidmuslim.azkar
 
+import android.app.Activity
 import android.app.AlarmManager
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -14,6 +15,7 @@ import kotlin.concurrent.thread
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        configureActivityTransitions()
         setContent {
             AzkarAppRoot()
         }
@@ -25,6 +27,21 @@ class MainActivity : ComponentActivity() {
                 runCatching { removeLegacyReminderNotifications() }
                 bootPrefs.edit().putBoolean("legacy_cleanup_done", true).apply()
             }
+        }
+    }
+
+    private fun configureActivityTransitions() {
+        if (Build.VERSION.SDK_INT >= 34) {
+            overrideActivityTransition(
+                Activity.OVERRIDE_TRANSITION_OPEN,
+                R.anim.azkar_enter,
+                R.anim.azkar_exit,
+            )
+            overrideActivityTransition(
+                Activity.OVERRIDE_TRANSITION_CLOSE,
+                R.anim.azkar_return_enter,
+                R.anim.azkar_return_exit,
+            )
         }
     }
 
