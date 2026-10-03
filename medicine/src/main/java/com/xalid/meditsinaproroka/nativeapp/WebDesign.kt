@@ -149,22 +149,26 @@ private fun WebHomeHeader(
                     contentScale = ContentScale.Fit,
                 )
                 Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .offset(y = 2.dp),
+                ) {
                     Text(
                         title,
                         fontFamily = WebModernFont,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 17.sp,
+                        fontSize = 16.2.sp,
                         lineHeight = 20.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(1.dp))
                     Text(
                         author,
                         fontFamily = FontFamily.SansSerif,
                         fontWeight = FontWeight.Medium,
-                        fontSize = 11.5.sp,
+                        fontSize = 11.sp,
                         lineHeight = 15.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
