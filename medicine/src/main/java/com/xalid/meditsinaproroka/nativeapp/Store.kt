@@ -53,6 +53,7 @@ data class HistoryEntry(val chapterId: String, val anchor: String?, val openedAt
 
 class AppStore(context: Context) {
     private val prefs = context.getSharedPreferences("medicina_native", Context.MODE_PRIVATE)
+    private val sharedPrefs = context.getSharedPreferences("alfatiha_native", Context.MODE_PRIVATE)
 
     var settings by mutableStateOf(loadSettings())
         private set
@@ -86,8 +87,27 @@ class AppStore(context: Context) {
     }
 
     fun updateSettings(transform: (ReaderSettings) -> ReaderSettings) {
-        settings = transform(settings)
+        val next = transform(settings)
+        settings = next
         persistSettings()
+        if (next.theme == "dark" || next.theme == "light") {
+            sharedPrefs.edit().putBoolean("dark", next.theme == "dark").apply()
+        }
+    }
+
+    fun syncSharedTheme() {
+        val sharedTheme = if (sharedPrefs.getBoolean("dark", false)) "dark" else "light"
+        if (settings.theme != sharedTheme) {
+            settings = settings.copy(theme = sharedTheme)
+            persistSettings()
+        }
+    }
+
+    fun toggleSharedTheme() {
+        val next = if (sharedPrefs.getBoolean("dark", false)) "light" else "dark"
+        settings = settings.copy(theme = next)
+        persistSettings()
+        sharedPrefs.edit().putBoolean("dark", next == "dark").apply()
     }
 
     fun setLastPosition(chapterId: String, blockIndex: Int) {
@@ -189,18 +209,19 @@ class AppStore(context: Context) {
     }
 
     private fun loadSettings(): ReaderSettings {
-        val raw = prefs.getString("settings", null) ?: return ReaderSettings()
+        val sharedTheme = if (sharedPrefs.getBoolean("dark", false)) "dark" else "light"
+        val raw = prefs.getString("settings", null) ?: return ReaderSettings(theme = sharedTheme)
         return runCatching {
             JSONObject(raw).let {
                 ReaderSettings(
-                    theme = it.optString("theme", "system"),
+                    theme = sharedTheme,
                     fontFamily = it.optString("fontFamily", "system"),
                     fontSizeSp = it.optDouble("fontSizeSp", 17.0).toFloat(),
                     lineSpacing = it.optDouble("lineSpacing", 1.20).toFloat(),
                     showHistoricalLabels = it.optBoolean("showHistoricalLabels", true),
                 )
             }
-        }.getOrDefault(ReaderSettings())
+        }.getOrDefault(ReaderSettings(theme = sharedTheme))
     }
 
     private fun persistSettings() {
