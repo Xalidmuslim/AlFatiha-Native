@@ -4,8 +4,8 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.ui.unit.dp
 
 object AzkarMotion {
-    // Motion profile matched to Al-Fatiha:
-    // Shared short motion profile: navigation transitions use one 150ms tempo.
+    // Reader paging uses a medium 240ms tempo; small controls keep the
+    // shorter shared motion profile used elsewhere in the application.
     const val dhikrPageDurationMillis = 240
     const val sheetDurationMillis = 150
     const val sheetExitDurationMillis = 150
