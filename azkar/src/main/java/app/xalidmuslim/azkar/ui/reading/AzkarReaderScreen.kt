@@ -314,14 +314,14 @@ fun AzkarReaderScreen(
         ) > 0f
     }
     var pageDirection by remember { mutableStateOf(1) }
-    val pageSlidePx = with(density) { 22.dp.toPx() }
+    val pageSlidePx = with(density) { 32.dp.toPx() }
     val initialOffset = if (navigation.generation > 0L && animationsEnabled) {
         pageSlidePx * pageDirection
     } else {
         0f
     }
     val initialAlpha = if (navigation.generation > 0L && animationsEnabled) {
-        0.82f
+        0.90f
     } else {
         1f
     }
