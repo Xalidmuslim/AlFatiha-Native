@@ -191,7 +191,7 @@ public class MainActivity extends Activity {
         topHost=new LinearLayout(this);
         topHost.setOrientation(LinearLayout.VERTICAL);
         topHost.setBackgroundColor(bg());
-        topHost.setPadding(dp(8),dp(4),dp(8),dp(1));
+        topHost.setPadding(dp(8),dp(6),dp(8),dp(1));
         root.addView(topHost,new LinearLayout.LayoutParams(-1,-2));
 
         scroll=new ScrollView(this);
@@ -943,6 +943,21 @@ public class MainActivity extends Activity {
         }
     }
 
+    private String chromeSectionSubtitle(){
+        switch(currentSection){
+            case "mind": return "Слова и глубокий смысл";
+            case "prayerSecrets": return "Действия, слова и состояние сердца";
+            case "minorShirk": return "Защита единобожия";
+            case "quiz": return "Проверка понимания";
+            case "review": return "Работа над ошибками";
+            case "exam": return "Итоговая проверка";
+            case "profile": return "Ваш путь и результаты";
+            case "settings": return "Текст, тема и чтение";
+            case "search": return "Поиск по материалам";
+            default: return "Поклонение без присутствия сердца — как тело без души.";
+        }
+    }
+
     private int chromeSectionIcon(){
         switch(currentSection){
             case "mind": return R.drawable.home_book_mockup;
@@ -958,7 +973,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private boolean chromeUsesArtworkIcon(){
+    private boolean chromeUsesDashboardArtwork(){
         return "home".equals(currentSection)
                 || "mind".equals(currentSection)
                 || "prayerSecrets".equals(currentSection)
@@ -980,10 +995,10 @@ public class MainActivity extends Activity {
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
 
-        // Keep the home chrome complete but visibly slimmer so the dashboard
-        // fits without a residual vertical scroll.
+        // Only the application banner is compacted. Dashboard cards below keep
+        // the approved 1.3.20 geometry.
         LinearLayout.LayoutParams tlp=
-                new LinearLayout.LayoutParams(-1,dp(homeTop?72:68));
+                new LinearLayout.LayoutParams(-1,dp(homeTop?64:72));
         tlp.setMargins(0,0,0,dp(homeTop?4:6));
         LinearLayout host=topHost!=null?topHost:page;
         if(topHost!=null)topHost.removeAllViews();
@@ -991,57 +1006,53 @@ public class MainActivity extends Activity {
 
         ImageView mark=new ImageView(this);
         mark.setImageResource(chromeSectionIcon());
-        mark.setScaleType(
-                chromeUsesArtworkIcon()
-                        ?ImageView.ScaleType.CENTER_CROP
-                        :ImageView.ScaleType.CENTER_INSIDE
-        );
-        int iconPad=chromeUsesArtworkIcon()?0:dp(8);
+        // Exact same presentation as the six dashboard card icons: no crop,
+        // no extra shape wrapped around the artwork.
+        mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int iconPad=chromeUsesDashboardArtwork()?0:dp(8);
         mark.setPadding(iconPad,iconPad,iconPad,iconPad);
-        mark.setBackground(surfaceBg(
-                dark?Color.rgb(45,63,54):Color.rgb(247,242,232),
-                dark?Color.rgb(42,58,50):Color.rgb(252,249,242),
-                15,
-                0));
-        mark.setClipToOutline(true);
-        int iconSize=homeTop?44:46;
+        mark.setBackgroundColor(Color.TRANSPARENT);
+        int iconSize=homeTop?44:52;
         top.addView(mark,new LinearLayout.LayoutParams(dp(iconSize),dp(iconSize)));
 
         LinearLayout titles=new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(7),0,dp(4),0);
-        if(homeTop)titles.setTranslationY(-dp(2));
 
-        TextView title=chromeText(chromeSectionTitle(),homeTop?16.0f:15.7f,ink(),true);
+        TextView title=chromeText(
+                chromeSectionTitle(),
+                homeTop?16.5f:15.8f,
+                ink(),
+                true
+        );
         title.setSingleLine(true);
-        title.setGravity(homeTop?Gravity.BOTTOM:Gravity.CENTER_VERTICAL);
+        title.setGravity(Gravity.BOTTOM|Gravity.LEFT);
         title.setTypeface(Typeface.create("serif",Typeface.BOLD));
         title.setTextScaleX(.96f);
 
-        if(homeTop){
-            titles.addView(title,new LinearLayout.LayoutParams(-1,dp(22)));
+        titles.addView(title,new LinearLayout.LayoutParams(-1,dp(homeTop?23:24)));
 
-            TextView motto=chromeText(
-                    "Поклонение без присутствия сердца —\nкак тело без души.",
-                    8.7f,
-                    muted(),
-                    false
-            );
-            motto.setSingleLine(false);
-            motto.setMaxLines(2);
-            motto.setEllipsize(null);
-            motto.setGravity(Gravity.TOP|Gravity.LEFT);
-            motto.setLineSpacing(0,1.00f);
-            LinearLayout.LayoutParams mottoLp=
-                    new LinearLayout.LayoutParams(-1,dp(27));
-            mottoLp.setMargins(0,dp(1),0,0);
-            titles.addView(motto,mottoLp);
-            top.addView(titles,new LinearLayout.LayoutParams(0,dp(52),1));
-        }else{
-            titles.addView(title,new LinearLayout.LayoutParams(-1,dp(44)));
-            top.addView(titles,new LinearLayout.LayoutParams(0,dp(44),1));
-        }
+        TextView subtitle=chromeText(
+                chromeSectionSubtitle(),
+                homeTop?9.4f:10.1f,
+                muted(),
+                false
+        );
+        subtitle.setSingleLine(false);
+        subtitle.setMaxLines(2);
+        subtitle.setEllipsize(null);
+        subtitle.setGravity(Gravity.TOP|Gravity.LEFT);
+        subtitle.setLineSpacing(0,1.00f);
+        LinearLayout.LayoutParams subtitleLp=
+                new LinearLayout.LayoutParams(-1,dp(homeTop?28:31));
+        subtitleLp.setMargins(0,dp(1),0,0);
+        titles.addView(subtitle,subtitleLp);
+
+        top.addView(
+                titles,
+                new LinearLayout.LayoutParams(0,dp(homeTop?54:58),1)
+        );
 
         top.addView(new Space(this),new LinearLayout.LayoutParams(dp(3),1));
 
@@ -1235,22 +1246,22 @@ public class MainActivity extends Activity {
 
         // Home is intentionally a one-screen dashboard. Scale only its chrome
         // to the available phone height; course/reader typography is untouched.
-        page.setPadding(dp(8),dp(1),dp(8),0);
+        page.setPadding(dp(8),dp(1),dp(8),dp(4));
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         int screenH=getResources().getConfiguration().screenHeightDp;
         final int heroH;
         final int resumeH;
         if(screenH<=700){
-            heroH=170; resumeH=0; homeTileHeightDp=112; homeTileIconDp=46;
+            heroH=180; resumeH=0; homeTileHeightDp=112; homeTileIconDp=46;
             homeTileTitleSp=12.6f; homeTileSubSp=10.0f;
         }else if(screenH<=760){
-            heroH=188; resumeH=0; homeTileHeightDp=120; homeTileIconDp=48;
+            heroH=198; resumeH=0; homeTileHeightDp=120; homeTileIconDp=48;
             homeTileTitleSp=13.0f; homeTileSubSp=10.4f;
         }else{
             // Restore the approved visual scale: icons and typography must not
             // shrink just to force the dashboard into a single viewport.
-            heroH=206; resumeH=0; homeTileHeightDp=128; homeTileIconDp=52;
+            heroH=222; resumeH=0; homeTileHeightDp=128; homeTileIconDp=52;
             homeTileTitleSp=13.4f; homeTileSubSp=10.9f;
         }
 
@@ -1287,14 +1298,14 @@ public class MainActivity extends Activity {
                         Color.TRANSPARENT
                 });
         wash.setBackground(washBg);
-        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(258), -1);
+        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(292), -1);
         wlp.gravity=Gravity.LEFT;
         hero.addView(wash,wlp);
 
         LinearLayout heroText=new LinearLayout(this);
         heroText.setOrientation(LinearLayout.VERTICAL);
         heroText.setGravity(Gravity.TOP);
-        heroText.setPadding(dp(14),dp(10),dp(4),dp(8));
+        heroText.setPadding(dp(16),dp(12),dp(5),dp(10));
 
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
 
@@ -1312,9 +1323,9 @@ public class MainActivity extends Activity {
                 0
         ));
         reminder.setPadding(dp(10),0,dp(10),0);
-        heroText.addView(reminder,new LinearLayout.LayoutParams(-2,dp(25)));
+        heroText.addView(reminder,new LinearLayout.LayoutParams(-2,dp(28)));
 
-        float hadithSp=heroH<=170?16.7f:heroH<=188?18.0f:19.2f;
+        float hadithSp=heroH<=180?17.8f:heroH<=198?19.2f:21.0f;
         TextView hadith=homeText(
                 "«Если сердце\nисправно — исправно\nвсё тело».",
                 hadithSp,
@@ -1326,18 +1337,18 @@ public class MainActivity extends Activity {
         hadith.setLineSpacing(0,1.00f);
         LinearLayout.LayoutParams hadithLp=
                 new LinearLayout.LayoutParams(-1,-2);
-        hadithLp.setMargins(0,dp(6),0,0);
+        hadithLp.setMargins(0,dp(8),0,0);
         heroText.addView(hadith,hadithLp);
 
         TextView hadithSource=homeText(
                 "аль-Бухари, Муслим",
-                heroH<=170?10.2f:11.0f,
+                heroH<=180?10.8f:11.6f,
                 dark?Color.rgb(198,205,201):Color.rgb(103,101,94),
                 false
         );
         LinearLayout.LayoutParams sourceLp=
                 new LinearLayout.LayoutParams(-1,-2);
-        sourceLp.setMargins(0,dp(3),0,0);
+        sourceLp.setMargins(0,dp(5),0,0);
         heroText.addView(hadithSource,sourceLp);
 
         heroText.addView(new Space(this),new LinearLayout.LayoutParams(1,0,1f));
@@ -1424,7 +1435,7 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(dp(222),dp(50));
         heroText.addView(heroResume,hap);
 
-        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(252),-1);
+        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(286),-1);
         htlp.gravity=Gravity.LEFT|Gravity.CENTER_VERTICAL;
         hero.addView(heroText,htlp);
 
@@ -1485,7 +1496,7 @@ public class MainActivity extends Activity {
         qrpLp.setMargins(dp(6),0,0,0);
         quizResume.addView(qrProgress,qrpLp);
 
-        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(52));
+        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(54));
         qrLp.setMargins(0,0,0,dp(2));
         page.addView(quizResume,qrLp);
 
@@ -1510,7 +1521,7 @@ public class MainActivity extends Activity {
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
         LinearLayout.LayoutParams row1lp=new LinearLayout.LayoutParams(-1,-2);
-        row1lp.setMargins(0,dp(6),0,0);
+        row1lp.setMargins(0,dp(7),0,0);
         page.addView(row1,row1lp);
 
         LinearLayout row2=new LinearLayout(this);
@@ -1531,7 +1542,7 @@ public class MainActivity extends Activity {
         row2.addView(f3,r2a);
         row2.addView(f4,r2b);
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
-        row2lp.setMargins(0,dp(6),0,0);
+        row2lp.setMargins(0,dp(7),0,0);
         page.addView(row2,row2lp);
 
         LinearLayout row3=new LinearLayout(this);
@@ -1552,22 +1563,10 @@ public class MainActivity extends Activity {
         row3.addView(f5,r3a);
         row3.addView(f6,r3b);
         LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
-        row3lp.setMargins(0,dp(6),0,0);
+        row3lp.setMargins(0,dp(7),0,0);
         page.addView(row3,row3lp);
 
-        scroll.post(()->{
-            if(!"home".equals(current.type))return;
-            int overflow=page.getMeasuredHeight()-scroll.getHeight();
-            if(overflow>0){
-                ViewGroup.LayoutParams heroLp=hero.getLayoutParams();
-                int maxShrink=dp(18);
-                int shrink=Math.min(overflow,maxShrink);
-                int minHero=dp(screenH<=700?154:screenH<=760?172:190);
-                heroLp.height=Math.max(minHero,heroLp.height-shrink);
-                hero.setLayoutParams(heroLp);
-            }
-            scroll.post(()->scroll.scrollTo(0,0));
-        });
+
 
     }
 
