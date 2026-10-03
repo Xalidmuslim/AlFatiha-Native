@@ -946,7 +946,7 @@ public class MainActivity extends Activity {
     private String chromeSectionSubtitle(){
         switch(currentSection){
             case "mind": return "Слова и глубокий смысл";
-            case "prayerSecrets": return "Действия, слова и состояние сердца";
+            case "prayerSecrets": return "Действия, слова и сердце";
             case "minorShirk": return "Защита единобожия";
             case "quiz": return "Проверка понимания";
             case "review": return "Работа над ошибками";
