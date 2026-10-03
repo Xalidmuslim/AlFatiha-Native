@@ -163,10 +163,7 @@ fun AzkarReaderScreen(
     // even when this Activity stays alive while another section changes theme.
     DisposableEffect(globalUiPreferences) {
         val listener =
-            android.content.SharedPreferences.OnSharedPreferenceChangeListener {
-                    prefs,
-                    key,
-                ->
+            android.content.SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
                 if (key == "dark") {
                     sharedDark = prefs.getBoolean("dark", false)
                 }
