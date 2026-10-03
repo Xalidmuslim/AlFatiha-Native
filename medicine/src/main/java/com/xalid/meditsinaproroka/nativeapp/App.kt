@@ -82,7 +82,7 @@ fun MedicinaApp(book: BookData, store: AppStore) {
         bottomBar = {
             HeartPrayerBottomNav(
                 onHome = { navigateToHeartPrayer(context, "home") },
-                onTools = { navigateToHeartPrayer(context, "menu") },
+                onContents = { root(Route.Book) },
                 onProgress = { navigateToHeartPrayer(context, "progress") },
                 onMenu = { navigateToHeartPrayer(context, "menu") },
             )
@@ -201,7 +201,7 @@ private fun navigateToHeartPrayer(context: android.content.Context, destination:
 @Composable
 private fun HeartPrayerBottomNav(
     onHome: () -> Unit,
-    onTools: () -> Unit,
+    onContents: () -> Unit,
     onProgress: () -> Unit,
     onMenu: () -> Unit,
 ) {
@@ -213,7 +213,7 @@ private fun HeartPrayerBottomNav(
 
     val items = listOf(
         NavItem("Главная", R.drawable.ic_nav_home, onHome),
-        NavItem("Инструменты", R.drawable.ic_nav_contents, onTools),
+        NavItem("Содержание", R.drawable.ic_nav_contents, onContents),
         NavItem("Прогресс", R.drawable.ic_nav_progress, onProgress),
         NavItem("Меню", R.drawable.ic_nav_menu, onMenu),
     )
