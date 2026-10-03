@@ -1651,7 +1651,7 @@ public class MainActivity extends Activity {
     private void renderMinorShirkQuiz(int idx,boolean push){
         JSONArray a=arr("minor_shirk_quiz.json");if(a.length()==0)return;
         if(idx<0||idx>=a.length())idx=0;
-        clear("minorShirkQuiz",String.valueOf(idx),push);currentSection="minorShirk";appTop();
+        clear("minorShirkQuiz",String.valueOf(idx),push);currentSection="quiz";appTop();
         final int currentIdx=idx;
         JSONObject q=a.optJSONObject(idx);if(q==null)return;
 
@@ -1689,7 +1689,7 @@ public class MainActivity extends Activity {
     }
 
     private void renderMinorShirkQuizResult(boolean push){
-        clear("minorShirkQuizResult","",push);currentSection="minorShirk";appTop();
+        clear("minorShirkQuizResult","",push);currentSection="quiz";appTop();
         JSONArray a=arr("minor_shirk_quiz.json");
         int answered=minorShirkSeenCount("minor_shirk_quiz_answered");
         int correct=prefs.getStringSet("minor_shirk_quiz_correct",new HashSet<>()).size();
