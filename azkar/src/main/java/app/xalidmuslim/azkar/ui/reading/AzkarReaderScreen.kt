@@ -513,7 +513,7 @@ fun AzkarReaderScreen(
                     navigateToHeartPrayer(context, "home")
                 },
                 onContents = {
-                    navigateToHeartPrayer(context, "menu")
+                    resolvedUiController.openContents()
                 },
                 onProgress = {
                     navigateToHeartPrayer(context, "progress")
@@ -619,7 +619,7 @@ private fun HeartPrayerBottomNav(
         )
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_contents,
-            label = "Инструменты",
+            label = "Содержание",
             color = colors.muted,
             onClick = onContents,
             modifier = Modifier.weight(1f),
