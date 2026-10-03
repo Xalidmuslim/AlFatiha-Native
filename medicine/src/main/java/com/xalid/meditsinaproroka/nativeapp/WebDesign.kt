@@ -509,7 +509,7 @@ fun WebHomeScreen(
                         WebChip("Словарь терминов") { navigate(Route.Glossary) }
                         WebChip("Хадисы и источники") { navigate(Route.Hadiths) }
                         WebChip("Мои заметки") { navigate(Route.Notes) }
-                        WebChip("Офлайн-копия") { navigate(Route.Offline) }
+                        WebChip("Чтение без интернета") { navigate(Route.Offline) }
                     }
                 }
             }
