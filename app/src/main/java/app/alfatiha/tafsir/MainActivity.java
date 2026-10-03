@@ -859,7 +859,7 @@ public class MainActivity extends Activity {
         scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         scroll.scrollTo(0,0);
         page.setAlpha(0f); page.setTranslationY(dp(7));
-        page.post(()->page.animate().alpha(1f).translationY(0f).setDuration(155).start());
+        page.post(()->page.animate().alpha(1f).translationY(0f).setDuration(150).start());
     }
 
     private TextView chromeText(String value,float size,int color,boolean bold){
@@ -2040,8 +2040,8 @@ public class MainActivity extends Activity {
             Intent i=new Intent(this,com.xalid.meditsinaproroka.nativeapp.MainActivity.class);
             startActivity(i);
             overridePendingTransition(
-                    android.R.anim.fade_in,
-                    android.R.anim.fade_out
+                    com.xalid.meditsinaproroka.nativeapp.R.anim.section_enter,
+                    com.xalid.meditsinaproroka.nativeapp.R.anim.section_exit
             );
         }catch(Exception e){
             toast("Не удалось открыть «Медицину Пророка ﷺ»");
