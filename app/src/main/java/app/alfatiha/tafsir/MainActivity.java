@@ -967,7 +967,7 @@ public class MainActivity extends Activity {
             case "review":
             case "exam": return R.drawable.home_quiz_mockup;
             case "profile": return R.drawable.ic_nav_progress;
-            case "settings": return R.drawable.ic_nav_menu;
+            case "settings": return R.drawable.heart_prayer_logo_exact;
             case "search": return R.drawable.ic_nav_contents;
             default: return R.drawable.heart_prayer_logo_exact;
         }
@@ -980,7 +980,8 @@ public class MainActivity extends Activity {
                 || "minorShirk".equals(currentSection)
                 || "quiz".equals(currentSection)
                 || "review".equals(currentSection)
-                || "exam".equals(currentSection);
+                || "exam".equals(currentSection)
+                || "settings".equals(currentSection);
     }
 
     private void appTop(){
@@ -1727,48 +1728,1071 @@ public class MainActivity extends Activity {
         renderMinorShirkCourse(Math.max(0,last),true);
     }
 
+    private int minorShirkNextCourseIndex(){
+        JSONArray a=arr("minor_shirk_course.json");
+        if(a.length()==0)return 0;
+        Set<String> seen=prefs.getStringSet(
+                "minor_shirk_course_seen",
+                new HashSet<>()
+        );
+        int last=Math.max(
+                -1,
+                Math.min(
+                        a.length()-1,
+                        prefs.getInt("minor_shirk_last_idx",-1)
+                )
+        );
+        for(int step=1;step<=a.length();step++){
+            int idx=(last+step+a.length())%a.length();
+            if(!seen.contains(String.valueOf(idx)))return idx;
+        }
+        return Math.max(0,last);
+    }
+
+    private boolean isMinorShirkBookmarked(String id){
+        return prefs.getStringSet(
+                "minor_shirk_bookmarks",
+                new HashSet<>()
+        ).contains(id);
+    }
+
+    private int minorShirkBookmarkCount(){
+        return prefs.getStringSet(
+                "minor_shirk_bookmarks",
+                new HashSet<>()
+        ).size();
+    }
+
+    private void toggleMinorShirkBookmark(String id){
+        HashSet<String> set=new HashSet<>(
+                prefs.getStringSet(
+                        "minor_shirk_bookmarks",
+                        new HashSet<>()
+                )
+        );
+        if(!set.add(id))set.remove(id);
+        prefs.edit()
+                .putStringSet("minor_shirk_bookmarks",set)
+                .apply();
+    }
+
+    private LinearLayout minorShirkHubTile(
+            String symbol,
+            String title,
+            String sub,
+            Runnable open){
+
+        LinearLayout tile=homeSurface(
+                dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
+                20,
+                11,
+                1
+        );
+        tile.setGravity(Gravity.TOP);
+        tile.setOnClickListener(v->open.run());
+
+        LinearLayout top=new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView badge=text(
+                symbol,
+                16.2f,
+                dark?Color.rgb(174,206,191):C_SAGE,
+                true
+        );
+        badge.setGravity(Gravity.CENTER);
+        badge.setPadding(0,0,0,0);
+        badge.setBackground(surfaceBg(
+                dark?Color.rgb(47,61,54):Color.rgb(237,244,239),
+                dark?Color.rgb(43,56,50):Color.rgb(241,247,243),
+                12,
+                0
+        ));
+        top.addView(
+                badge,
+                new LinearLayout.LayoutParams(dp(36),dp(36))
+        );
+
+        top.addView(
+                new Space(this),
+                new LinearLayout.LayoutParams(0,1,1)
+        );
+
+        TextView arrow=text("›",21,ink(),false);
+        arrow.setGravity(Gravity.CENTER);
+        arrow.setPadding(0,0,0,0);
+        top.addView(
+                arrow,
+                new LinearLayout.LayoutParams(dp(28),dp(36))
+        );
+        tile.addView(top,new LinearLayout.LayoutParams(-1,dp(38)));
+
+        tile.addView(
+                new Space(this),
+                new LinearLayout.LayoutParams(1,0,1)
+        );
+
+        TextView titleView=text(title,16.4f,ink(),true);
+        titleView.setMaxLines(2);
+        titleView.setEllipsize(null);
+        titleView.setPadding(0,0,0,0);
+        tile.addView(titleView,new LinearLayout.LayoutParams(-1,-2));
+
+        TextView subView=text(sub,11.7f,muted(),false);
+        subView.setMaxLines(2);
+        subView.setEllipsize(null);
+        subView.setPadding(0,dp(2),0,0);
+        tile.addView(subView,new LinearLayout.LayoutParams(-1,-2));
+
+        return tile;
+    }
+
+    private LinearLayout minorShirkQuickCard(
+            String title,
+            String sub,
+            String footer,
+            Runnable open){
+
+        LinearLayout c=homeSurface(
+                dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
+                19,
+                12,
+                1
+        );
+        c.setOnClickListener(v->open.run());
+        c.setGravity(Gravity.TOP);
+
+        TextView h=text(title,16.0f,ink(),true);
+        h.setMaxLines(2);
+        h.setEllipsize(null);
+        h.setPadding(0,0,0,0);
+        c.addView(h,new LinearLayout.LayoutParams(-1,-2));
+
+        TextView d=text(sub,11.8f,muted(),false);
+        d.setMaxLines(3);
+        d.setEllipsize(null);
+        d.setPadding(0,dp(5),0,0);
+        c.addView(d,new LinearLayout.LayoutParams(-1,-2));
+
+        c.addView(
+                new Space(this),
+                new LinearLayout.LayoutParams(1,0,1)
+        );
+
+        TextView f=text(footer+"  ›",11.3f,C_SAGE,false);
+        f.setPadding(0,0,0,0);
+        c.addView(f,new LinearLayout.LayoutParams(-1,-2));
+
+        return c;
+    }
+
+    private void addMinorShirkTwoColumnRow(
+            LinearLayout left,
+            LinearLayout right,
+            int heightDp,
+            int topMarginDp){
+
+        LinearLayout row=new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout.LayoutParams l=
+                new LinearLayout.LayoutParams(0,dp(heightDp),1);
+        LinearLayout.LayoutParams rr=
+                new LinearLayout.LayoutParams(0,dp(heightDp),1);
+        rr.setMargins(dp(7),0,0,0);
+
+        row.addView(left,l);
+        row.addView(right,rr);
+
+        LinearLayout.LayoutParams rowLp=
+                new LinearLayout.LayoutParams(-1,dp(heightDp));
+        rowLp.setMargins(0,dp(topMarginDp),0,0);
+        page.addView(row,rowLp);
+    }
+
+    private String minorShirkCourseShareText(JSONObject o){
+        StringBuilder b=new StringBuilder();
+        b.append(o.optString("title"));
+
+        String shortText=o.optString("short");
+        if(!shortText.isEmpty())
+            b.append("\n\nКоротко:\n").append(shortText);
+
+        String understand=o.optString("understand");
+        if(!understand.isEmpty())
+            b.append("\n\nКак понять:\n").append(understand);
+
+        String element=o.optString("element");
+        if(!element.isEmpty())
+            b.append("\n\nГде элемент малого ширка:\n")
+             .append(element);
+
+        String boundary=o.optString("boundary");
+        if(!boundary.isEmpty())
+            b.append("\n\nТонкая граница:\n")
+             .append(boundary);
+
+        String example=o.optString("example");
+        if(!example.isEmpty())
+            b.append("\n\nПример:\n").append(example);
+
+        String deep=o.optString("deep");
+        if(!deep.isEmpty())
+            b.append("\n\nГлубже:\n").append(deep);
+
+        JSONArray sources=o.optJSONArray("sources");
+        if(sources!=null&&sources.length()>0){
+            b.append("\n\nИсточники:");
+            for(int i=0;i<sources.length();i++)
+                b.append("\n• ").append(sources.optString(i));
+        }
+        return b.toString().trim();
+    }
+
+    private String minorShirkDailyShareText(JSONObject o){
+        StringBuilder b=new StringBuilder();
+        b.append(o.optString("title"));
+
+        String caseText=o.optString("case");
+        if(!caseText.isEmpty())
+            b.append("\n\nСитуация:\n").append(caseText);
+
+        String verdict=o.optString("verdict");
+        if(!verdict.isEmpty())
+            b.append("\n\nИтог:\n").append(verdict);
+
+        String inner=o.optString("inner");
+        if(!inner.isEmpty())
+            b.append("\n\nЧто происходит в сердце:\n")
+             .append(inner);
+
+        String element=o.optString("element");
+        if(!element.isEmpty())
+            b.append("\n\nГде элемент малого ширка:\n")
+             .append(element);
+
+        String boundary=o.optString("boundary");
+        if(!boundary.isEmpty())
+            b.append("\n\nТонкая граница:\n")
+             .append(boundary);
+
+        String correct=o.optString("correct");
+        if(!correct.isEmpty())
+            b.append("\n\nПравильное состояние сердца:\n")
+             .append(correct);
+
+        String source=o.optString("source");
+        if(!source.isEmpty())
+            b.append("\n\nИсточник и основание:\n")
+             .append(source);
+
+        return b.toString().trim();
+    }
+
+    private LinearLayout minorShirkDetailActions(
+            String saveId,
+            String content){
+
+        LinearLayout row=new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        Button save=tinyAction(
+                isMinorShirkBookmarked(saveId)
+                        ?"★ Сохранено"
+                        :"☆ Сохранить"
+        );
+        save.setOnClickListener(v->{
+            toggleMinorShirkBookmark(saveId);
+            save.setText(
+                    isMinorShirkBookmarked(saveId)
+                            ?"★ Сохранено"
+                            :"☆ Сохранить"
+            );
+        });
+
+        Button copy=tinyAction("⧉ Копировать");
+        copy.setOnClickListener(v->copyContent(content));
+
+        Button share=tinyAction("↗ Поделиться");
+        share.setOnClickListener(v->shareContent(content));
+
+        addActionCell(row,save,true);
+        addActionCell(row,copy,false);
+        addActionCell(row,share,false);
+
+        return row;
+    }
+
     private void renderMinorShirkHub(boolean push){
-        clearActiveFlow();clear("minorShirkHub","",push);currentSection="minorShirk";appTop();
+        clearActiveFlow();
+        clear("minorShirkHub","",push);
+        currentSection="minorShirk";
+        appTop();
+
+        JSONArray course=arr("minor_shirk_course.json");
+        JSONArray daily=arr("minor_shirk_daily.json");
+        JSONArray quiz=arr("minor_shirk_quiz.json");
+
+        header(
+                "Малый ширк",
+                "Практический курс о защите единобожия: намерение, причины, упование, страх, надежда и состояние сердца."
+        );
+
+        int courseSeen=minorShirkSeenCount(
+                "minor_shirk_course_seen"
+        );
+        int courseTotal=Math.max(1,course.length());
+        int courseLeft=Math.max(0,courseTotal-courseSeen);
+        int coursePct=Math.min(
+                100,
+                courseSeen*100/courseTotal
+        );
+        int nextIndex=minorShirkNextCourseIndex();
+        JSONObject nextTopic=course.optJSONObject(nextIndex);
+
+        LinearLayout resume=homeSurface(
+                dark?Color.rgb(42,55,49):Color.rgb(238,246,242),
+                22,
+                14,
+                2
+        );
+        LinearLayout.LayoutParams resumeLp=
+                new LinearLayout.LayoutParams(-1,dp(174));
+        resumeLp.setMargins(0,dp(4),0,dp(8));
+        page.addView(resume,resumeLp);
+
+        TextView resumeTag=kicker(
+                "ПРОДОЛЖИТЬ ИЗУЧЕНИЕ",
+                C_SAGE
+        );
+        resume.addView(
+                resumeTag,
+                new LinearLayout.LayoutParams(-2,-2)
+        );
+
+        TextView resumeTitle=text(
+                courseSeen==0
+                        ?"Начать курс"
+                        :"Продолжить: "+
+                          shortText(
+                                  nextTopic==null
+                                          ?"следующая тема"
+                                          :nextTopic.optString("title"),
+                                  58
+                          ),
+                18.2f,
+                ink(),
+                true
+        );
+        resumeTitle.setMaxLines(2);
+        resumeTitle.setEllipsize(null);
+        resumeTitle.setPadding(0,dp(7),0,0);
+        resume.addView(
+                resumeTitle,
+                new LinearLayout.LayoutParams(-1,-2)
+        );
+
+        TextView status=text(
+                "Пройдено "+courseSeen+" из "+courseTotal+
+                " · осталось "+courseLeft,
+                12.4f,
+                muted(),
+                false
+        );
+        status.setPadding(0,dp(4),0,0);
+        resume.addView(status);
+
+        LinearLayout.LayoutParams progressLp=
+                new LinearLayout.LayoutParams(-1,dp(6));
+        progressLp.setMargins(0,dp(7),0,0);
+        resume.addView(
+                progressBar(coursePct,C_SAGE),
+                progressLp
+        );
+
+        Button continueButton=action(
+                courseLeft==0
+                        ?"Повторить курс"
+                        :"Продолжить →",
+                dark?Color.rgb(62,103,85):C_SAGE
+        );
+        continueButton.setTextSize(sz(14.2f));
+        continueButton.setOnClickListener(
+                v->continueMinorShirkCourse()
+        );
+        resume.addView(continueButton);
+        resume.setOnClickListener(
+                v->continueMinorShirkCourse()
+        );
+
+        LinearLayout searchCard=homeSurface(
+                dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
+                18,
+                12,
+                1
+        );
+        searchCard.setOrientation(LinearLayout.HORIZONTAL);
+        searchCard.setGravity(Gravity.CENTER_VERTICAL);
+        searchCard.setOnClickListener(
+                v->renderMinorShirkSearch(true)
+        );
+
+        TextView searchIcon=text("⌕",24,ink(),false);
+        searchIcon.setGravity(Gravity.CENTER);
+        searchIcon.setPadding(0,0,0,0);
+        searchCard.addView(
+                searchIcon,
+                new LinearLayout.LayoutParams(dp(38),dp(38))
+        );
+
+        TextView searchText=text(
+                "Поиск по всему разделу",
+                15.0f,
+                ink(),
+                false
+        );
+        searchText.setPadding(dp(4),0,0,0);
+        searchCard.addView(
+                searchText,
+                new LinearLayout.LayoutParams(0,-2,1)
+        );
+
+        TextView searchArrow=text("›",23,ink(),false);
+        searchArrow.setGravity(Gravity.CENTER);
+        searchArrow.setPadding(0,0,0,0);
+        searchCard.addView(
+                searchArrow,
+                new LinearLayout.LayoutParams(dp(34),dp(38))
+        );
+
+        LinearLayout.LayoutParams searchLp=
+                new LinearLayout.LayoutParams(-1,dp(58));
+        searchLp.setMargins(0,0,0,dp(7));
+        page.addView(searchCard,searchLp);
+
+        LinearLayout courseTile=minorShirkHubTile(
+                "▤",
+                "Читать курс",
+                course.length()+" тем",
+                ()->renderMinorShirkCourseList(true)
+        );
+        LinearLayout dailyTile=minorShirkHubTile(
+                "▦",
+                "Ситуации",
+                daily.length()+" кейсов",
+                ()->renderMinorShirkDailyList(true)
+        );
+        addMinorShirkTwoColumnRow(
+                courseTile,
+                dailyTile,
+                118,
+                0
+        );
+
+        LinearLayout quizTile=minorShirkHubTile(
+                "✓",
+                "Проверка",
+                quiz.length()+" вопросов",
+                this::continueMinorShirkQuiz
+        );
+        LinearLayout savedTile=minorShirkHubTile(
+                "★",
+                "Закладки",
+                minorShirkBookmarkCount()+" сохранено",
+                ()->renderMinorShirkSaved(true)
+        );
+        addMinorShirkTwoColumnRow(
+                quizTile,
+                savedTile,
+                118,
+                7
+        );
+
+        LinearLayout quickHead=new LinearLayout(this);
+        quickHead.setOrientation(LinearLayout.HORIZONTAL);
+        quickHead.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView quickTitle=text(
+                "Быстрые подборки",
+                18.8f,
+                ink(),
+                true
+        );
+        quickTitle.setPadding(0,0,0,0);
+        quickHead.addView(
+                quickTitle,
+                new LinearLayout.LayoutParams(0,dp(34),1)
+        );
+
+        TextView all=text("Все",12.6f,C_SAGE,false);
+        all.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
+        all.setPadding(dp(8),0,0,0);
+        all.setOnClickListener(
+                v->renderMinorShirkCourseList(true)
+        );
+        quickHead.addView(
+                all,
+                new LinearLayout.LayoutParams(dp(54),dp(34))
+        );
+
+        LinearLayout.LayoutParams quickHeadLp=
+                new LinearLayout.LayoutParams(-1,dp(34));
+        quickHeadLp.setMargins(0,dp(18),0,dp(5));
+        page.addView(quickHead,quickHeadLp);
+
+        LinearLayout q1=minorShirkQuickCard(
+                "Упование и причины",
+                "Лекарства, деньги, люди и средства.",
+                "Подборка",
+                ()->renderMinorShirkCollection("causes",true)
+        );
+        LinearLayout q2=minorShirkQuickCard(
+                "Рия и намерение",
+                "Показуха, похвала и скрытая цель.",
+                "Подборка",
+                ()->renderMinorShirkCollection("riya",true)
+        );
+        addMinorShirkTwoColumnRow(q1,q2,144,0);
+
+        LinearLayout q3=minorShirkQuickCard(
+                "Страх и надежда",
+                "Что сердце ждёт от созданного.",
+                "Подборка",
+                ()->renderMinorShirkCollection("heart",true)
+        );
+        LinearLayout q4=minorShirkQuickCard(
+                "Кадар и «если бы»",
+                "Недовольство, время и потерянное.",
+                "Подборка",
+                ()->renderMinorShirkCollection("qadar",true)
+        );
+        addMinorShirkTwoColumnRow(q3,q4,144,7);
+
+        TextView moreTitle=text(
+                "Продолжить изучение",
+                18.8f,
+                ink(),
+                true
+        );
+        moreTitle.setPadding(0,0,0,0);
+        LinearLayout.LayoutParams moreTitleLp=
+                new LinearLayout.LayoutParams(-1,dp(34));
+        moreTitleLp.setMargins(0,dp(18),0,dp(7));
+        page.addView(moreTitle,moreTitleLp);
+
+        HorizontalScrollView chipsScroll=
+                new HorizontalScrollView(this);
+        chipsScroll.setHorizontalScrollBarEnabled(false);
+        chipsScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+
+        LinearLayout chips=new LinearLayout(this);
+        chips.setOrientation(LinearLayout.HORIZONTAL);
+        chips.setPadding(0,0,dp(6),0);
+
+        String[] labels={
+                "Тонкие границы",
+                "Реальные ситуации",
+                "Мои закладки"
+        };
+        Runnable[] opens={
+                ()->renderMinorShirkCollection("boundaries",true),
+                ()->renderMinorShirkDailyList(true),
+                ()->renderMinorShirkSaved(true)
+        };
+
+        for(int i=0;i<labels.length;i++){
+            Button chip=outline(labels[i]);
+            chip.setTextSize(sz(12.2f));
+            chip.setSingleLine(true);
+            final Runnable open=opens[i];
+            chip.setOnClickListener(v->open.run());
+
+            LinearLayout.LayoutParams chipLp=
+                    new LinearLayout.LayoutParams(-2,dp(44));
+            if(i>0)chipLp.setMargins(dp(7),0,0,0);
+            chips.addView(chip,chipLp);
+        }
+
+        chipsScroll.addView(
+                chips,
+                new HorizontalScrollView.LayoutParams(-2,dp(44))
+        );
+
+        LinearLayout.LayoutParams chipsLp=
+                new LinearLayout.LayoutParams(-1,dp(44));
+        chipsLp.setMargins(0,0,0,dp(12));
+        page.addView(chipsScroll,chipsLp);
+    }
+
+    private boolean minorShirkMatches(
+            JSONObject o,
+            boolean daily,
+            String[] keywords){
+
+        StringBuilder b=new StringBuilder();
+        b.append(o.optString("title")).append(' ');
+        if(daily){
+            b.append(o.optString("case")).append(' ')
+             .append(o.optString("verdict")).append(' ')
+             .append(o.optString("inner")).append(' ')
+             .append(o.optString("element")).append(' ')
+             .append(o.optString("boundary")).append(' ')
+             .append(o.optString("correct"));
+        }else{
+            b.append(o.optString("short")).append(' ')
+             .append(o.optString("understand")).append(' ')
+             .append(o.optString("element")).append(' ')
+             .append(o.optString("boundary")).append(' ')
+             .append(o.optString("example")).append(' ')
+             .append(o.optString("deep"));
+        }
+
+        String hay=b.toString().toLowerCase(Locale.ROOT);
+        for(String keyword:keywords){
+            if(hay.contains(keyword.toLowerCase(Locale.ROOT)))
+                return true;
+        }
+        return false;
+    }
+
+    private String[] minorShirkCollectionKeywords(String key){
+        switch(key){
+            case "causes":
+                return new String[]{
+                        "причин","лекар","деньг","долг",
+                        "средств","амулет","помощ"
+                };
+            case "riya":
+                return new String[]{
+                        "рия","показух","похвал",
+                        "намерен","сум‘а","людей"
+                };
+            case "heart":
+                return new String[]{
+                        "страх","надежд","упован",
+                        "сердц","человек"
+                };
+            case "qadar":
+                return new String[]{
+                        "кадар","предопредел","если бы",
+                        "время","недоволь","потер"
+                };
+            case "boundaries":
+            default:
+                return new String[]{
+                        "границ","тонк","не является",
+                        "не становится","отлич"
+                };
+        }
+    }
+
+    private String minorShirkCollectionTitle(String key){
+        switch(key){
+            case "causes": return "Упование и причины";
+            case "riya": return "Рия и намерение";
+            case "heart": return "Страх и надежда";
+            case "qadar": return "Кадар и «если бы»";
+            default: return "Тонкие границы";
+        }
+    }
+
+    private void renderMinorShirkCollection(
+            String key,
+            boolean push){
+
+        clear(
+                "minorShirkCollection",
+                key,
+                push
+        );
+        currentSection="minorShirk";
+        appTop();
+
+        header(
+                minorShirkCollectionTitle(key),
+                "Подборка материалов из курса и повседневных ситуаций."
+        );
+
+        String[] keywords=
+                minorShirkCollectionKeywords(key);
         JSONArray course=arr("minor_shirk_course.json");
         JSONArray daily=arr("minor_shirk_daily.json");
 
-        header("Малый ширк","Практический курс о защите единобожия: намерение, причины, упование, страх, надежда и состояние сердца.");
+        int added=0;
 
-        int courseSeen=minorShirkSeenCount("minor_shirk_course_seen");
-        int courseTotal=Math.max(1,course.length());
-        int courseLeft=Math.max(0,courseTotal-courseSeen);
-        LinearLayout resumeCard=card(sageSoft());
-        resumeCard.addView(kicker("ПРОДОЛЖИТЬ",C_SAGE));
-        resumeCard.addView(text(courseSeen==0?"Начать курс":"Продолжить курс",19,ink(),true));
-        resumeCard.addView(text("Пройдено "+courseSeen+" из "+courseTotal+" · осталось "+courseLeft,13.5f,muted(),false));
-        resumeCard.addView(progressBar(Math.min(100,courseSeen*100/courseTotal),C_SAGE),new LinearLayout.LayoutParams(-1,dp(9)));
-        Button continueCourse=action(courseLeft==0?"Повторить курс":"Продолжить",C_SAGE);
-        continueCourse.setOnClickListener(v->continueMinorShirkCourse());
-        resumeCard.addView(continueCourse);
-        resumeCard.setOnClickListener(v->continueMinorShirkCourse());
+        for(int i=0;i<course.length();i++){
+            JSONObject o=course.optJSONObject(i);
+            if(o==null||!minorShirkMatches(
+                    o,
+                    false,
+                    keywords
+            ))continue;
 
-        LinearLayout courseCard=card(sageSoft());
-        courseCard.addView(kicker("КУРС",C_SAGE));
-        courseCard.addView(text("Основы и тонкие границы",20.5f,ink(),true));
-        courseCard.addView(text(course.length()+" тем · пройдено "+minorShirkSeenCount("minor_shirk_course_seen")+"/"+course.length(),13.8f,muted(),false));
-        Button cb=action("Открыть курс",C_SAGE);
-        cb.setOnClickListener(v->renderMinorShirkCourseList(true));
-        courseCard.addView(cb);
-        courseCard.setOnClickListener(v->renderMinorShirkCourseList(true));
+            final int idx=i;
+            LinearLayout c=card(panel());
+            c.addView(kicker("ТЕМА "+(i+1),C_SAGE));
 
-        LinearLayout dailyCard=card(blueSoft());
-        dailyCard.addView(kicker("ПОВСЕДНЕВНАЯ ЖИЗНЬ",C_BLUE));
-        dailyCard.addView(text("Разбор реальных ситуаций",20.5f,ink(),true));
-        dailyCard.addView(text(daily.length()+" кейсов · сердце, причина, опасная грань и правильное состояние",13.8f,muted(),false));
-        Button db=action("Открыть кейсы",C_BLUE);
-        db.setOnClickListener(v->renderMinorShirkDailyList(true));
-        dailyCard.addView(db);
-        dailyCard.setOnClickListener(v->renderMinorShirkDailyList(true));
+            TextView h=text(
+                    o.optString("title"),
+                    17.2f,
+                    ink(),
+                    true
+            );
+            h.setMaxLines(3);
+            h.setEllipsize(null);
+            c.addView(h);
 
-        LinearLayout note=card(sandSoft());
-        note.addView(kicker("ВАЖНАЯ ГРАНИЦА",Color.rgb(145,104,42)));
-        note.addView(text("Не каждый грех автоматически называется малым ширком.",16.5f,ink(),true));
-        note.addView(text("В курсе отдельно разбирается внешний поступок и конкретный механизм сердца. Общая классификация действия не переносится автоматически на конкретного человека.",13.5f,muted(),false));
+            c.addView(text(
+                    o.optString("short"),
+                    12.8f,
+                    muted(),
+                    false
+            ));
+            c.setOnClickListener(
+                    v->renderMinorShirkCourse(idx,true)
+            );
+            added++;
+        }
+
+        for(int i=0;i<daily.length();i++){
+            JSONObject o=daily.optJSONObject(i);
+            if(o==null||!minorShirkMatches(
+                    o,
+                    true,
+                    keywords
+            ))continue;
+
+            final int idx=i;
+            LinearLayout c=card(
+                    dark?Color.rgb(42,49,46):blueSoft()
+            );
+            c.addView(kicker("СИТУАЦИЯ "+(i+1),C_BLUE));
+
+            TextView h=text(
+                    o.optString("title"),
+                    17.2f,
+                    ink(),
+                    true
+            );
+            h.setMaxLines(3);
+            h.setEllipsize(null);
+            c.addView(h);
+
+            c.addView(text(
+                    shortText(o.optString("case"),145),
+                    12.8f,
+                    muted(),
+                    false
+            ));
+            c.setOnClickListener(
+                    v->renderMinorShirkDaily(idx,true)
+            );
+            added++;
+        }
+
+        if(added==0){
+            LinearLayout empty=card(panel());
+            empty.addView(text(
+                    "В этой подборке пока нет материалов.",
+                    14.2f,
+                    muted(),
+                    false
+            ));
+        }
+    }
+
+    private void populateMinorShirkSearchResults(
+            LinearLayout results,
+            String query){
+
+        results.removeAllViews();
+        String q=query==null
+                ?""
+                :query.trim().toLowerCase(Locale.ROOT);
+
+        if(q.length()<2){
+            TextView hint=text(
+                    "Введите хотя бы 2 буквы. Поиск идёт по темам курса и реальным ситуациям.",
+                    13.0f,
+                    muted(),
+                    false
+            );
+            hint.setPadding(0,dp(10),0,dp(8));
+            results.addView(hint);
+            return;
+        }
+
+        JSONArray course=arr("minor_shirk_course.json");
+        JSONArray daily=arr("minor_shirk_daily.json");
+        int count=0;
+
+        for(int i=0;i<course.length();i++){
+            JSONObject o=course.optJSONObject(i);
+            if(o==null)continue;
+
+            String hay=(
+                    o.optString("title")+" "+
+                    o.optString("short")+" "+
+                    o.optString("understand")+" "+
+                    o.optString("element")+" "+
+                    o.optString("boundary")
+            ).toLowerCase(Locale.ROOT);
+
+            if(!hay.contains(q))continue;
+
+            final int idx=i;
+            LinearLayout c=homeSurface(
+                    dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
+                    18,
+                    12,
+                    1
+            );
+            c.addView(kicker("КУРС",C_SAGE));
+
+            TextView h=text(
+                    o.optString("title"),
+                    16.4f,
+                    ink(),
+                    true
+            );
+            h.setMaxLines(3);
+            h.setEllipsize(null);
+            c.addView(h);
+
+            TextView d=text(
+                    shortText(o.optString("short"),130),
+                    12.5f,
+                    muted(),
+                    false
+            );
+            c.addView(d);
+
+            c.setOnClickListener(
+                    v->renderMinorShirkCourse(idx,true)
+            );
+
+            LinearLayout.LayoutParams lp=
+                    new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(0,dp(5),0,dp(5));
+            results.addView(c,lp);
+            count++;
+        }
+
+        for(int i=0;i<daily.length();i++){
+            JSONObject o=daily.optJSONObject(i);
+            if(o==null)continue;
+
+            String hay=(
+                    o.optString("title")+" "+
+                    o.optString("case")+" "+
+                    o.optString("verdict")+" "+
+                    o.optString("inner")+" "+
+                    o.optString("boundary")+" "+
+                    o.optString("correct")
+            ).toLowerCase(Locale.ROOT);
+
+            if(!hay.contains(q))continue;
+
+            final int idx=i;
+            LinearLayout c=homeSurface(
+                    dark?Color.rgb(42,49,46):Color.rgb(247,249,248),
+                    18,
+                    12,
+                    1
+            );
+            c.addView(kicker("СИТУАЦИЯ",C_BLUE));
+
+            TextView h=text(
+                    o.optString("title"),
+                    16.4f,
+                    ink(),
+                    true
+            );
+            h.setMaxLines(3);
+            h.setEllipsize(null);
+            c.addView(h);
+
+            TextView d=text(
+                    shortText(o.optString("case"),130),
+                    12.5f,
+                    muted(),
+                    false
+            );
+            c.addView(d);
+
+            c.setOnClickListener(
+                    v->renderMinorShirkDaily(idx,true)
+            );
+
+            LinearLayout.LayoutParams lp=
+                    new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(0,dp(5),0,dp(5));
+            results.addView(c,lp);
+            count++;
+        }
+
+        if(count==0){
+            TextView empty=text(
+                    "Ничего не найдено.",
+                    13.2f,
+                    muted(),
+                    false
+            );
+            empty.setPadding(0,dp(14),0,dp(10));
+            results.addView(empty);
+        }
+    }
+
+    private void renderMinorShirkSearch(boolean push){
+        clear(
+                "minorShirkSearch",
+                "",
+                push
+        );
+        currentSection="minorShirk";
+        appTop();
+
+        header(
+                "Поиск",
+                "Поиск по курсу, тонким границам и реальным ситуациям."
+        );
+
+        EditText input=new EditText(this);
+        input.setHint("Например: лекарство, рия, страх…");
+        input.setSingleLine(true);
+        input.setTextSize(sz(14.2f));
+        input.setTextColor(ink());
+        input.setHintTextColor(muted());
+        input.setPadding(dp(14),0,dp(14),0);
+        input.setBackground(surfaceBg(
+                dark?Color.rgb(43,50,46):Color.rgb(251,249,244),
+                dark?Color.rgb(39,46,42):Color.rgb(247,244,237),
+                18,
+                line()
+        ));
+
+        LinearLayout.LayoutParams inputLp=
+                new LinearLayout.LayoutParams(-1,dp(56));
+        inputLp.setMargins(0,0,0,dp(6));
+        page.addView(input,inputLp);
+
+        LinearLayout results=new LinearLayout(this);
+        results.setOrientation(LinearLayout.VERTICAL);
+        page.addView(
+                results,
+                new LinearLayout.LayoutParams(-1,-2)
+        );
+
+        populateMinorShirkSearchResults(results,"");
+
+        input.addTextChangedListener(
+                new android.text.TextWatcher(){
+                    @Override public void beforeTextChanged(
+                            CharSequence s,
+                            int start,
+                            int count,
+                            int after){}
+
+                    @Override public void onTextChanged(
+                            CharSequence value,
+                            int start,
+                            int before,
+                            int count){
+                        populateMinorShirkSearchResults(
+                                results,
+                                value==null?"":value.toString()
+                        );
+                    }
+
+                    @Override public void afterTextChanged(
+                            android.text.Editable e){}
+                }
+        );
+    }
+
+    private void renderMinorShirkSaved(boolean push){
+        clear(
+                "minorShirkSaved",
+                "",
+                push
+        );
+        currentSection="minorShirk";
+        appTop();
+
+        header(
+                "Закладки",
+                "Сохранённые темы курса и реальные ситуации."
+        );
+
+        Set<String> saved=prefs.getStringSet(
+                "minor_shirk_bookmarks",
+                new HashSet<>()
+        );
+        if(saved.isEmpty()){
+            LinearLayout empty=card(panel());
+            empty.addView(text(
+                    "Пока ничего не сохранено.",
+                    16.0f,
+                    ink(),
+                    true
+            ));
+            empty.addView(text(
+                    "Откройте тему или ситуацию и нажмите «Сохранить».",
+                    13.0f,
+                    muted(),
+                    false
+            ));
+            return;
+        }
+
+        JSONArray course=arr("minor_shirk_course.json");
+        JSONArray daily=arr("minor_shirk_daily.json");
+
+        for(String id:saved){
+            if(id.startsWith("course:")){
+                int idx=parseInt(id.substring(7));
+                JSONObject o=course.optJSONObject(idx);
+                if(o==null)continue;
+
+                LinearLayout c=card(panel());
+                c.addView(kicker("КУРС",C_SAGE));
+                c.addView(text(
+                        o.optString("title"),
+                        16.8f,
+                        ink(),
+                        true
+                ));
+                final int openIdx=idx;
+                c.setOnClickListener(
+                        v->renderMinorShirkCourse(
+                                openIdx,
+                                true
+                        )
+                );
+            }else if(id.startsWith("daily:")){
+                int idx=parseInt(id.substring(6));
+                JSONObject o=daily.optJSONObject(idx);
+                if(o==null)continue;
+
+                LinearLayout c=card(blueSoft());
+                c.addView(kicker("СИТУАЦИЯ",C_BLUE));
+                c.addView(text(
+                        o.optString("title"),
+                        16.8f,
+                        ink(),
+                        true
+                ));
+                final int openIdx=idx;
+                c.setOnClickListener(
+                        v->renderMinorShirkDaily(
+                                openIdx,
+                                true
+                        )
+                );
+            }
+        }
     }
 
     private void renderMinorShirkCourseList(boolean push){
@@ -1821,6 +2845,15 @@ public class MainActivity extends Activity {
             LinearLayout sc=card(panel());sc.addView(kicker("ИСТОЧНИКИ",C_BLUE));
             for(int i=0;i<src.length();i++)sc.addView(text("• "+src.optString(i),12.8f,muted(),false));
         }
+
+        LinearLayout courseActions=minorShirkDetailActions(
+                "course:"+idx,
+                minorShirkCourseShareText(o)
+        );
+        LinearLayout.LayoutParams courseActionsLp=
+                new LinearLayout.LayoutParams(-1,dp(46));
+        courseActionsLp.setMargins(0,dp(5),0,dp(9));
+        page.addView(courseActions,courseActionsLp);
 
         LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);
         Button prev=outline("← Предыдущая");prev.setEnabled(idx>0);prev.setAlpha(idx>0?1f:.45f);
@@ -1878,6 +2911,15 @@ public class MainActivity extends Activity {
 
         String source=o.optString("source");
         if(!source.isEmpty())sectionCard("Источник и основание",source,panel(),C_BLUE);
+
+        LinearLayout dailyActions=minorShirkDetailActions(
+                "daily:"+idx,
+                minorShirkDailyShareText(o)
+        );
+        LinearLayout.LayoutParams dailyActionsLp=
+                new LinearLayout.LayoutParams(-1,dp(46));
+        dailyActionsLp.setMargins(0,dp(5),0,dp(9));
+        page.addView(dailyActions,dailyActionsLp);
 
         LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);
         Button prev=outline("← Предыдущий");prev.setEnabled(idx>0);prev.setAlpha(idx>0?1f:.45f);
@@ -5406,7 +6448,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"minorShirkSearch":renderMinorShirkSearch(false);break;case"minorShirkSaved":renderMinorShirkSaved(false);break;case"minorShirkCollection":renderMinorShirkCollection(s.arg,false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
