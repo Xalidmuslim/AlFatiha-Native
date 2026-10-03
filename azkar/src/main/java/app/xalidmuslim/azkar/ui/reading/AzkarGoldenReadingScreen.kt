@@ -508,8 +508,10 @@ internal fun AzkarProgressCard(
 private fun buildProgressLabel(state: AzkarGoldenReadingUiState): AnnotatedString {
     val colors = AzkarThemeValues.colors
     val prefix = if (state.period == AzkarPeriod.Morning) "Утренние" else "Вечерние"
+    val remaining = (state.total - state.completedItems).coerceAtLeast(0)
     return buildAnnotatedString {
-        append("${prefix} азкары ")
+        append(if (remaining > 0) "Продолжить · " else "Выполнено · ")
+        append("${prefix.lowercase()} азкары ")
         pushStyle(
             SpanStyle(
                 color = colors.foreground,
@@ -519,6 +521,7 @@ private fun buildProgressLabel(state: AzkarGoldenReadingUiState): AnnotatedStrin
         )
         append("${state.completedItems} из ${state.total}")
         pop()
+        append(" · осталось $remaining")
     }
 }
 
