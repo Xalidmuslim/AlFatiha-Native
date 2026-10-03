@@ -1012,7 +1012,9 @@ public class MainActivity extends Activity {
         mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
         int iconPad=chromeUsesDashboardArtwork()?0:dp(8);
         mark.setPadding(iconPad,iconPad,iconPad,iconPad);
-        if(homeTop){
+        boolean heartChrome=
+                homeTop || "settings".equals(currentSection);
+        if(heartChrome){
             mark.setBackground(surfaceBg(
                     dark?Color.rgb(45,54,49):Color.rgb(247,242,232),
                     dark?Color.rgb(42,50,46):Color.rgb(251,247,239),
@@ -2059,7 +2061,7 @@ public class MainActivity extends Activity {
                 2
         );
         LinearLayout.LayoutParams resumeLp=
-                new LinearLayout.LayoutParams(-1,dp(174));
+                new LinearLayout.LayoutParams(-1,dp(208));
         resumeLp.setMargins(0,dp(4),0,dp(8));
         page.addView(resume,resumeLp);
 
@@ -2187,7 +2189,7 @@ public class MainActivity extends Activity {
         addMinorShirkTwoColumnRow(
                 courseTile,
                 dailyTile,
-                118,
+                128,
                 0
         );
 
@@ -2206,7 +2208,7 @@ public class MainActivity extends Activity {
         addMinorShirkTwoColumnRow(
                 quizTile,
                 savedTile,
-                118,
+                128,
                 7
         );
 
@@ -2750,7 +2752,11 @@ public class MainActivity extends Activity {
         JSONArray course=arr("minor_shirk_course.json");
         JSONArray daily=arr("minor_shirk_daily.json");
 
-        for(String id:saved){
+        ArrayList<String> savedIds=
+                new ArrayList<>(saved);
+        Collections.sort(savedIds);
+
+        for(String id:savedIds){
             if(id.startsWith("course:")){
                 int idx=parseInt(id.substring(7));
                 JSONObject o=course.optJSONObject(idx);
