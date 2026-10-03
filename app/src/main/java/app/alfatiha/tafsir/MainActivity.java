@@ -222,7 +222,7 @@ public class MainActivity extends Activity {
     private void buildBottom(){
         bottom.removeAllViews();
         navBtn(R.drawable.ic_nav_home,"Главная",C_SAGE,()->renderHome(true));
-        navBtn(R.drawable.ic_nav_contents,"Инструменты",muted(),this::showSectionsDialog);
+        navBtn(R.drawable.ic_nav_contents,"Содержание",muted(),this::openContents);
         navBtn(R.drawable.ic_nav_progress,"Прогресс",muted(),()->renderProfile(true));
         navBtn(R.drawable.ic_nav_menu,"Меню",muted(),this::showSectionsDialog);
     }
@@ -1262,6 +1262,43 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
         row3lp.setMargins(0,dp(6),0,0);
         page.addView(row3,row3lp);
+
+        TextView quickTitle=homeText("Быстрый доступ",14.2f,ink(),true);
+        LinearLayout.LayoutParams qtlp=new LinearLayout.LayoutParams(-1,-2);
+        qtlp.setMargins(dp(2),dp(12),0,dp(5));
+        page.addView(quickTitle,qtlp);
+
+        HorizontalScrollView quickScroll=new HorizontalScrollView(this);
+        quickScroll.setHorizontalScrollBarEnabled(false);
+        quickScroll.setClipToPadding(false);
+        LinearLayout quickRow=new LinearLayout(this);
+        quickRow.setOrientation(LinearLayout.HORIZONTAL);
+        quickRow.addView(homeQuickChip("Повторение",()->renderRepeatHub(true)));
+        quickRow.addView(homeQuickChip("Закладки",()->renderTaskNavigator(5,true)));
+        quickRow.addView(homeQuickChip("История",()->renderExamHistory(true)));
+        quickRow.addView(homeQuickChip("Сохранённое",()->renderSavedMaterials(true)));
+        quickScroll.addView(quickRow,new HorizontalScrollView.LayoutParams(-2,dp(44)));
+        LinearLayout.LayoutParams qslp=new LinearLayout.LayoutParams(-1,dp(44));
+        qslp.setMargins(0,0,0,dp(4));
+        page.addView(quickScroll,qslp);
+    }
+
+    private TextView homeQuickChip(String label,Runnable open){
+        TextView chip=homeText(label,11.4f,ink(),false);
+        chip.setGravity(Gravity.CENTER);
+        chip.setMinWidth(dp(108));
+        chip.setPadding(dp(15),0,dp(15),0);
+        chip.setBackground(surfaceBg(
+                dark?Color.rgb(39,46,42):Color.rgb(249,245,238),
+                dark?Color.rgb(35,42,39):Color.rgb(246,240,231),
+                20,
+                line()
+        ));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,dp(42));
+        lp.setMargins(0,0,dp(7),0);
+        chip.setLayoutParams(lp);
+        chip.setOnClickListener(v->open.run());
+        return chip;
     }
 
     private LinearLayout homeFeature(
@@ -5048,6 +5085,77 @@ public class MainActivity extends Activity {
 
     private void renderMenu(boolean push){
         showSectionsDialog();
+    }
+
+    private void openContents(){
+        if(currentSection.equals("mind")||currentSection.equals("prayerSecrets")||currentSection.equals("minorShirk")||currentSection.equals("quiz")){
+            openSection();
+        }else{
+            showContentsDialog();
+        }
+    }
+
+    private void showContentsDialog(){
+        final Dialog d=new Dialog(this);
+        LinearLayout shell=newSurface(dark?Color.rgb(34,41,37):panel(),28,14,8);
+
+        LinearLayout head=new LinearLayout(this);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(text("Содержание",21,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
+        Button close=outline("×");
+        close.setTextSize(sz(20));
+        close.setMinWidth(0);
+        close.setMinimumWidth(0);
+        head.addView(close,new LinearLayout.LayoutParams(dp(38),dp(38)));
+        shell.addView(head);
+
+        LinearLayout row1=new LinearLayout(this);row1.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout a=sectionDialogCard("Аль-Фатиха","Осознанное чтение","Продолжить курс",C_SAGE);
+        a.setOnClickListener(v->{d.dismiss();renderMindHub(true);});
+        row1.addView(a,new LinearLayout.LayoutParams(0,dp(104),1));
+        LinearLayout b=sectionDialogCard("Тайны молитвы","Слова и состояния","Открыть раздел",Color.rgb(145,104,42));
+        b.setOnClickListener(v->{d.dismiss();renderPrayerSecretsHub(true);});
+        LinearLayout.LayoutParams bLp=new LinearLayout.LayoutParams(0,dp(104),1);bLp.setMargins(dp(7),0,0,0);
+        row1.addView(b,bLp);shell.addView(row1);
+
+        LinearLayout row2=new LinearLayout(this);row2.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout c=sectionDialogCard("Малый ширк","Защита единобожия","Курс и ситуации",C_SAGE);
+        c.setOnClickListener(v->{d.dismiss();renderMinorShirkHub(true);});
+        row2.addView(c,new LinearLayout.LayoutParams(0,dp(104),1));
+        LinearLayout az=sectionDialogCard("Азкары","Утро и вечер","ат-Тарифи",C_BLUE);
+        az.setOnClickListener(v->{d.dismiss();openAzkar();});
+        LinearLayout.LayoutParams azLp=new LinearLayout.LayoutParams(0,dp(104),1);azLp.setMargins(dp(7),0,0,0);
+        row2.addView(az,azLp);
+        LinearLayout.LayoutParams r2p=new LinearLayout.LayoutParams(-1,-2);r2p.setMargins(0,dp(7),0,0);
+        shell.addView(row2,r2p);
+
+        LinearLayout row3=new LinearLayout(this);row3.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout q=sectionDialogCard("Викторины","Проверка понимания","Все режимы",Color.rgb(112,96,134));
+        q.setOnClickListener(v->{d.dismiss();renderQuizCenter(true);});
+        row3.addView(q,new LinearLayout.LayoutParams(0,dp(104),1));
+        LinearLayout m=sectionDialogCard("Медицина Пророка ﷺ","Книга Ибн аль-Каййима","Открыть книгу",C_BLUE);
+        m.setOnClickListener(v->{d.dismiss();openMedicine();});
+        LinearLayout.LayoutParams mLp=new LinearLayout.LayoutParams(0,dp(104),1);mLp.setMargins(dp(7),0,0,0);
+        row3.addView(m,mLp);
+        LinearLayout.LayoutParams r3p=new LinearLayout.LayoutParams(-1,-2);r3p.setMargins(0,dp(7),0,0);
+        shell.addView(row3,r3p);
+
+        close.setOnClickListener(v->d.dismiss());
+        d.setContentView(shell);
+        d.show();
+        Window w=d.getWindow();
+        if(w!=null){
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            w.setDimAmount(.36f);
+            w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            WindowManager.LayoutParams aLp=w.getAttributes();
+            aLp.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;
+            aLp.width=(int)(getResources().getDisplayMetrics().widthPixels*.96f);
+            aLp.height=WindowManager.LayoutParams.WRAP_CONTENT;
+            aLp.y=dp(8);
+            w.setAttributes(aLp);
+        }
     }
 
     private void showSectionsDialog(){
