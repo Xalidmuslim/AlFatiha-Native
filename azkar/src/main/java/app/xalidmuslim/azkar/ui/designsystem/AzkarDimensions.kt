@@ -8,8 +8,8 @@ import androidx.compose.ui.unit.dp
 object AzkarSpacing {
     val shellHorizontal = 10.dp
     val shellBottomBase = 4.dp
-    val topBarHorizontal = 2.dp
-    val topBarVertical = 5.dp
+    val topBarHorizontal = 10.dp
+    val topBarVertical = 8.dp
     val brandGap = 10.dp
     val brandSubtitleTop = 1.dp
     val sourceNoteVertical = 4.dp
@@ -175,7 +175,7 @@ object AzkarElevation {
 
 object AzkarDimensions {
     val shellMaxWidth = 760.dp
-    val topBarMinHeight = 72.dp
+    val topBarMinHeight = 68.dp
     val brandIcon = 52.dp
     val settingsIconButton = 38.dp
     val compactIconButton = 44.dp
