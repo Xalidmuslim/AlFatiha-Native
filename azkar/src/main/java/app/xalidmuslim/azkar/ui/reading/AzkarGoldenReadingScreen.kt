@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -263,6 +264,8 @@ internal fun AzkarHeader(
                     text = "Азкары",
                     style = AzkarThemeValues.typography.brandTitle.copy(
                         color = colors.foreground,
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.SemiBold,
                         fontSize = 16.2.sp,
                         lineHeight = 20.sp,
                     ),
@@ -272,8 +275,10 @@ internal fun AzkarHeader(
                     modifier = Modifier.padding(top = AzkarSpacing.brandSubtitleTop),
                     style = AzkarThemeValues.typography.sourceNote.copy(
                         color = colors.muted,
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Medium,
                         fontSize = 11.sp,
-                        lineHeight = 14.sp,
+                        lineHeight = 15.sp,
                     ),
                 )
             }
