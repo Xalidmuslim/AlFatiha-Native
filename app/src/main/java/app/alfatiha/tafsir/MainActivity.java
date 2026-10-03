@@ -1406,24 +1406,23 @@ public class MainActivity extends Activity {
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=tone;
-        // Exact vertical grid: icon + title zone + subtitle zone + top/bottom padding
-        // always fits the fixed tile height, so nothing clips and all six cards align.
-        int tilePad=homeTileHeightDp<=112?6:homeTileHeightDp<=120?7:8;
-        // One shared baseline grid for every card. The three zones exactly fill
-        // the available height after padding, so titles/descriptions never drift.
-        int titleZoneDp=homeTileHeightDp<=112?29:homeTileHeightDp<=120?31:32;
-        int subZoneDp=homeTileHeightDp<=112?25:homeTileHeightDp<=120?27:28;
         final boolean medicineTile=title!=null && title.startsWith("Медицина");
+
+        int tilePad=homeTileHeightDp<=112?7:homeTileHeightDp<=120?8:9;
         LinearLayout c=homeSurface(cardTone,20,tilePad,1);
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
         c.setElevation(dp(1));
+
         int featureEnd=dark
-                ?blend(cardTone,Color.BLACK,.035f)
-                :blend(cardTone,Color.WHITE,.11f);
-        int featureStroke=dark?Color.rgb(61,70,65):Color.rgb(228,218,204);
+                ?blend(cardTone,Color.BLACK,.028f)
+                :blend(cardTone,Color.WHITE,.085f);
+        int featureStroke=dark
+                ?Color.rgb(59,67,63)
+                :Color.rgb(226,217,204);
         c.setBackground(surfaceBg(cardTone,featureEnd,20,featureStroke));
 
+        // Header row: identical geometry on all six cards.
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
@@ -1433,28 +1432,47 @@ public class MainActivity extends Activity {
         badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
         badge.setPadding(0,0,0,0);
         badge.setBackgroundColor(Color.TRANSPARENT);
-        int iconWidth=dp(homeTileIconDp);
-        int iconHeight=dp(homeTileIconDp);
-        top.addView(badge,new LinearLayout.LayoutParams(iconWidth,iconHeight));
+        top.addView(
+                badge,
+                new LinearLayout.LayoutParams(
+                        dp(homeTileIconDp),
+                        dp(homeTileIconDp)
+                )
+        );
 
-        TextView arrow=homeText("›",20,ink(),false);
+        TextView arrow=homeText("›",19.2f,ink(),false);
         arrow.setGravity(Gravity.CENTER);
         arrow.setBackground(surfaceBg(
-                dark?Color.rgb(45,52,48):Color.rgb(249,245,238),
-                dark?Color.rgb(41,48,44):Color.rgb(245,239,230),
-                19,dark?line():Color.rgb(230,221,208)));
+                dark?Color.rgb(44,51,47):Color.rgb(250,247,241),
+                dark?Color.rgb(41,48,44):Color.rgb(247,242,234),
+                17,
+                dark?line():Color.rgb(229,221,210)
+        ));
         arrow.setElevation(0f);
+
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
-        top.addView(arrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
+        top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(32)));
         c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
-        float titleSp=medicineTile?Math.max(12.0f,homeTileTitleSp-.20f):homeTileTitleSp;
+        // Flexible air belongs between icon row and text, never between title
+        // and subtitle. This keeps all descriptions on one visual baseline.
+        c.addView(new Space(this),new LinearLayout.LayoutParams(1,0,1f));
+
+        LinearLayout textBlock=new LinearLayout(this);
+        textBlock.setOrientation(LinearLayout.VERTICAL);
+        textBlock.setGravity(Gravity.BOTTOM|Gravity.LEFT);
+
+        float titleSp=medicineTile
+                ?Math.max(12.2f,homeTileTitleSp-.10f)
+                :homeTileTitleSp;
         TextView t=homeText(title,titleSp,ink(),true);
+
         if(medicineTile && title!=null && title.contains("ﷺ")){
-            android.text.SpannableString styledTitle=new android.text.SpannableString(title);
+            android.text.SpannableString styledTitle=
+                    new android.text.SpannableString(title);
             int salawatStart=title.indexOf("ﷺ");
             styledTitle.setSpan(
-                    new android.text.style.RelativeSizeSpan(.58f),
+                    new android.text.style.RelativeSizeSpan(.56f),
                     salawatStart,
                     salawatStart+1,
                     android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -1467,27 +1485,33 @@ public class MainActivity extends Activity {
             );
             t.setText(styledTitle);
         }
+
         t.setMinLines(1);
         t.setMaxLines(2);
         t.setEllipsize(null);
-        t.setGravity(Gravity.BOTTOM|Gravity.LEFT);
+        t.setGravity(Gravity.LEFT);
         t.setLineSpacing(0,1.00f);
         t.setPadding(0,0,0,0);
-        c.addView(t,new LinearLayout.LayoutParams(-1,dp(titleZoneDp)));
+        textBlock.addView(t,new LinearLayout.LayoutParams(-1,-2));
 
         TextView st=homeText(sub,homeTileSubSp,muted(),false);
         st.setMinLines(1);
         st.setMaxLines(2);
         st.setEllipsize(null);
-        st.setGravity(Gravity.TOP|Gravity.LEFT);
+        st.setGravity(Gravity.LEFT);
         st.setLineSpacing(0,1.00f);
-        st.setPadding(0,dp(1),0,0);
-        c.addView(st,new LinearLayout.LayoutParams(-1,dp(subZoneDp)));
+        st.setPadding(0,0,0,0);
+
+        LinearLayout.LayoutParams subLp=
+                new LinearLayout.LayoutParams(-1,-2);
+        subLp.setMargins(0,dp(3),0,0);
+        textBlock.addView(st,subLp);
+
+        c.addView(textBlock,new LinearLayout.LayoutParams(-1,-2));
 
         c.setOnClickListener(v->open.run());
         return c;
     }
-
 
     // --- Малый ширк: native integration of preserved v3.4 content ---
 
