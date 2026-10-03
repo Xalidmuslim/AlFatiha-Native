@@ -75,7 +75,7 @@ private fun BookLoadErrorScreen() {
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Встроенные данные книги повреждены или не читаются. Переустановите официальную сборку приложения.",
+                        text = "Не удалось прочитать данные книги. Закройте раздел и попробуйте открыть его снова.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
