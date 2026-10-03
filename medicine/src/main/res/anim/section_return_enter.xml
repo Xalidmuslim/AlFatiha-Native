@@ -2,11 +2,7 @@
 <set xmlns:android="http://schemas.android.com/apk/res/android"
     android:interpolator="@android:interpolator/fast_out_slow_in">
     <alpha
-        android:fromAlpha="0.94"
+        android:fromAlpha="0.98"
         android:toAlpha="1.0"
-        android:duration="210" />
-    <translate
-        android:fromYDelta="-1.0%"
-        android:toYDelta="0%"
-        android:duration="210" />
+        android:duration="170" />
 </set>
