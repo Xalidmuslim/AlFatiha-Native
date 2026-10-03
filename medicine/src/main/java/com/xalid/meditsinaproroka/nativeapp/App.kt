@@ -93,11 +93,11 @@ fun MedicinaApp(book: BookData, store: AppStore) {
             targetState = current,
             transitionSpec = {
                 (
-                    fadeIn(animationSpec = tween(160)) +
-                        scaleIn(initialScale = 0.992f, animationSpec = tween(160))
+                    fadeIn(animationSpec = tween(150)) +
+                        scaleIn(initialScale = 0.992f, animationSpec = tween(150))
                 ).togetherWith(
-                    fadeOut(animationSpec = tween(100)) +
-                        scaleOut(targetScale = 0.996f, animationSpec = tween(100))
+                    fadeOut(animationSpec = tween(150)) +
+                        scaleOut(targetScale = 0.996f, animationSpec = tween(150))
                 ).using(SizeTransform(clip = false))
             },
             label = "sectionTransition",
@@ -195,7 +195,14 @@ private fun navigateToHeartPrayer(context: android.content.Context, destination:
         .putExtra("heart_nav", destination)
         .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     context.startActivity(intent)
-    (context as? Activity)?.finish()
+    (context as? Activity)?.let { activity ->
+        activity.finish()
+        @Suppress("DEPRECATION")
+        activity.overridePendingTransition(
+            R.anim.section_enter,
+            R.anim.section_exit,
+        )
+    }
 }
 
 @Composable
