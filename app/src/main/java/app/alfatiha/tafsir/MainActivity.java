@@ -1158,23 +1158,23 @@ public class MainActivity extends Activity {
 
         // Home is intentionally a one-screen dashboard. Scale only its chrome
         // to the available phone height; course/reader typography is untouched.
-        page.setPadding(dp(8),dp(1),dp(8),dp(4));
+        page.setPadding(dp(8),0,dp(8),dp(2));
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         int screenH=getResources().getConfiguration().screenHeightDp;
         final int heroH;
         final int resumeH;
         if(screenH<=700){
-            heroH=180; resumeH=0; homeTileHeightDp=112; homeTileIconDp=46;
-            homeTileTitleSp=12.6f; homeTileSubSp=9.4f;
+            heroH=164; resumeH=0; homeTileHeightDp=96; homeTileIconDp=40;
+            homeTileTitleSp=12.1f; homeTileSubSp=9.0f;
         }else if(screenH<=760){
-            heroH=198; resumeH=0; homeTileHeightDp=120; homeTileIconDp=48;
-            homeTileTitleSp=13.0f; homeTileSubSp=9.7f;
+            heroH=180; resumeH=0; homeTileHeightDp=104; homeTileIconDp=42;
+            homeTileTitleSp=12.5f; homeTileSubSp=9.3f;
         }else{
-            // The standalone resume card is merged into the hero.
-            // Three compact rows now fit six primary sections.
-            heroH=222; resumeH=0; homeTileHeightDp=128; homeTileIconDp=52;
-            homeTileTitleSp=13.4f; homeTileSubSp=10.0f;
+            // One-screen dashboard: compact hero, compact quiz-resume strip
+            // and three rows of six primary sections without vertical scrolling.
+            heroH=194; resumeH=0; homeTileHeightDp=112; homeTileIconDp=44;
+            homeTileTitleSp=12.9f; homeTileSubSp=9.6f;
         }
 
         int pct=primaryLearningProgress();
@@ -1273,8 +1273,53 @@ public class MainActivity extends Activity {
         hero.addView(heroText,htlp);
 
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(heroH));
-        hp.setMargins(0,0,0,dp(7));
+        hp.setMargins(0,0,0,dp(5));
         page.addView(hero,hp);
+
+        int quizTotal=Math.max(1,lastQuizTotal());
+        int quizDone=Math.min(quizTotal,lastQuizAnswered());
+        int quizPct=Math.min(100,quizDone*100/quizTotal);
+        LinearLayout quizResume=homeSurface(
+                dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
+                18,6,1
+        );
+        quizResume.setOrientation(LinearLayout.HORIZONTAL);
+        quizResume.setGravity(Gravity.CENTER_VERTICAL);
+        quizResume.setOnClickListener(v->continueLastQuiz());
+
+        LinearLayout qrTop=new LinearLayout(this);
+        qrTop.setOrientation(LinearLayout.HORIZONTAL);
+        qrTop.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout qrText=new LinearLayout(this);
+        qrText.setOrientation(LinearLayout.VERTICAL);
+        qrText.addView(homeText("Продолжить викторину",12.3f,ink(),true));
+        qrText.addView(homeText(lastQuizTitle()+" · "+quizDone+" из "+quizTotal,9.3f,muted(),false));
+        qrTop.addView(qrText,new LinearLayout.LayoutParams(0,-2,1));
+        TextView qrArrow=homeText("›",20,ink(),false);
+        qrArrow.setGravity(Gravity.CENTER);
+        qrArrow.setBackground(surfaceBg(
+                dark?Color.rgb(45,52,48):Color.rgb(249,245,238),
+                dark?Color.rgb(41,48,44):Color.rgb(245,239,230),
+                18,dark?line():Color.rgb(230,221,208)));
+        qrTop.addView(qrArrow,new LinearLayout.LayoutParams(dp(30),dp(30)));
+        quizResume.addView(qrTop,new LinearLayout.LayoutParams(0,-1,1));
+
+        LinearLayout qrProgress=new LinearLayout(this);
+        qrProgress.setOrientation(LinearLayout.VERTICAL);
+        qrProgress.setGravity(Gravity.CENTER_VERTICAL);
+        TextView qrPct=homeText(quizPct+"%",9.2f,muted(),false);
+        qrPct.setGravity(Gravity.CENTER);
+        qrProgress.addView(qrPct,new LinearLayout.LayoutParams(dp(38),dp(17)));
+        LinearLayout.LayoutParams qrBarLp=new LinearLayout.LayoutParams(dp(38),dp(4));
+        qrBarLp.setMargins(0,dp(2),0,0);
+        qrProgress.addView(progressBar(quizPct,C_BLUE),qrBarLp);
+        LinearLayout.LayoutParams qrpLp=new LinearLayout.LayoutParams(dp(44),-1);
+        qrpLp.setMargins(dp(6),0,0,0);
+        quizResume.addView(qrProgress,qrpLp);
+
+        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(50));
+        qrLp.setMargins(0,0,0,dp(5));
+        page.addView(quizResume,qrLp);
 
         // Six primary sections. Continue/progress now lives inside the hero.
         int dashboardCard=dark?Color.rgb(40,47,43):Color.rgb(251,247,240);
@@ -1293,7 +1338,7 @@ public class MainActivity extends Activity {
                 dashboardCard,()->renderPrayerSecretsHub(true));
         LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r1b.setMargins(dp(6),0,0,0);
+        r1b.setMargins(dp(5),0,0,0);
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
         page.addView(row1,new LinearLayout.LayoutParams(-1,-2));
@@ -1312,11 +1357,11 @@ public class MainActivity extends Activity {
                 dashboardCard,this::openAzkar);
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r2b.setMargins(dp(6),0,0,0);
+        r2b.setMargins(dp(5),0,0,0);
         row2.addView(f3,r2a);
         row2.addView(f4,r2b);
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
-        row2lp.setMargins(0,dp(6),0,0);
+        row2lp.setMargins(0,dp(5),0,0);
         page.addView(row2,row2lp);
 
         LinearLayout row3=new LinearLayout(this);
@@ -1333,61 +1378,20 @@ public class MainActivity extends Activity {
                 dashboardCard,this::openMedicine);
         LinearLayout.LayoutParams r3a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r3b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r3b.setMargins(dp(6),0,0,0);
+        r3b.setMargins(dp(5),0,0,0);
         row3.addView(f5,r3a);
         row3.addView(f6,r3b);
         LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
-        row3lp.setMargins(0,dp(6),0,0);
+        row3lp.setMargins(0,dp(5),0,0);
         page.addView(row3,row3lp);
 
-        int quizTotal=Math.max(1,lastQuizTotal());
-        int quizDone=Math.min(quizTotal,lastQuizAnswered());
-        int quizPct=Math.min(100,quizDone*100/quizTotal);
-        LinearLayout quizResume=homeSurface(
-                dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
-                20,9,1
-        );
-        quizResume.setOrientation(LinearLayout.VERTICAL);
-        quizResume.setOnClickListener(v->continueLastQuiz());
-
-        LinearLayout qrTop=new LinearLayout(this);
-        qrTop.setOrientation(LinearLayout.HORIZONTAL);
-        qrTop.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout qrText=new LinearLayout(this);
-        qrText.setOrientation(LinearLayout.VERTICAL);
-        qrText.addView(homeText("Продолжить викторину",13.5f,ink(),true));
-        qrText.addView(homeText(lastQuizTitle()+" · "+quizDone+" из "+quizTotal,10.2f,muted(),false));
-        qrTop.addView(qrText,new LinearLayout.LayoutParams(0,-2,1));
-        TextView qrArrow=homeText("›",20,ink(),false);
-        qrArrow.setGravity(Gravity.CENTER);
-        qrArrow.setBackground(surfaceBg(
-                dark?Color.rgb(45,52,48):Color.rgb(249,245,238),
-                dark?Color.rgb(41,48,44):Color.rgb(245,239,230),
-                18,dark?line():Color.rgb(230,221,208)));
-        qrTop.addView(qrArrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
-        quizResume.addView(qrTop);
-
-        LinearLayout qrProgress=new LinearLayout(this);
-        qrProgress.setOrientation(LinearLayout.HORIZONTAL);
-        qrProgress.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams qrBarLp=new LinearLayout.LayoutParams(0,dp(6),1);
-        qrBarLp.setMargins(0,dp(5),dp(8),0);
-        qrProgress.addView(progressBar(quizPct,C_BLUE),qrBarLp);
-        TextView qrPct=homeText(quizPct+"%",9.7f,muted(),false);
-        qrPct.setGravity(Gravity.CENTER);
-        qrProgress.addView(qrPct,new LinearLayout.LayoutParams(dp(36),dp(20)));
-        quizResume.addView(qrProgress);
-
-        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(76));
-        qrLp.setMargins(0,dp(10),0,dp(4));
-        page.addView(quizResume,qrLp);
     }
 
     private LinearLayout homeFeature(
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=tone;
-        LinearLayout c=homeSurface(cardTone,20,8,1);
+        LinearLayout c=homeSurface(cardTone,18,6,1);
         c.setMinimumHeight(dp(homeTileHeightDp));
 
         // Keep the icon + text composition vertically balanced inside the fixed
@@ -1417,20 +1421,20 @@ public class MainActivity extends Activity {
                 19,dark?line():Color.rgb(230,221,208)));
         arrow.setElevation(0f);
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
-        top.addView(arrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
+        top.addView(arrow,new LinearLayout.LayoutParams(dp(30),dp(30)));
         c.addView(top);
 
         TextView t=homeText(title,homeTileTitleSp,ink(),true);
         t.setMaxLines(3);
         t.setEllipsize(null);
         t.setLineSpacing(0,1.00f);
-        t.setPadding(0,dp(3),0,0);
+        t.setPadding(0,dp(2),0,0);
         c.addView(t);
 
         TextView st=homeText(sub,homeTileSubSp,muted(),false);
         st.setMaxLines(2);
         st.setEllipsize(null);
-        st.setLineSpacing(dp(1),1.01f);
+        st.setLineSpacing(0,1.00f);
         st.setPadding(0,0,0,0);
         c.addView(st);
 
