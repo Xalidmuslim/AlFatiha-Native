@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import app.xalidmuslim.azkar.persistence.AzkarDateProvider
 import app.xalidmuslim.azkar.persistence.AzkarPreferencesRepository
+import app.xalidmuslim.azkar.persistence.AzkarPreferencesSnapshot
 import app.xalidmuslim.azkar.persistence.SystemAzkarDateProvider
 import app.xalidmuslim.azkar.content.AzkarPeriod
 import app.xalidmuslim.azkar.ui.designsystem.ArabicFontFamily
@@ -70,6 +71,7 @@ data class AzkarReaderUiState(
 }
 
 class AzkarReaderUiController(
+    initialSnapshot: AzkarPreferencesSnapshot? = null,
     initialSettings: AzkarReaderSettings = AzkarReaderSettings(),
     initialViewMode: AzkarReaderViewMode = AzkarReaderViewMode.Cards,
     private val repository: AzkarPreferencesRepository? = null,
@@ -81,7 +83,16 @@ class AzkarReaderUiController(
     private val persistentVisibleItemIds: Set<String> = visibleItemIds.toSet()
 
     var state by mutableStateOf(
-        AzkarReaderUiState(
+        initialSnapshot?.let { snapshot ->
+            AzkarReaderUiState(
+                settings = snapshot.settings,
+                viewMode = snapshot.viewMode,
+                progressById = snapshot.progressById,
+                lastPeriod = snapshot.lastPeriod,
+                lastItemByPeriod = snapshot.lastItemByPeriod,
+                isHydrated = true,
+            )
+        } ?: AzkarReaderUiState(
             settings = initialSettings,
             viewMode = initialViewMode,
             progressById = if (repository == null) {
