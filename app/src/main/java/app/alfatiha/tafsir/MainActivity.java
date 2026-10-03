@@ -1461,6 +1461,11 @@ public class MainActivity extends Activity {
         LinearLayout textBlock=new LinearLayout(this);
         textBlock.setOrientation(LinearLayout.VERTICAL);
         textBlock.setGravity(Gravity.BOTTOM|Gravity.LEFT);
+        final boolean liftSingleLineTile=
+                "Малый ширк".equals(title)
+                || "Азкары".equals(title)
+                || "Викторины".equals(title);
+        if(liftSingleLineTile)textBlock.setTranslationY(-dp(8));
 
         float titleSp=medicineTile
                 ?Math.max(12.2f,homeTileTitleSp-.10f)
