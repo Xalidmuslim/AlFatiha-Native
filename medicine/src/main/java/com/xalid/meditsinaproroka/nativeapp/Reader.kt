@@ -130,6 +130,7 @@ fun ReaderScreen(
                 items(
                     count = chapter.blocks.size,
                     key = { index -> chapter.blocks[index].id },
+                    contentType = { index -> chapter.blocks[index].type },
                 ) { index ->
                     ReaderBlock(
                         chapter = chapter,
@@ -490,6 +491,7 @@ private fun SelectableNativeText(chapter: Chapter, block: BookBlock, store: AppS
             }
         }
     }
+
     val renderKey = remember(
         block.id,
         settings.fontSizeSp,
@@ -522,8 +524,21 @@ private fun SelectableNativeText(chapter: Chapter, block: BookBlock, store: AppS
                 includeFontPadding = false
                 isVerticalScrollBarEnabled = false
                 overScrollMode = View.OVER_SCROLL_NEVER
+            }
+        },
+        onReset = { tv ->
+            tv.text = ""
+            tv.tag = null
+            tv.customSelectionActionModeCallback = null
+        },
+        update = { tv ->
+            if (tv.tag != renderKey) {
+                tv.setTextColor(textColor)
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, settings.fontSizeSp)
+                tv.setLineSpacing(0f, settings.lineSpacing)
+                tv.typeface = readerTypeface(tv.context, settings.fontFamily)
 
-                customSelectionActionModeCallback = object : ActionMode.Callback {
+                tv.customSelectionActionModeCallback = object : ActionMode.Callback {
                     override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
                         menu?.clear()
                         menu?.add(0, 9101, 0, "Выделить")
@@ -532,31 +547,53 @@ private fun SelectableNativeText(chapter: Chapter, block: BookBlock, store: AppS
                         return true
                     }
 
-                    override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?) = false
+                    override fun onPrepareActionMode(
+                        mode: ActionMode?,
+                        menu: Menu?,
+                    ) = false
 
-                    override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
-                        val start = selectionStart.coerceAtLeast(0)
-                        val end = selectionEnd.coerceAtLeast(0)
+                    override fun onActionItemClicked(
+                        mode: ActionMode?,
+                        item: MenuItem?,
+                    ): Boolean {
+                        val start = tv.selectionStart.coerceAtLeast(0)
+                        val end = tv.selectionEnd.coerceAtLeast(0)
                         if (end <= start) return false
-                        val selected = block.text.substring(start.coerceAtMost(block.text.length), end.coerceAtMost(block.text.length))
+
+                        val selected = block.text.substring(
+                            start.coerceAtMost(block.text.length),
+                            end.coerceAtMost(block.text.length),
+                        )
 
                         return when (item?.itemId) {
                             9101 -> {
-                                store.addHighlight(chapter.id, block.id, start, end)
+                                store.addHighlight(
+                                    chapter.id,
+                                    block.id,
+                                    start,
+                                    end,
+                                )
                                 mode?.finish()
                                 true
                             }
                             9102 -> {
-                                val input = EditText(context).apply {
+                                val input = EditText(tv.context).apply {
                                     hint = "Ваша заметка"
                                     setPadding(28, 18, 28, 18)
                                 }
-                                AlertDialog.Builder(context)
+                                AlertDialog.Builder(tv.context)
                                     .setTitle("Заметка к выделению")
                                     .setMessage("«$selected»")
                                     .setView(input)
                                     .setPositiveButton("Сохранить") { _, _ ->
-                                        store.addNote(chapter.id, block.id, start, end, selected, input.text.toString())
+                                        store.addNote(
+                                            chapter.id,
+                                            block.id,
+                                            start,
+                                            end,
+                                            selected,
+                                            input.text.toString(),
+                                        )
                                     }
                                     .setNegativeButton("Отмена", null)
                                     .show()
@@ -564,7 +601,12 @@ private fun SelectableNativeText(chapter: Chapter, block: BookBlock, store: AppS
                                 true
                             }
                             9103 -> {
-                                store.removeHighlights(chapter.id, block.id, start, end)
+                                store.removeHighlights(
+                                    chapter.id,
+                                    block.id,
+                                    start,
+                                    end,
+                                )
                                 mode?.finish()
                                 true
                             }
@@ -574,18 +616,11 @@ private fun SelectableNativeText(chapter: Chapter, block: BookBlock, store: AppS
 
                     override fun onDestroyActionMode(mode: ActionMode?) = Unit
                 }
-            }
-        },
-        update = { tv ->
-            if (tv.tag != renderKey) {
-                tv.setTextColor(textColor)
-                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, settings.fontSizeSp)
-                tv.setLineSpacing(0f, settings.lineSpacing)
-                tv.typeface = readerTypeface(tv.context, settings.fontFamily)
+
                 tv.text = styledText
                 tv.tag = renderKey
             }
-        }
+        },
     )
 }
 
