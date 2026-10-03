@@ -1,5 +1,7 @@
 package com.xalid.meditsinaproroka.nativeapp
 
+import android.app.Activity
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -38,6 +40,7 @@ private data class MedicineLaunchState(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        configureActivityTransitions()
 
         val appContext = applicationContext
         val launchTheme = if (
@@ -90,6 +93,21 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    private fun configureActivityTransitions() {
+        if (Build.VERSION.SDK_INT >= 34) {
+            overrideActivityTransition(
+                Activity.OVERRIDE_TRANSITION_OPEN,
+                R.anim.section_enter,
+                R.anim.section_exit,
+            )
+            overrideActivityTransition(
+                Activity.OVERRIDE_TRANSITION_CLOSE,
+                R.anim.section_return_enter,
+                R.anim.section_return_exit,
+            )
         }
     }
 
