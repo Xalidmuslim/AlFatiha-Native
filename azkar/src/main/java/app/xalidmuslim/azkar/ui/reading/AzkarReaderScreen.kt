@@ -2,6 +2,7 @@ package app.xalidmuslim.azkar.ui.reading
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
@@ -549,8 +550,13 @@ private fun navigateToHeartPrayer(context: android.content.Context, destination:
     context.startActivity(intent)
     (context as? Activity)?.let { activity ->
         activity.finish()
-        @Suppress("DEPRECATION")
-        activity.overridePendingTransition(R.anim.azkar_enter, R.anim.azkar_exit)
+        if (Build.VERSION.SDK_INT < 34) {
+            @Suppress("DEPRECATION")
+            activity.overridePendingTransition(
+                R.anim.azkar_return_enter,
+                R.anim.azkar_return_exit,
+            )
+        }
     }
 }
 
