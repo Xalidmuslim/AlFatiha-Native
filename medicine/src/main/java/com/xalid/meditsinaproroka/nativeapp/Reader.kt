@@ -388,7 +388,7 @@ private fun ReaderBlock(chapter: Chapter, block: BookBlock, store: AppStore) {
                                     .background(MaterialTheme.colorScheme.secondary)
                             )
                             Text(
-                                "Приложение не присваивает хадису степень достоверности самостоятельно. Для проверенного статуса нужен ручной тахридж по первоисточнику.",
+                                "Степень достоверности хадиса здесь автоматически не присваивается. Для проверенного статуса нужен ручной тахридж по первоисточнику.",
                                 modifier = Modifier.padding(14.dp),
                                 fontFamily = WebSansFont,
                                 fontSize = 12.sp,
