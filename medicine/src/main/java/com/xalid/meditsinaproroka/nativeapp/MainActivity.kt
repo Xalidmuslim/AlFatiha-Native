@@ -27,9 +27,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val bookResult = runCatching {
-            assets.open("book.json").bufferedReader(Charsets.UTF_8).use { parseBook(it.readText()) }
-        }
+        val bookResult = MedicineBookCache.getOrLoad(this)
         bookResult.exceptionOrNull()?.let { error ->
             Log.e(TAG, "Failed to load bundled book.json", error)
         }
