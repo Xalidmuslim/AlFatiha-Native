@@ -1351,11 +1351,11 @@ public class MainActivity extends Activity {
                 dashboardCard,()->renderPrayerSecretsHub(true));
         LinearLayout.LayoutParams r1a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r1b.setMargins(dp(6),0,0,0);
+        r1b.setMargins(dp(7),0,0,0);
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
         LinearLayout.LayoutParams row1lp=new LinearLayout.LayoutParams(-1,-2);
-        row1lp.setMargins(0,dp(8),0,0);
+        row1lp.setMargins(0,dp(7),0,0);
         page.addView(row1,row1lp);
 
         LinearLayout row2=new LinearLayout(this);
@@ -1372,11 +1372,11 @@ public class MainActivity extends Activity {
                 dashboardCard,this::openAzkar);
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r2b.setMargins(dp(6),0,0,0);
+        r2b.setMargins(dp(7),0,0,0);
         row2.addView(f3,r2a);
         row2.addView(f4,r2b);
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
-        row2lp.setMargins(0,dp(6),0,0);
+        row2lp.setMargins(0,dp(7),0,0);
         page.addView(row2,row2lp);
 
         LinearLayout row3=new LinearLayout(this);
@@ -1393,11 +1393,11 @@ public class MainActivity extends Activity {
                 dashboardCard,this::openMedicine);
         LinearLayout.LayoutParams r3a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r3b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
-        r3b.setMargins(dp(6),0,0,0);
+        r3b.setMargins(dp(7),0,0,0);
         row3.addView(f5,r3a);
         row3.addView(f6,r3b);
         LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
-        row3lp.setMargins(0,dp(6),0,0);
+        row3lp.setMargins(0,dp(7),0,0);
         page.addView(row3,row3lp);
 
     }
@@ -1409,26 +1409,20 @@ public class MainActivity extends Activity {
         // Exact vertical grid: icon + title zone + subtitle zone + top/bottom padding
         // always fits the fixed tile height, so nothing clips and all six cards align.
         int tilePad=homeTileHeightDp<=112?6:homeTileHeightDp<=120?7:8;
-        int titleZoneDp=homeTileHeightDp<=112?30:homeTileHeightDp<=120?32:34;
-        int subZoneDp=homeTileHeightDp<=112?24:homeTileHeightDp<=120?26:26;
-        final boolean prayerTile="Тайны молитвы".equals(title);
+        // One shared baseline grid for every card. The three zones exactly fill
+        // the available height after padding, so titles/descriptions never drift.
+        int titleZoneDp=homeTileHeightDp<=112?29:homeTileHeightDp<=120?31:32;
+        int subZoneDp=homeTileHeightDp<=112?25:homeTileHeightDp<=120?27:28;
         final boolean medicineTile=title!=null && title.startsWith("Медицина");
-        if(prayerTile){
-            titleZoneDp-=4;
-            subZoneDp+=4;
-        }else if(medicineTile){
-            titleZoneDp-=1;
-            subZoneDp+=1;
-        }
-        LinearLayout c=homeSurface(cardTone,22,tilePad,2);
+        LinearLayout c=homeSurface(cardTone,20,tilePad,1);
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
-        c.setElevation(dp(2));
+        c.setElevation(dp(1));
         int featureEnd=dark
                 ?blend(cardTone,Color.BLACK,.035f)
                 :blend(cardTone,Color.WHITE,.11f);
         int featureStroke=dark?Color.rgb(61,70,65):Color.rgb(228,218,204);
-        c.setBackground(surfaceBg(cardTone,featureEnd,22,featureStroke));
+        c.setBackground(surfaceBg(cardTone,featureEnd,20,featureStroke));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -1454,7 +1448,7 @@ public class MainActivity extends Activity {
         top.addView(arrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
         c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
-        float titleSp=medicineTile?Math.max(11.8f,homeTileTitleSp-.35f):homeTileTitleSp;
+        float titleSp=medicineTile?Math.max(12.0f,homeTileTitleSp-.20f):homeTileTitleSp;
         TextView t=homeText(title,titleSp,ink(),true);
         if(medicineTile && title!=null && title.contains("ﷺ")){
             android.text.SpannableString styledTitle=new android.text.SpannableString(title);
@@ -1487,8 +1481,7 @@ public class MainActivity extends Activity {
         st.setEllipsize(null);
         st.setGravity(Gravity.TOP|Gravity.LEFT);
         st.setLineSpacing(0,1.00f);
-        st.setPadding(0,0,0,0);
-        if(prayerTile || medicineTile)st.setTranslationY(-dp(2));
+        st.setPadding(0,dp(1),0,0);
         c.addView(st,new LinearLayout.LayoutParams(-1,dp(subZoneDp)));
 
         c.setOnClickListener(v->open.run());
