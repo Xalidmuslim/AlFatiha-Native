@@ -58,8 +58,8 @@ android {
         applicationId 'app.alfatiha.tafsir'
         minSdk 24
         targetSdk 36
-        versionCode 39
-        versionName '1.3.25'
+        versionCode 40
+        versionName '1.3.26'
     }
 
     signingConfigs {
