@@ -222,7 +222,7 @@ public class MainActivity extends Activity {
     private void buildBottom(){
         bottom.removeAllViews();
         navBtn(R.drawable.ic_nav_home,"Главная",C_SAGE,()->renderHome(true));
-        navBtn(R.drawable.ic_nav_contents,"Содержание",muted(),this::openSection);
+        navBtn(R.drawable.ic_nav_contents,"Инструменты",muted(),this::showSectionsDialog);
         navBtn(R.drawable.ic_nav_progress,"Прогресс",muted(),()->renderProfile(true));
         navBtn(R.drawable.ic_nav_menu,"Меню",muted(),this::showSectionsDialog);
     }
@@ -5051,36 +5051,68 @@ public class MainActivity extends Activity {
     }
 
     private void showSectionsDialog(){
-        final Dialog d=new Dialog(this);KnowledgeAnalytics model=analytics();KnowledgeAnalytics.Summary s=model.summary();
+        final Dialog d=new Dialog(this);
+        KnowledgeAnalytics model=analytics();
+
         LinearLayout shell=newSurface(dark?Color.rgb(34,41,37):panel(),28,14,8);
-        LinearLayout head=new LinearLayout(this);head.setOrientation(LinearLayout.HORIZONTAL);head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(text("Разделы",21,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
-        Button close=outline("×");close.setTextSize(sz(20));close.setMinWidth(0);close.setMinimumWidth(0);head.addView(close,new LinearLayout.LayoutParams(dp(38),dp(38)));shell.addView(head);
-
-        LinearLayout course=newSurface(sageSoft(),20,13,2);course.addView(kicker("ИЗУЧЕНИЕ СУРЫ",C_SAGE));course.addView(text("Осознанное чтение",20,ink(),true));course.addView(text(mindCourseResumeLine(),13.5f,C_SAGE,true));
-        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.setMargins(0,dp(8),0,dp(8));shell.addView(course,cp);course.setOnClickListener(v->{d.dismiss();continueMindCourse();});
-
-        LinearLayout prayerCourse=newSurface(sandSoft(),20,13,2);prayerCourse.addView(kicker("ТАЙНЫ МОЛИТВЫ",Color.rgb(145,104,42)));prayerCourse.addView(text("Слова и состояния сердца",20,ink(),true));prayerCourse.addView(text(prayerSecretResumeLine(),13.5f,Color.rgb(145,104,42),true));
-        LinearLayout.LayoutParams pcp=new LinearLayout.LayoutParams(-1,-2);pcp.setMargins(0,0,0,dp(8));shell.addView(prayerCourse,pcp);prayerCourse.setOnClickListener(v->{d.dismiss();continuePrayerSecrets();});
-
-        LinearLayout quizzes=newSurface(blueSoft(),20,13,2);
-        quizzes.addView(kicker("ВИКТОРИНЫ",C_BLUE));
-        quizzes.addView(text("Аль-Фатиха и Тайны молитвы",20,ink(),true));
-        quizzes.addView(text("Выбрать курс и уровень сложности",13.5f,C_BLUE,true));
-        LinearLayout.LayoutParams qcp=new LinearLayout.LayoutParams(-1,-2);qcp.setMargins(0,0,0,dp(8));shell.addView(quizzes,qcp);
-        quizzes.setOnClickListener(v->{d.dismiss();renderQuizCenter(true);});
+        LinearLayout head=new LinearLayout(this);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(text("Инструменты",21,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
+        Button close=outline("×");
+        close.setTextSize(sz(20));
+        close.setMinWidth(0);
+        close.setMinimumWidth(0);
+        head.addView(close,new LinearLayout.LayoutParams(dp(38),dp(38)));
+        shell.addView(head);
 
         LinearLayout row1=new LinearLayout(this);row1.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout search=sectionDialogCard("Поиск","Слова и смыслы","По обоим курсам",Color.rgb(112,96,134));search.setOnClickListener(v->{d.dismiss();renderSearch(true);});row1.addView(search,new LinearLayout.LayoutParams(0,dp(112),1));
-        LinearLayout repeat=sectionDialogCard("Повторение","Ошибки и закрепление",model.reviewNowCount()+" сейчас",C_SAGE);repeat.setOnClickListener(v->{d.dismiss();renderRepeatHub(true);});LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(0,dp(112),1);rp.setMargins(dp(7),0,0,0);row1.addView(repeat,rp);shell.addView(row1);
+        LinearLayout search=sectionDialogCard("Поиск","По всему приложению","Слова и смыслы",Color.rgb(112,96,134));
+        search.setOnClickListener(v->{d.dismiss();renderSearch(true);});
+        row1.addView(search,new LinearLayout.LayoutParams(0,dp(112),1));
+        LinearLayout repeat=sectionDialogCard("Повторение","Ошибки и закрепление",model.reviewNowCount()+" сейчас",C_SAGE);
+        repeat.setOnClickListener(v->{d.dismiss();renderRepeatHub(true);});
+        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(112),1);r1b.setMargins(dp(7),0,0,0);
+        row1.addView(repeat,r1b);
+        shell.addView(row1);
 
         LinearLayout row2=new LinearLayout(this);row2.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout exam=sectionDialogCard("Экзамен","Итоговые проверки",model.lastExamPercent()<0?"Ещё не проходился":"Последний "+model.lastExamPercent()+"%",C_BLUE);exam.setOnClickListener(v->{d.dismiss();renderExamCenter(true);});row2.addView(exam,new LinearLayout.LayoutParams(0,dp(112),1));
-        LinearLayout profile=sectionDialogCard("Прогресс","Результаты по материалу","Точность "+s.accuracy+"%",Color.rgb(112,96,134));profile.setOnClickListener(v->{d.dismiss();renderProfile(true);});LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(0,dp(112),1);pp.setMargins(dp(7),0,0,0);row2.addView(profile,pp);
-        LinearLayout.LayoutParams r2p=new LinearLayout.LayoutParams(-1,-2);r2p.setMargins(0,dp(7),0,0);shell.addView(row2,r2p);
+        LinearLayout bookmarks=sectionDialogCard("Закладки","Отмеченные вопросы","Быстрый доступ",Color.rgb(145,104,42));
+        bookmarks.setOnClickListener(v->{d.dismiss();renderTaskNavigator(5,true);});
+        row2.addView(bookmarks,new LinearLayout.LayoutParams(0,dp(112),1));
+        LinearLayout historyCard=sectionDialogCard("История","Экзамены и попытки","Сохранённые результаты",C_BLUE);
+        historyCard.setOnClickListener(v->{d.dismiss();renderExamHistory(true);});
+        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(112),1);r2b.setMargins(dp(7),0,0,0);
+        row2.addView(historyCard,r2b);
+        LinearLayout.LayoutParams r2p=new LinearLayout.LayoutParams(-1,-2);r2p.setMargins(0,dp(7),0,0);
+        shell.addView(row2,r2p);
 
-        close.setOnClickListener(v->d.dismiss());d.setContentView(shell);d.show();
-        Window w=d.getWindow();if(w!=null){w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));w.setDimAmount(.36f);w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);WindowManager.LayoutParams a=w.getAttributes();a.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;a.width=(int)(getResources().getDisplayMetrics().widthPixels*.96f);a.height=WindowManager.LayoutParams.WRAP_CONTENT;a.y=dp(8);w.setAttributes(a);}
+        LinearLayout row3=new LinearLayout(this);row3.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout exam=sectionDialogCard("Экзамен","Итоговые проверки",model.lastExamPercent()<0?"Ещё не проходился":"Последний "+model.lastExamPercent()+"%",C_BLUE);
+        exam.setOnClickListener(v->{d.dismiss();renderExamCenter(true);});
+        row3.addView(exam,new LinearLayout.LayoutParams(0,dp(112),1));
+        LinearLayout saved=sectionDialogCard("Сохранённое","Важные смыслы","Материалы курса",Color.rgb(112,96,134));
+        saved.setOnClickListener(v->{d.dismiss();renderSavedMaterials(true);});
+        LinearLayout.LayoutParams r3b=new LinearLayout.LayoutParams(0,dp(112),1);r3b.setMargins(dp(7),0,0,0);
+        row3.addView(saved,r3b);
+        LinearLayout.LayoutParams r3p=new LinearLayout.LayoutParams(-1,-2);r3p.setMargins(0,dp(7),0,0);
+        shell.addView(row3,r3p);
+
+        close.setOnClickListener(v->d.dismiss());
+        d.setContentView(shell);
+        d.show();
+        Window w=d.getWindow();
+        if(w!=null){
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            w.setDimAmount(.36f);
+            w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            WindowManager.LayoutParams a=w.getAttributes();
+            a.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;
+            a.width=(int)(getResources().getDisplayMetrics().widthPixels*.96f);
+            a.height=WindowManager.LayoutParams.WRAP_CONTENT;
+            a.y=dp(8);
+            w.setAttributes(a);
+        }
     }
 
 
