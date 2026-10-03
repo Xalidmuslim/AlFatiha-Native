@@ -1032,10 +1032,11 @@ public class MainActivity extends Activity {
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(7),0,dp(4),0);
+        if(!homeTop)titles.setTranslationY(dp(2));
 
         TextView title=chromeText(
                 chromeSectionTitle(),
-                homeTop?16.5f:15.8f,
+                homeTop?16.5f:16.2f,
                 ink(),
                 true
         );
@@ -1048,7 +1049,7 @@ public class MainActivity extends Activity {
 
         TextView subtitle=chromeText(
                 chromeSectionSubtitle(),
-                homeTop?9.4f:10.1f,
+                homeTop?9.4f:11.0f,
                 muted(),
                 false
         );
@@ -1779,7 +1780,7 @@ public class MainActivity extends Activity {
     }
 
     private LinearLayout minorShirkHubTile(
-            String symbol,
+            int iconRes,
             String title,
             String sub,
             Runnable open){
@@ -1797,23 +1798,19 @@ public class MainActivity extends Activity {
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
 
-        TextView badge=text(
-                symbol,
-                16.2f,
-                dark?Color.rgb(174,206,191):C_SAGE,
-                true
-        );
-        badge.setGravity(Gravity.CENTER);
-        badge.setPadding(0,0,0,0);
+        ImageView badge=new ImageView(this);
+        badge.setImageResource(iconRes);
+        badge.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        badge.setPadding(dp(10),dp(10),dp(10),dp(10));
         badge.setBackground(surfaceBg(
                 dark?Color.rgb(47,61,54):Color.rgb(237,244,239),
-                dark?Color.rgb(43,56,50):Color.rgb(241,247,243),
-                12,
-                0
+                dark?Color.rgb(43,56,50):Color.rgb(242,247,243),
+                14,
+                dark?Color.rgb(64,78,70):Color.rgb(229,238,232)
         ));
         top.addView(
                 badge,
-                new LinearLayout.LayoutParams(dp(36),dp(36))
+                new LinearLayout.LayoutParams(dp(46),dp(46))
         );
 
         top.addView(
@@ -1826,25 +1823,27 @@ public class MainActivity extends Activity {
         arrow.setPadding(0,0,0,0);
         top.addView(
                 arrow,
-                new LinearLayout.LayoutParams(dp(28),dp(36))
+                new LinearLayout.LayoutParams(dp(28),dp(42))
         );
-        tile.addView(top,new LinearLayout.LayoutParams(-1,dp(38)));
+        tile.addView(top,new LinearLayout.LayoutParams(-1,dp(46)));
 
+        Space gap=new Space(this);
         tile.addView(
-                new Space(this),
-                new LinearLayout.LayoutParams(1,0,1)
+                gap,
+                new LinearLayout.LayoutParams(1,dp(8))
         );
 
-        TextView titleView=text(title,16.4f,ink(),true);
-        titleView.setMaxLines(2);
-        titleView.setEllipsize(null);
+        TextView titleView=text(title,15.8f,ink(),true);
+        titleView.setMaxLines(1);
+        titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);
         titleView.setPadding(0,0,0,0);
         tile.addView(titleView,new LinearLayout.LayoutParams(-1,-2));
 
-        TextView subView=text(sub,11.7f,muted(),false);
+        TextView subView=text(sub,11.1f,muted(),false);
         subView.setMaxLines(2);
-        subView.setEllipsize(null);
-        subView.setPadding(0,dp(2),0,0);
+        subView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        subView.setLineSpacing(0,1.03f);
+        subView.setPadding(0,dp(3),0,0);
         tile.addView(subView,new LinearLayout.LayoutParams(-1,-2));
 
         return tile;
@@ -2175,40 +2174,40 @@ public class MainActivity extends Activity {
         page.addView(searchCard,searchLp);
 
         LinearLayout courseTile=minorShirkHubTile(
-                "▤",
+                R.drawable.ic_minor_course_modern,
                 "Читать курс",
-                course.length()+" тем",
+                course.length()+" тем · основы, границы и тонкости",
                 ()->renderMinorShirkCourseList(true)
         );
         LinearLayout dailyTile=minorShirkHubTile(
-                "▦",
+                R.drawable.ic_minor_cases_modern,
                 "Ситуации",
-                daily.length()+" кейсов",
+                daily.length()+" кейсов · сердце, причины и опасная грань",
                 ()->renderMinorShirkDailyList(true)
         );
         addMinorShirkTwoColumnRow(
                 courseTile,
                 dailyTile,
-                128,
+                136,
                 0
         );
 
         LinearLayout quizTile=minorShirkHubTile(
-                "✓",
+                R.drawable.ic_minor_check_modern,
                 "Проверка",
-                quiz.length()+" вопросов",
+                quiz.length()+" вопросов · проверить понимание темы",
                 this::continueMinorShirkQuiz
         );
         LinearLayout savedTile=minorShirkHubTile(
-                "★",
+                R.drawable.ic_minor_bookmark_modern,
                 "Закладки",
-                minorShirkBookmarkCount()+" сохранено",
+                minorShirkBookmarkCount()+" сохранено · важные темы и ситуации",
                 ()->renderMinorShirkSaved(true)
         );
         addMinorShirkTwoColumnRow(
                 quizTile,
                 savedTile,
-                128,
+                136,
                 7
         );
 
