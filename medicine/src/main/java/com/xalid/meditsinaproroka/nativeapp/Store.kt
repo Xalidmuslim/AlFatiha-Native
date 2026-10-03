@@ -111,12 +111,21 @@ class AppStore(context: Context) {
     }
 
     fun setLastPosition(chapterId: String, blockIndex: Int) {
+        val safeIndex = blockIndex.coerceAtLeast(0)
+        if (
+            lastChapterId == chapterId &&
+            lastBlockIndex == safeIndex &&
+            progress[chapterId] == safeIndex
+        ) {
+            return
+        }
+
         lastChapterId = chapterId
-        lastBlockIndex = blockIndex.coerceAtLeast(0)
-        progress[chapterId] = lastBlockIndex
+        lastBlockIndex = safeIndex
+        progress[chapterId] = safeIndex
         prefs.edit()
             .putString("lastChapterId", chapterId)
-            .putInt("lastBlockIndex", lastBlockIndex)
+            .putInt("lastBlockIndex", safeIndex)
             .putString("progress", progressToJson().toString())
             .apply()
     }
