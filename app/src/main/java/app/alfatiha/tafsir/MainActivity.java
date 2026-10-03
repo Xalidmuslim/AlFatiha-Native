@@ -984,34 +984,55 @@ public class MainActivity extends Activity {
                 || "settings".equals(currentSection);
     }
 
+    private int minorShirkAccent(){
+        return dark?Color.rgb(111,132,122):Color.rgb(105,128,117);
+    }
+
+    private int minorShirkSoft(){
+        return dark?Color.rgb(42,49,46):Color.rgb(241,242,237);
+    }
+
     private void appTop(){
         final boolean homeTop="home".equals(current.type);
 
-        LinearLayout top=homeSurface(
-                dark?Color.rgb(36,43,39):Color.rgb(251,247,240),
-                20,
-                homeTop?5:6,
-                2
-        );
+        LinearLayout host=topHost!=null?topHost:page;
+        if(topHost!=null){
+            topHost.removeAllViews();
+            topHost.setPadding(
+                    homeTop?dp(8):0,
+                    homeTop?dp(6):0,
+                    homeTop?dp(8):0,
+                    homeTop?dp(1):0
+            );
+        }
+
+        LinearLayout top;
+        if(homeTop){
+            top=homeSurface(
+                    dark?Color.rgb(36,43,39):Color.rgb(251,247,240),
+                    20,
+                    5,
+                    2
+            );
+        }else{
+            top=new LinearLayout(this);
+            top.setPadding(dp(10),dp(8),dp(10),dp(8));
+            top.setBackgroundColor(bg());
+        }
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
 
-        // Only the application banner is compacted. Dashboard cards below keep
-        // the approved 1.3.20 geometry.
         LinearLayout.LayoutParams tlp=
-                new LinearLayout.LayoutParams(-1,dp(homeTop?64:72));
-        tlp.setMargins(0,0,0,dp(homeTop?4:6));
-        LinearLayout host=topHost!=null?topHost:page;
-        if(topHost!=null)topHost.removeAllViews();
+                new LinearLayout.LayoutParams(-1,dp(homeTop?64:68));
+        tlp.setMargins(0,0,0,homeTop?dp(4):0);
         host.addView(top,tlp);
 
         ImageView mark=new ImageView(this);
         mark.setImageResource(chromeSectionIcon());
-        // Exact same presentation as the six dashboard card icons: no crop,
-        // no extra shape wrapped around the artwork.
         mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
         int iconPad=chromeUsesDashboardArtwork()?0:dp(8);
         mark.setPadding(iconPad,iconPad,iconPad,iconPad);
+
         boolean heartChrome=
                 homeTop || "settings".equals(currentSection);
         if(heartChrome){
@@ -1025,13 +1046,17 @@ public class MainActivity extends Activity {
         }else{
             mark.setBackgroundColor(Color.TRANSPARENT);
         }
+
         int iconSize=homeTop?44:52;
-        top.addView(mark,new LinearLayout.LayoutParams(dp(iconSize),dp(iconSize)));
+        top.addView(
+                mark,
+                new LinearLayout.LayoutParams(dp(iconSize),dp(iconSize))
+        );
 
         LinearLayout titles=new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
-        titles.setPadding(dp(7),0,dp(4),0);
+        titles.setPadding(dp(homeTop?7:10),0,dp(4),0);
         if(!homeTop)titles.setTranslationY(dp(2));
 
         TextView title=chromeText(
@@ -1042,10 +1067,17 @@ public class MainActivity extends Activity {
         );
         title.setSingleLine(true);
         title.setGravity(Gravity.BOTTOM|Gravity.LEFT);
-        title.setTypeface(Typeface.create("serif",Typeface.BOLD));
-        title.setTextScaleX(.96f);
+        title.setTypeface(
+                homeTop
+                        ?Typeface.create("serif",Typeface.BOLD)
+                        :Typeface.create("sans-serif-medium",Typeface.NORMAL)
+        );
+        title.setTextScaleX(homeTop?.96f:1f);
 
-        titles.addView(title,new LinearLayout.LayoutParams(-1,dp(homeTop?23:24)));
+        titles.addView(
+                title,
+                new LinearLayout.LayoutParams(-1,dp(homeTop?23:24))
+        );
 
         TextView subtitle=chromeText(
                 chromeSectionSubtitle(),
@@ -1053,22 +1085,26 @@ public class MainActivity extends Activity {
                 muted(),
                 false
         );
-        subtitle.setSingleLine(false);
-        subtitle.setMaxLines(2);
-        subtitle.setEllipsize(null);
+        subtitle.setTypeface(
+                Typeface.create("sans-serif",Typeface.NORMAL)
+        );
+        subtitle.setSingleLine(!homeTop);
+        subtitle.setMaxLines(homeTop?2:1);
+        subtitle.setEllipsize(
+                homeTop?null:android.text.TextUtils.TruncateAt.END
+        );
         subtitle.setGravity(Gravity.TOP|Gravity.LEFT);
         subtitle.setLineSpacing(0,1.00f);
+
         LinearLayout.LayoutParams subtitleLp=
-                new LinearLayout.LayoutParams(-1,dp(homeTop?28:31));
+                new LinearLayout.LayoutParams(-1,dp(homeTop?28:18));
         subtitleLp.setMargins(0,dp(1),0,0);
         titles.addView(subtitle,subtitleLp);
 
         top.addView(
                 titles,
-                new LinearLayout.LayoutParams(0,dp(homeTop?54:58),1)
+                new LinearLayout.LayoutParams(0,dp(homeTop?54:52),1)
         );
-
-        top.addView(new Space(this),new LinearLayout.LayoutParams(dp(3),1));
 
         Button search=chromeMiniButton("⌕");
         search.setContentDescription("Поиск по приложению");
@@ -1093,6 +1129,15 @@ public class MainActivity extends Activity {
         aa.setContentDescription("Настройки текста");
         aa.setOnClickListener(v->renderSettings(true));
         top.addView(aa);
+
+        if(!homeTop){
+            View divider=new View(this);
+            divider.setBackgroundColor(line());
+            host.addView(
+                    divider,
+                    new LinearLayout.LayoutParams(-1,dp(1))
+            );
+        }
     }
 
     private void addCourseDots(){
@@ -1786,7 +1831,7 @@ public class MainActivity extends Activity {
             Runnable open){
 
         LinearLayout tile=homeSurface(
-                dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
+                dark?Color.rgb(39,45,42):Color.rgb(250,248,243),
                 20,
                 11,
                 1
@@ -1802,11 +1847,12 @@ public class MainActivity extends Activity {
         badge.setImageResource(iconRes);
         badge.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         badge.setPadding(dp(10),dp(10),dp(10),dp(10));
+        badge.setColorFilter(minorShirkAccent());
         badge.setBackground(surfaceBg(
-                dark?Color.rgb(47,61,54):Color.rgb(237,244,239),
-                dark?Color.rgb(43,56,50):Color.rgb(242,247,243),
+                dark?Color.rgb(49,57,53):Color.rgb(241,242,237),
+                dark?Color.rgb(46,53,50):Color.rgb(245,244,239),
                 14,
-                dark?Color.rgb(64,78,70):Color.rgb(229,238,232)
+                dark?Color.rgb(66,75,70):Color.rgb(226,226,219)
         ));
         top.addView(
                 badge,
@@ -2037,8 +2083,8 @@ public class MainActivity extends Activity {
         JSONArray quiz=arr("minor_shirk_quiz.json");
 
         header(
-                "Малый ширк",
-                "Практический курс о защите единобожия: намерение, причины, упование, страх, надежда и состояние сердца."
+                "Защита единобожия",
+                "Практический курс: намерение, причины, упование, страх, надежда и состояние сердца."
         );
 
         int courseSeen=minorShirkSeenCount(
@@ -2054,7 +2100,7 @@ public class MainActivity extends Activity {
         JSONObject nextTopic=course.optJSONObject(nextIndex);
 
         LinearLayout resume=homeSurface(
-                dark?Color.rgb(42,55,49):Color.rgb(238,246,242),
+                dark?Color.rgb(42,48,45):Color.rgb(242,243,238),
                 22,
                 14,
                 2
@@ -2066,7 +2112,7 @@ public class MainActivity extends Activity {
 
         TextView resumeTag=kicker(
                 "ПРОДОЛЖИТЬ ИЗУЧЕНИЕ",
-                C_SAGE
+                minorShirkAccent()
         );
         resume.addView(
                 resumeTag,
@@ -2109,7 +2155,7 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(-1,dp(6));
         progressLp.setMargins(0,dp(7),0,0);
         resume.addView(
-                progressBar(coursePct,C_SAGE),
+                progressBar(coursePct,minorShirkAccent()),
                 progressLp
         );
 
@@ -2117,7 +2163,7 @@ public class MainActivity extends Activity {
                 courseLeft==0
                         ?"Повторить курс"
                         :"Продолжить →",
-                dark?Color.rgb(62,103,85):C_SAGE
+                minorShirkAccent()
         );
         continueButton.setTextSize(sz(14.2f));
         continueButton.setOnClickListener(
@@ -2227,7 +2273,7 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(0,dp(34),1)
         );
 
-        TextView all=text("Все",12.6f,C_SAGE,false);
+        TextView all=text("Все",12.6f,minorShirkAccent(),false);
         all.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);
         all.setPadding(dp(8),0,0,0);
         all.setOnClickListener(
