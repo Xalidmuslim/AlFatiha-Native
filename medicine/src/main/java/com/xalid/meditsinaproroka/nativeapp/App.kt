@@ -13,8 +13,13 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,13 +33,12 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -207,7 +211,6 @@ private fun HeartPrayerBottomNav(
         val label: String,
         val icon: androidx.compose.ui.graphics.vector.ImageVector,
         val action: () -> Unit,
-        val active: Boolean = false,
     )
 
     val items = listOf(
@@ -217,38 +220,47 @@ private fun HeartPrayerBottomNav(
         NavItem("Меню", Icons.Default.MoreHoriz, onMenu),
     )
 
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.72f),
+        ),
+        shadowElevation = 6.dp,
     ) {
-        items.forEach { item ->
-            NavigationBarItem(
-                selected = item.active,
-                onClick = item.action,
-                icon = {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            items.forEach { item ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = item.action)
+                        .padding(vertical = 2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,
                         modifier = Modifier.size(23.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                },
-                label = {
                     Text(
                         item.label,
                         fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                         maxLines = 1,
                     )
-                },
-                alwaysShowLabel = true,
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = Color.Transparent,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
+                }
+            }
         }
     }
 }
