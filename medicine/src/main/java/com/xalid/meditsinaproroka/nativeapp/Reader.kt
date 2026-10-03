@@ -26,6 +26,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +37,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,31 +65,97 @@ fun ReaderScreen(
     val topics = remember(book, chapter) { chapter.topics.mapNotNull { id -> book.topics.firstOrNull { it.id == id } } }
     val remedies = remember(book, chapter) { chapter.remedies.mapNotNull { id -> book.remedies.firstOrNull { it.id == id } } }
 
-    LaunchedEffect(chapter.id, route.anchor, route.resume) {
-        store.addHistory(chapter.id, route.anchor)
-        val target = when {
-            route.anchor != null -> chapter.blocks.indexOfFirst { it.anchor == route.anchor }.takeIf { it >= 0 } ?: 0
-            route.resume -> store.progress[chapter.id] ?: if (store.lastChapterId == chapter.id) store.lastBlockIndex else 0
-            else -> 0
-        }
-        if (route.anchor != null || route.resume) listState.scrollToItem((target + 1).coerceAtMost(chapter.blocks.size))
-        else listState.scrollToItem(0)
+    // A chapter has at most 111 blocks in the bundled book. Keeping the entire
+    // chapter body inside one lazy-list item prevents AndroidView/TextView churn
+    // while flinging; block offsets preserve precise resume/anchor navigation.
+    val blockOffsets = remember(chapter.id) {
+        IntArray(chapter.blocks.size) { -1 }
     }
-
+    val blockMeasured = remember(chapter.id) {
+        BooleanArray(chapter.blocks.size)
+    }
+    var measuredBlockCount by remember(chapter.id) {
+        mutableIntStateOf(0)
+    }
+    val bodyMeasured = chapter.blocks.isEmpty() ||
+        measuredBlockCount == chapter.blocks.size
     val latestVisibleBlock = remember(chapter.id) { intArrayOf(0) }
 
-    LaunchedEffect(chapter.id, listState) {
-        snapshotFlow { listState.firstVisibleItemIndex }
-            .distinctUntilChanged()
-            .collectLatest { index ->
-                val blockIndex = (index - 1)
-                    .coerceAtLeast(0)
-                    .coerceAtMost((chapter.blocks.size - 1).coerceAtLeast(0))
-                latestVisibleBlock[0] = blockIndex
+    val targetBlock = remember(
+        chapter.id,
+        route.anchor,
+        route.resume,
+        store.lastChapterId,
+        store.lastBlockIndex,
+        store.progress,
+    ) {
+        when {
+            chapter.blocks.isEmpty() -> 0
+            route.anchor != null ->
+                chapter.blocks.indexOfFirst { it.anchor == route.anchor }
+                    .takeIf { it >= 0 } ?: 0
+            route.resume ->
+                (store.progress[chapter.id]
+                    ?: if (store.lastChapterId == chapter.id) {
+                        store.lastBlockIndex
+                    } else {
+                        0
+                    }).coerceIn(0, chapter.blocks.lastIndex)
+            else -> 0
+        }
+    }
 
-                // Do not mutate Compose state / SharedPreferences for every row crossed
-                // during a fling. Persist only after the viewport settles briefly.
+    LaunchedEffect(chapter.id, route.anchor) {
+        store.addHistory(chapter.id, route.anchor)
+    }
+
+    LaunchedEffect(
+        chapter.id,
+        route.anchor,
+        route.resume,
+        bodyMeasured,
+        targetBlock,
+    ) {
+        if (!bodyMeasured) return@LaunchedEffect
+
+        if ((route.anchor != null || route.resume) && chapter.blocks.isNotEmpty()) {
+            val offset = blockOffsets[targetBlock].coerceAtLeast(0)
+            listState.scrollToItem(1, offset)
+            latestVisibleBlock[0] = targetBlock
+        } else {
+            listState.scrollToItem(0)
+            latestVisibleBlock[0] = 0
+        }
+    }
+
+    fun visibleBlockIndex(itemIndex: Int, itemOffset: Int): Int {
+        if (chapter.blocks.isEmpty()) return 0
+        if (itemIndex <= 0) return 0
+        if (itemIndex >= 2) return chapter.blocks.lastIndex
+
+        var best = 0
+        for (index in blockOffsets.indices) {
+            val top = blockOffsets[index]
+            if (top < 0 || top > itemOffset) break
+            best = index
+        }
+        return best.coerceIn(0, chapter.blocks.lastIndex)
+    }
+
+    LaunchedEffect(chapter.id, listState, bodyMeasured) {
+        if (!bodyMeasured) return@LaunchedEffect
+
+        snapshotFlow {
+            listState.firstVisibleItemIndex to
+                listState.firstVisibleItemScrollOffset
+        }
+            .distinctUntilChanged()
+            .collectLatest { (itemIndex, itemOffset) ->
+                // Persist only when the viewport has settled. There is no
+                // SharedPreferences or Compose-state churn during the fling.
                 delay(220)
+                val blockIndex = visibleBlockIndex(itemIndex, itemOffset)
+                latestVisibleBlock[0] = blockIndex
                 store.setLastPosition(chapter.id, blockIndex)
             }
     }
@@ -127,16 +196,36 @@ fun ReaderScreen(
                     Spacer(Modifier.height(7.dp))
                 }
 
-                items(
-                    count = chapter.blocks.size,
-                    key = { index -> chapter.blocks[index].id },
-                    contentType = { index -> chapter.blocks[index].type },
-                ) { index ->
-                    ReaderBlock(
-                        chapter = chapter,
-                        block = chapter.blocks[index],
-                        store = store,
-                    )
+                item(
+                    key = "chapter-body",
+                    contentType = "chapter-body",
+                ) {
+                    Column(Modifier.fillMaxWidth()) {
+                        chapter.blocks.forEachIndexed { index, block ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { coordinates ->
+                                        if (!blockMeasured[index]) {
+                                            blockOffsets[index] =
+                                                coordinates
+                                                    .positionInParent()
+                                                    .y
+                                                    .roundToInt()
+                                                    .coerceAtLeast(0)
+                                            blockMeasured[index] = true
+                                            measuredBlockCount += 1
+                                        }
+                                    },
+                            ) {
+                                ReaderBlock(
+                                    chapter = chapter,
+                                    block = block,
+                                    store = store,
+                                )
+                            }
+                        }
+                    }
                 }
 
                 item(key = "actions") {
