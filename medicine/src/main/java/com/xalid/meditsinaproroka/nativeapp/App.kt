@@ -2,6 +2,7 @@ package com.xalid.meditsinaproroka.nativeapp
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -197,11 +198,13 @@ private fun navigateToHeartPrayer(context: android.content.Context, destination:
     context.startActivity(intent)
     (context as? Activity)?.let { activity ->
         activity.finish()
-        @Suppress("DEPRECATION")
-        activity.overridePendingTransition(
-            R.anim.section_enter,
-            R.anim.section_exit,
-        )
+        if (Build.VERSION.SDK_INT < 34) {
+            @Suppress("DEPRECATION")
+            activity.overridePendingTransition(
+                R.anim.section_return_enter,
+                R.anim.section_return_exit,
+            )
+        }
     }
 }
 
