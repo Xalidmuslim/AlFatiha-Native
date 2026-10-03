@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,11 +27,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,8 +37,10 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -209,15 +207,15 @@ private fun HeartPrayerBottomNav(
 ) {
     data class NavItem(
         val label: String,
-        val icon: androidx.compose.ui.graphics.vector.ImageVector,
+        val iconRes: Int,
         val action: () -> Unit,
     )
 
     val items = listOf(
-        NavItem("Главная", Icons.Default.Home, onHome),
-        NavItem("Инструменты", Icons.Default.GridView, onTools),
-        NavItem("Прогресс", Icons.Default.BarChart, onProgress),
-        NavItem("Меню", Icons.Default.MoreHoriz, onMenu),
+        NavItem("Главная", R.drawable.ic_nav_home, onHome),
+        NavItem("Инструменты", R.drawable.ic_nav_contents, onTools),
+        NavItem("Прогресс", R.drawable.ic_nav_progress, onProgress),
+        NavItem("Меню", R.drawable.ic_nav_menu, onMenu),
     )
 
     Surface(
@@ -246,11 +244,11 @@ private fun HeartPrayerBottomNav(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Icon(
-                        imageVector = item.icon,
+                    Image(
+                        painter = painterResource(item.iconRes),
                         contentDescription = item.label,
-                        modifier = Modifier.size(23.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
                     )
                     Text(
                         item.label,
