@@ -222,21 +222,17 @@ internal fun AzkarHeader(
     onToggleTheme: () -> Unit = {},
 ) {
     val colors = AzkarThemeValues.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = AzkarDimensions.topBarMinHeight)
-            .padding(
-                horizontal = AzkarSpacing.topBarHorizontal,
-                vertical = AzkarSpacing.topBarVertical,
-            )
-            .testTag(AzkarReadingTestTags.Header),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
+    Column(Modifier.fillMaxWidth()) {
         Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = AzkarDimensions.topBarMinHeight)
+                .padding(
+                    horizontal = AzkarSpacing.topBarHorizontal,
+                    vertical = AzkarSpacing.topBarVertical,
+                )
+                .testTag(AzkarReadingTestTags.Header),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AzkarSpacing.brandGap),
         ) {
             val brandShape = RoundedCornerShape(14.dp)
             Box(
@@ -256,8 +252,13 @@ internal fun AzkarHeader(
                     contentScale = ContentScale.Fit,
                 )
             }
+
+            Spacer(Modifier.width(AzkarSpacing.brandGap))
+
             Column(
-                modifier = Modifier.offset(y = 2.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .offset(y = 2.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
                 BasicText(
@@ -282,59 +283,67 @@ internal fun AzkarHeader(
                     ),
                 )
             }
-        }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            AzkarIconButton(
-                onClick = onOpenSearch,
-                modifier = Modifier
-                    .semantics { contentDescription = "Поиск по приложению" },
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                BasicText(
-                    text = "⌕",
-                    style = AzkarThemeValues.typography.translation.copy(
-                        color = colors.foreground,
-                        fontSize = 19.sp,
-                    ),
-                )
-            }
-            AzkarIconButton(
-                onClick = onToggleTheme,
-                modifier = Modifier
-                    .semantics {
-                        contentDescription = if (isDarkTheme) {
-                            "Включить дневную тему"
-                        } else {
-                            "Включить ночную тему"
+                AzkarIconButton(
+                    onClick = onOpenSearch,
+                    modifier = Modifier
+                        .semantics { contentDescription = "Поиск по приложению" },
+                ) {
+                    BasicText(
+                        text = "⌕",
+                        style = AzkarThemeValues.typography.translation.copy(
+                            color = colors.foreground,
+                            fontSize = 19.sp,
+                        ),
+                    )
+                }
+                AzkarIconButton(
+                    onClick = onToggleTheme,
+                    modifier = Modifier
+                        .semantics {
+                            contentDescription = if (isDarkTheme) {
+                                "Включить дневную тему"
+                            } else {
+                                "Включить ночную тему"
+                            }
                         }
-                    }
-                    .testTag(AzkarReadingTestTags.ThemeToggle),
-            ) {
-                BasicText(
-                    text = if (isDarkTheme) "☀" else "☾",
-                    style = AzkarThemeValues.typography.translation.copy(
-                        color = colors.foreground,
-                        fontSize = 19.sp,
-                    ),
-                )
-            }
-            AzkarIconButton(
-                onClick = onOpenSettings,
-                modifier = Modifier
-                    .semantics { contentDescription = "Настройки чтения" }
-                    .testTag(AzkarReadingTestTags.OpenSettingsTop),
-            ) {
-                BasicText(
-                    text = "Aa",
-                    style = AzkarThemeValues.typography.translation.copy(
-                        color = colors.foreground,
-                        fontSize = 15.sp,
-                    ),
-                )
+                        .testTag(AzkarReadingTestTags.ThemeToggle),
+                ) {
+                    BasicText(
+                        text = if (isDarkTheme) "☀" else "☾",
+                        style = AzkarThemeValues.typography.translation.copy(
+                            color = colors.foreground,
+                            fontSize = 19.sp,
+                        ),
+                    )
+                }
+                AzkarIconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier
+                        .semantics { contentDescription = "Настройки чтения" }
+                        .testTag(AzkarReadingTestTags.OpenSettingsTop),
+                ) {
+                    BasicText(
+                        text = "Aa",
+                        style = AzkarThemeValues.typography.translation.copy(
+                            color = colors.foreground,
+                            fontSize = 15.sp,
+                        ),
+                    )
+                }
             }
         }
+
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 1.dp, max = 1.dp)
+                .background(colors.border.copy(alpha = 0.72f)),
+        )
     }
 }
 
