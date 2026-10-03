@@ -34,8 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.roundToInt
 
@@ -145,18 +143,20 @@ fun ReaderScreen(
     LaunchedEffect(chapter.id, listState, bodyMeasured) {
         if (!bodyMeasured) return@LaunchedEffect
 
-        snapshotFlow {
-            listState.firstVisibleItemIndex to
-                listState.firstVisibleItemScrollOffset
-        }
+        // Observe only the start/stop state of the fling. The previous version
+        // observed firstVisibleItemScrollOffset, which changes on nearly every
+        // pixel and repeatedly cancelled/restarted coroutines during one swipe.
+        // That bookkeeping was visible as frame-by-frame scrolling on device.
+        snapshotFlow { listState.isScrollInProgress }
             .distinctUntilChanged()
-            .collectLatest { (itemIndex, itemOffset) ->
-                // Persist only when the viewport has settled. There is no
-                // SharedPreferences or Compose-state churn during the fling.
-                delay(220)
-                val blockIndex = visibleBlockIndex(itemIndex, itemOffset)
-                latestVisibleBlock[0] = blockIndex
-                store.setLastPosition(chapter.id, blockIndex)
+            .collect { scrolling ->
+                if (!scrolling) {
+                    val itemIndex = listState.firstVisibleItemIndex
+                    val itemOffset = listState.firstVisibleItemScrollOffset
+                    val blockIndex = visibleBlockIndex(itemIndex, itemOffset)
+                    latestVisibleBlock[0] = blockIndex
+                    store.setLastPosition(chapter.id, blockIndex)
+                }
             }
     }
 
