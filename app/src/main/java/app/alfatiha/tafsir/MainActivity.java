@@ -50,7 +50,6 @@ public class MainActivity extends Activity {
     private float homeTileTitleSp=14.2f;
     private float homeTileSubSp=10.5f;
     private KnowledgeAnalytics.Catalog knowledgeCatalog;
-    private ArrayList<MedicineChapter> medicineCache;
     private final ArrayList<KnowledgeAnalytics.QuestionRef> activeFlow=new ArrayList<>();
     private final LinkedHashMap<String,Boolean> activeFlowResults=new LinkedHashMap<>();
     private String activeFlowKind="";
@@ -75,11 +74,6 @@ public class MainActivity extends Activity {
         SavedMaterialInfo(String id,String title,String section,String snippet){this.id=id;this.title=title;this.section=section;this.snippet=snippet;}
     }
 
-    static class MedicineChapter {
-        String title,body;
-        MedicineChapter(String title,String body){this.title=title;this.body=body;}
-    }
-
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
         prefs=getSharedPreferences("alfatiha_native",MODE_PRIVATE);
@@ -100,10 +94,12 @@ public class MainActivity extends Activity {
         renderHome(false);
         handleHeartNavIntent(getIntent());
 
-        // Warm heavy native modules in the background so opening them later does not
-        // stall the first visible frame of the destination activity.
-        app.xalidmuslim.azkar.AzkarWarmup.preload(getApplicationContext());
-        com.xalid.meditsinaproroka.nativeapp.MedicineBookCache.preload(getApplicationContext());
+        // Start non-essential warmups only after the home screen has been posted.
+        // This keeps cold-start work away from the first visible frame.
+        getWindow().getDecorView().post(() -> {
+            app.xalidmuslim.azkar.AzkarWarmup.preload(getApplicationContext());
+            com.xalid.meditsinaproroka.nativeapp.MedicineBookCache.preload(getApplicationContext());
+        });
     }
 
     @Override protected void onNewIntent(Intent intent){
@@ -1741,239 +1737,6 @@ public class MainActivity extends Activity {
     }
 
 
-    // --- Медицина Пророка ﷺ: native reader over the preserved complete text ---
-
-    private String assetText(String name){
-        try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){
-            byte[] buf=new byte[8192];
-            int n;
-            while((n=in.read(buf))>0)out.write(buf,0,n);
-            return out.toString("UTF-8");
-        }catch(Exception e){
-            return "";
-        }
-    }
-
-    private ArrayList<MedicineChapter> medicineChapters(){
-        if(medicineCache!=null)return medicineCache;
-        medicineCache=new ArrayList<>();
-
-        StringBuilder all=new StringBuilder();
-        for(int i=1;i<=6;i++){
-            String part=assetText("medicine_part_"+i+".txt");
-            if(!part.isEmpty()){
-                if(all.length()>0)all.append("\n");
-                all.append(part);
-            }
-        }
-
-        String currentTitle=null;
-        StringBuilder body=new StringBuilder();
-
-        for(String raw:all.toString().split("\n",-1)){
-            String line=raw.replace("\r","");
-            if(line.startsWith("# ")&&!line.startsWith("## ")){
-                if(currentTitle!=null){
-                    medicineCache.add(new MedicineChapter(
-                            currentTitle,
-                            cleanMedicineMarkdown(body.toString().trim())
-                    ));
-                }
-                currentTitle=line.substring(2).trim();
-                body.setLength(0);
-            }else if(line.startsWith("## ")||line.startsWith("### ")){
-                String h=line.replaceFirst("^#+\\s*","").trim();
-                if(!h.isEmpty())body.append("\n\n").append(h).append("\n");
-            }else{
-                body.append(line).append("\n");
-            }
-        }
-
-        if(currentTitle!=null){
-            medicineCache.add(new MedicineChapter(
-                    currentTitle,
-                    cleanMedicineMarkdown(body.toString().trim())
-            ));
-        }
-
-        return medicineCache;
-    }
-
-    private String cleanMedicineMarkdown(String raw){
-        String t=raw.replace("**","").replace("__","");
-        t=t.replaceAll("(?m)^>\\s?","");
-        t=t.replaceAll("(?m)^[-*]\\s+","• ");
-        t=t.replaceAll("\\[([^\\]]+)\\]\\([^\\)]+\\)","$1");
-        t=t.replaceAll("\\n{3,}","\n\n");
-        return t.trim();
-    }
-
-    private boolean isMedicineBookmarked(int idx){
-        return prefs.getStringSet("medicine_bookmarks",new HashSet<>()).contains(String.valueOf(idx));
-    }
-
-    private void toggleMedicineBookmark(int idx){
-        HashSet<String> set=new HashSet<>(prefs.getStringSet("medicine_bookmarks",new HashSet<>()));
-        String id=String.valueOf(idx);
-        if(!set.add(id))set.remove(id);
-        prefs.edit().putStringSet("medicine_bookmarks",set).apply();
-    }
-
-    private void renderMedicineHub(boolean push){
-        clearActiveFlow();clear("medicineHub","",push);currentSection="medicine";appTop();
-        ArrayList<MedicineChapter> chapters=medicineChapters();
-        header("Медицина Пророка ﷺ","Полный русский текст книги Ибн аль-Каййима в нативном читателе: содержание, поиск, прогресс и сохранение главы.");
-
-        int last=prefs.getInt("medicine_last_idx",-1);
-        if(last>=0&&last<chapters.size()){
-            MedicineChapter ch=chapters.get(last);
-            LinearLayout resume=card(sageSoft());
-            resume.addView(kicker("ПРОДОЛЖИТЬ ЧТЕНИЕ",C_SAGE));
-            resume.addView(text(ch.title,17.8f,ink(),true));
-            resume.addView(text("Глава "+(last+1)+" из "+chapters.size(),12.5f,muted(),false));
-            final int li=last;
-            resume.setOnClickListener(v->renderMedicineChapter(li,true));
-        }
-
-        LinearLayout searchCard=card(blueSoft());
-        searchCard.addView(kicker("ПОИСК ПО КНИГЕ",C_BLUE));
-        EditText input=new EditText(this);
-        input.setHint("Например: хиджама, мёд, тревога…");
-        input.setSingleLine(true);
-        input.setTextSize(sz(15.5f));
-        input.setTextColor(ink());
-        input.setHintTextColor(muted());
-        input.setPadding(dp(12),0,dp(12),0);
-        input.setBackground(surfaceBg(panel(),panel(),16,line()));
-        searchCard.addView(input,new LinearLayout.LayoutParams(-1,dp(52)));
-
-        Button sb=action("Найти",C_BLUE);
-        sb.setOnClickListener(v->{
-            String q=input.getText().toString().trim();
-            hideKeyboard(input);
-            if(q.length()<2)toast("Введите минимум 2 буквы");
-            else renderMedicineSearch(q,true);
-        });
-        searchCard.addView(sb);
-
-        TextView contents=kicker("СОДЕРЖАНИЕ · "+chapters.size()+" ГЛАВ",C_SAGE);
-        contents.setPadding(dp(4),dp(9),0,dp(4));
-        page.addView(contents);
-
-        for(int i=0;i<chapters.size();i++){
-            MedicineChapter ch=chapters.get(i);
-            final int idx=i;
-            LinearLayout row=newSurface(panel(),16,11,1);
-            row.addView(text((i+1)+". "+ch.title,14.2f,ink(),false));
-            if(isMedicineBookmarked(i))row.addView(text("★ Сохранено",10.8f,C_SAGE,true));
-            row.setOnClickListener(v->renderMedicineChapter(idx,true));
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
-            lp.setMargins(0,dp(3),0,dp(3));
-            page.addView(row,lp);
-        }
-    }
-
-    private void renderMedicineSearch(String query,boolean push){
-        clear("medicineSearch",query,push);currentSection="medicine";appTop();
-        header("Поиск · Медицина Пророка ﷺ","Результаты по полному тексту книги.");
-
-        EditText input=new EditText(this);
-        input.setText(query);
-        input.setSingleLine(true);
-        input.setTextSize(sz(15.5f));
-        input.setTextColor(ink());
-        input.setPadding(dp(12),0,dp(12),0);
-        input.setBackground(surfaceBg(panel(),panel(),16,line()));
-        page.addView(input,new LinearLayout.LayoutParams(-1,dp(52)));
-
-        Button search=action("Искать",C_BLUE);
-        page.addView(search,new LinearLayout.LayoutParams(-1,dp(48)));
-        search.setOnClickListener(v->{
-            String q=input.getText().toString().trim();
-            hideKeyboard(input);
-            if(q.length()>=2)renderMedicineSearch(q,true);
-        });
-
-        String q=query.toLowerCase(Locale.ROOT);
-        int shown=0;
-        ArrayList<MedicineChapter> chapters=medicineChapters();
-
-        for(int i=0;i<chapters.size();i++){
-            MedicineChapter ch=chapters.get(i);
-            String hay=(ch.title+" "+ch.body).toLowerCase(Locale.ROOT);
-            int pos=hay.indexOf(q);
-            if(pos<0)continue;
-
-            String body=ch.body;
-            String lowBody=body.toLowerCase(Locale.ROOT);
-            int bodyPos=lowBody.indexOf(q);
-            if(bodyPos<0)bodyPos=0;
-            int start=Math.max(0,bodyPos-90);
-            int finish=Math.min(body.length(),bodyPos+180);
-            String snippet=body.substring(start,finish).replace("\n"," ").trim();
-
-            final int idx=i;
-            LinearLayout item=card(shown%2==0?panel():blueSoft());
-            item.addView(text(ch.title,16.2f,ink(),true));
-            if(!snippet.isEmpty())item.addView(text("…"+snippet+"…",12.8f,muted(),false));
-            item.setOnClickListener(v->renderMedicineChapter(idx,true));
-            shown++;
-            if(shown>=40)break;
-        }
-
-        if(shown==0){
-            LinearLayout empty=card(sandSoft());
-            empty.addView(text("Ничего не найдено. Попробуйте более короткую форму слова.",14,muted(),false));
-        }
-    }
-
-    private void renderMedicineChapter(int idx,boolean push){
-        ArrayList<MedicineChapter> chapters=medicineChapters();
-        if(chapters.isEmpty())return;
-        if(idx<0||idx>=chapters.size())idx=0;
-
-        clear("medicineChapter",String.valueOf(idx),push);currentSection="medicine";appTop();
-        final int currentIdx=idx;
-        MedicineChapter ch=chapters.get(idx);
-        prefs.edit().putInt("medicine_last_idx",idx).apply();
-
-        header(ch.title,"Глава "+(idx+1)+" из "+chapters.size());
-
-        LinearLayout body=card(panel());
-        addParagraphs(body,ch.body,14.7f);
-
-        Button bookmark=outline(isMedicineBookmarked(idx)?"★ Сохранено":"☆ Сохранить главу");
-        bookmark.setOnClickListener(v->{
-            toggleMedicineBookmark(currentIdx);
-            bookmark.setText(isMedicineBookmarked(currentIdx)?"★ Сохранено":"☆ Сохранить главу");
-        });
-        body.addView(bookmark,new LinearLayout.LayoutParams(-1,dp(50)));
-        body.addView(contentActions("medicine:"+idx,ch.title+"\n\n"+ch.body,true));
-
-        LinearLayout nav=new LinearLayout(this);
-        nav.setOrientation(LinearLayout.HORIZONTAL);
-
-        Button prev=outline("← Предыдущая");
-        prev.setEnabled(idx>0);
-        prev.setAlpha(idx>0?1f:.45f);
-        if(idx>0){
-            final int p=idx-1;
-            prev.setOnClickListener(v->renderMedicineChapter(p,true));
-        }
-
-        Button next=action(idx==chapters.size()-1?"К содержанию":"Следующая →",C_SAGE);
-        next.setOnClickListener(v->{
-            if(currentIdx+1<chapters.size())renderMedicineChapter(currentIdx+1,true);
-            else renderMedicineHub(true);
-        });
-
-        nav.addView(prev,new LinearLayout.LayoutParams(0,dp(52),1));
-        LinearLayout.LayoutParams nlp=new LinearLayout.LayoutParams(0,dp(52),1);
-        nlp.setMargins(dp(7),0,0,0);
-        nav.addView(next,nlp);
-        page.addView(nav);
-    }
-
     private void addHeartReminder(){
         final String[][] reminders={
             {
@@ -3336,12 +3099,6 @@ public class MainActivity extends Activity {
             out.add(new ContentSearchEntry(o.optString("title"),"Малый ширк · жизненная ситуация",body,"minorShirkDaily",String.valueOf(i)));
         }
 
-        ArrayList<MedicineChapter> medicine=medicineChapters();
-        for(int i=0;i<medicine.size();i++){
-            MedicineChapter ch=medicine.get(i);
-            out.add(new ContentSearchEntry(ch.title,"Медицина Пророка ﷺ",ch.body,"medicineChapter",String.valueOf(i)));
-        }
-
         return out;
     }
 
@@ -3381,6 +3138,26 @@ public class MainActivity extends Activity {
         });
         renderSearchMatches(results,"",index);
         input.requestFocus();
+
+        Thread medicineIndexThread=new Thread(()->{
+            List<com.xalid.meditsinaproroka.nativeapp.MedicineSearchDocument> docs=
+                    com.xalid.meditsinaproroka.nativeapp.MedicineSearchBridge.load(getApplicationContext());
+            runOnUiThread(()->{
+                if(!"search".equals(current.type))return;
+                for(com.xalid.meditsinaproroka.nativeapp.MedicineSearchDocument doc:docs){
+                    index.add(new ContentSearchEntry(
+                            doc.getTitle(),
+                            "Медицина Пророка ﷺ",
+                            doc.getBody(),
+                            "medicineChapter",
+                            doc.getChapterId()
+                    ));
+                }
+                refresh.run();
+            });
+        },"heart-search-medicine");
+        medicineIndexThread.setDaemon(true);
+        medicineIndexThread.start();
     }
 
     private void renderSearchMatches(LinearLayout results,String query,ArrayList<ContentSearchEntry> index){
@@ -5382,7 +5159,7 @@ public class MainActivity extends Activity {
 
     private LinearLayout sectionDialogCard(String title,String sub,String detail,int accent){LinearLayout c=newSurface(panel(),18,11,1);c.addView(text(title,16,ink(),true));c.addView(text(sub,11.8f,muted(),false));c.addView(text(detail,11.8f,accent,true));return c;}
 
-    private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("minorShirk"))renderMinorShirkHub(true);else if(currentSection.equals("medicine"))renderMedicineHub(true);else if(currentSection.equals("quiz"))renderQuizCenter(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else if(currentSection.equals("search"))renderSearch(true);else renderHome(true);}
+    private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("minorShirk"))renderMinorShirkHub(true);else if(currentSection.equals("medicine"))openMedicine();else if(currentSection.equals("quiz"))renderQuizCenter(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else if(currentSection.equals("search"))renderSearch(true);else renderHome(true);}
     private void goBack(){
         if(!history.isEmpty()){
             Screen s=history.pop();
@@ -5392,7 +5169,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"medicineHub":renderMedicineHub(false);break;case"medicineSearch":renderMedicineSearch(s.arg,false);break;case"medicineChapter":renderMedicineChapter(Integer.parseInt(s.arg),false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
