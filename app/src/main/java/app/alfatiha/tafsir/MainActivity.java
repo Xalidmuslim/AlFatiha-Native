@@ -1011,7 +1011,17 @@ public class MainActivity extends Activity {
         mark.setScaleType(ImageView.ScaleType.FIT_CENTER);
         int iconPad=chromeUsesDashboardArtwork()?0:dp(8);
         mark.setPadding(iconPad,iconPad,iconPad,iconPad);
-        mark.setBackgroundColor(Color.TRANSPARENT);
+        if(homeTop){
+            mark.setBackground(surfaceBg(
+                    dark?Color.rgb(45,54,49):Color.rgb(247,242,232),
+                    dark?Color.rgb(42,50,46):Color.rgb(251,247,239),
+                    14,
+                    dark?Color.rgb(57,66,61):Color.rgb(231,223,211)
+            ));
+            mark.setClipToOutline(true);
+        }else{
+            mark.setBackgroundColor(Color.TRANSPARENT);
+        }
         int iconSize=homeTop?44:52;
         top.addView(mark,new LinearLayout.LayoutParams(dp(iconSize),dp(iconSize)));
 
@@ -1376,9 +1386,12 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(209,216,212):Color.rgb(68,82,76),
                 true
         );
+        LinearLayout.LayoutParams heroLabelLp=
+                new LinearLayout.LayoutParams(-1,-2);
+        heroLabelLp.setMargins(0,dp(2),0,0);
         heroResumeLeft.addView(
                 heroResumeLabel,
-                new LinearLayout.LayoutParams(-1,-2)
+                heroLabelLp
         );
 
         LinearLayout heroProgressRow=new LinearLayout(this);
@@ -1414,11 +1427,13 @@ public class MainActivity extends Activity {
 
         TextView continueBtn=homeText(
                 "Продолжить ›",
-                11.1f,
+                9.9f,
                 Color.WHITE,
                 true
         );
         continueBtn.setGravity(Gravity.CENTER);
+        continueBtn.setSingleLine(true);
+        continueBtn.setTextScaleX(.96f);
         continueBtn.setBackground(surfaceBg(
                 dark?Color.rgb(78,96,88):Color.rgb(82,107,96),
                 dark?Color.rgb(71,90,82):Color.rgb(74,99,88),
