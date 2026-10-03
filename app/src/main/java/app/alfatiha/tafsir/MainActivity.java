@@ -1400,7 +1400,10 @@ public class MainActivity extends Activity {
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=tone;
-        LinearLayout c=homeSurface(cardTone,22,9,2);
+        int tilePad=homeTileHeightDp<=112?6:homeTileHeightDp<=120?7:9;
+        int titleZoneDp=homeTileHeightDp<=112?28:homeTileHeightDp<=120?32:36;
+        int subZoneDp=homeTileHeightDp<=112?22:homeTileHeightDp<=120?24:28;
+        LinearLayout c=homeSurface(cardTone,22,tilePad,2);
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
         c.setElevation(dp(2));
@@ -1441,7 +1444,7 @@ public class MainActivity extends Activity {
         t.setGravity(Gravity.TOP|Gravity.LEFT);
         t.setLineSpacing(0,1.00f);
         t.setPadding(0,dp(4),0,0);
-        c.addView(t,new LinearLayout.LayoutParams(-1,dp(36)));
+        c.addView(t,new LinearLayout.LayoutParams(-1,dp(titleZoneDp)));
 
         TextView st=homeText(sub,homeTileSubSp,muted(),false);
         st.setMinLines(2);
@@ -1450,7 +1453,7 @@ public class MainActivity extends Activity {
         st.setGravity(Gravity.TOP|Gravity.LEFT);
         st.setLineSpacing(0,1.00f);
         st.setPadding(0,0,0,0);
-        c.addView(st,new LinearLayout.LayoutParams(-1,dp(28)));
+        c.addView(st,new LinearLayout.LayoutParams(-1,dp(subZoneDp)));
 
         c.setOnClickListener(v->open.run());
         return c;
