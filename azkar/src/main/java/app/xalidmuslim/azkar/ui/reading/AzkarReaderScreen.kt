@@ -143,42 +143,8 @@ fun AzkarReaderScreen(
     val resolvedUiController = uiController ?: remember { AzkarReaderUiController() }
     val navigation = controller.state
     val readerUi = resolvedUiController.state
-    if (!readerUi.isHydrated) {
-        AzkarTheme {
-            AzkarSurface(modifier = modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.azkar_launcher_exact),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(16.dp)),
-                        )
-                        BasicText(
-                            text = "Азкар",
-                            style = AzkarThemeValues.typography.brandTitle.copy(
-                                color = AzkarThemeValues.colors.foreground,
-                            ),
-                        )
-                        BasicText(
-                            text = "УТРО · ВЕЧЕР",
-                            style = AzkarThemeValues.typography.brandSubtitle.copy(
-                                color = AzkarThemeValues.colors.muted,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-        return
-    }
+    // Render the real reader immediately. Persistence hydration updates the same
+    // state tree in place instead of showing a separate splash and replacing it.
     val settings = readerUi.settings
     val globalUiPreferences = remember(context) {
         context.getSharedPreferences("alfatiha_native", android.content.Context.MODE_PRIVATE)
@@ -211,12 +177,14 @@ fun AzkarReaderScreen(
         }
     }
 
-    val resolvedEntries = entries.map { entry ->
-        entry.copy(
-            currentCount = resolvedUiController
-                .currentCount(entry.item.id, entry.currentCount)
-                .coerceIn(0, entry.item.count),
-        )
+    val resolvedEntries = remember(entries, readerUi.progressById) {
+        entries.map { entry ->
+            entry.copy(
+                currentCount = readerUi.progressById[entry.item.id]
+                    ?.coerceIn(0, entry.item.count)
+                    ?: entry.currentCount.coerceIn(0, entry.item.count),
+            )
+        }
     }
     val activeIndex = navigation.activeIndex.coerceIn(resolvedEntries.indices)
     val active = resolvedEntries[activeIndex]
