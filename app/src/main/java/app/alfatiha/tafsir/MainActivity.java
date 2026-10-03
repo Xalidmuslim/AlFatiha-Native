@@ -1868,10 +1868,12 @@ public class MainActivity extends Activity {
         try{
             Intent i=new Intent(this,app.xalidmuslim.azkar.MainActivity.class);
             startActivity(i);
-            overridePendingTransition(
-                    app.xalidmuslim.azkar.R.anim.azkar_enter,
-                    app.xalidmuslim.azkar.R.anim.azkar_exit
-            );
+            if(android.os.Build.VERSION.SDK_INT<34){
+                overridePendingTransition(
+                        app.xalidmuslim.azkar.R.anim.azkar_enter,
+                        app.xalidmuslim.azkar.R.anim.azkar_exit
+                );
+            }
         }catch(Exception e){
             toast("Не удалось открыть раздел азкаров");
         }
@@ -1881,10 +1883,12 @@ public class MainActivity extends Activity {
         try{
             Intent i=new Intent(this,com.xalid.meditsinaproroka.nativeapp.MainActivity.class);
             startActivity(i);
-            overridePendingTransition(
-                    com.xalid.meditsinaproroka.nativeapp.R.anim.section_enter,
-                    com.xalid.meditsinaproroka.nativeapp.R.anim.section_exit
-            );
+            if(android.os.Build.VERSION.SDK_INT<34){
+                overridePendingTransition(
+                        com.xalid.meditsinaproroka.nativeapp.R.anim.section_enter,
+                        com.xalid.meditsinaproroka.nativeapp.R.anim.section_exit
+                );
+            }
         }catch(Exception e){
             toast("Не удалось открыть «Медицину Пророка ﷺ»");
         }
