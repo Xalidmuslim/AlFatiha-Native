@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import app.xalidmuslim.azkar.content.AzkarCatalog
 import app.xalidmuslim.azkar.persistence.AzkarDateProvider
 import app.xalidmuslim.azkar.persistence.AzkarPreferencesRepository
+import app.xalidmuslim.azkar.persistence.AzkarPreferencesSnapshot
 import app.xalidmuslim.azkar.persistence.SystemAzkarDateProvider
 
 class AzkarPeriodReaderController(
@@ -66,13 +67,15 @@ fun AzkarProductionReaderScreen(
     dateProvider: AzkarDateProvider = SystemAzkarDateProvider,
     modifier: Modifier = Modifier,
     initialPeriod: AzkarPeriod = AzkarPeriod.Morning,
+    initialSnapshot: AzkarPreferencesSnapshot? = null,
 ) {
     val scope = rememberCoroutineScope()
-    val periodController = remember(initialPeriod) {
-        AzkarPeriodReaderController(initialPeriod)
+    val periodController = remember(initialPeriod, initialSnapshot) {
+        AzkarPeriodReaderController(initialSnapshot?.lastPeriod ?: initialPeriod)
     }
-    val uiController = remember(preferencesRepository, dateProvider) {
+    val uiController = remember(preferencesRepository, dateProvider, initialSnapshot) {
         AzkarReaderUiController(
+            initialSnapshot = initialSnapshot,
             repository = preferencesRepository,
             dateProvider = dateProvider,
             persistenceScope = scope,
@@ -130,8 +133,9 @@ internal fun AzkarProductionReaderScreen(
     val readyForFirstFrame =
         readerUi.isHydrated && restoredPeriod && restoredInitialItem
     val contentAlpha by animateFloatAsState(
-        targetValue = if (readyForFirstFrame) 1f else 0f,
-        animationSpec = tween(durationMillis = 70),
+        // Keep the destination visible while persistent state catches up.
+        targetValue = if (readyForFirstFrame) 1f else 0.90f,
+        animationSpec = tween(durationMillis = 110),
         label = "azkar-entry-fade",
     )
 
