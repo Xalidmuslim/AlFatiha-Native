@@ -2,8 +2,6 @@ package com.xalid.meditsinaproroka.nativeapp
 
 import android.os.Bundle
 import android.util.Log
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -30,8 +28,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+
+private data class MedicineLaunchState(
+    val store: AppStore,
+    val bookResult: Result<BookData>,
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,52 +44,50 @@ class MainActivity : ComponentActivity() {
             getSharedPreferences("alfatiha_native", MODE_PRIVATE).getBoolean("dark", false)
         ) "dark" else "light"
 
+        MedicineRuntimeWarmup.preload(appContext)
+
         setContent {
-            var store by remember { mutableStateOf<AppStore?>(null) }
-            var bookResult by remember { mutableStateOf<Result<BookData>?>(null) }
+            val warmedState = remember {
+                val warmedStore = MedicineRuntimeWarmup.peekStore()
+                val warmedBook = MedicineBookCache.peekOrNull()
+                if (warmedStore != null && warmedBook != null) {
+                    MedicineLaunchState(
+                        store = warmedStore,
+                        bookResult = Result.success(warmedBook),
+                    )
+                } else {
+                    null
+                }
+            }
+            var launchState by remember { mutableStateOf(warmedState) }
 
             LaunchedEffect(Unit) {
-                coroutineScope {
-                    val storeDeferred = async(Dispatchers.IO) { AppStore(appContext) }
-                    val bookDeferred = async(Dispatchers.IO) {
-                        MedicineBookCache.getOrLoad(appContext)
-                    }
-                    store = storeDeferred.await()
-                    bookResult = bookDeferred.await()
-                    bookResult?.exceptionOrNull()?.let { error ->
-                        Log.e(TAG, "Failed to load bundled book.json", error)
+                if (launchState == null) {
+                    launchState = withContext(Dispatchers.IO) {
+                        val store = MedicineRuntimeWarmup.getOrCreateStore(appContext)
+                        val bookResult = MedicineBookCache.getOrLoad(appContext)
+                        bookResult.exceptionOrNull()?.let { error ->
+                            Log.e(TAG, "Failed to load bundled book.json", error)
+                        }
+                        MedicineLaunchState(
+                            store = store,
+                            bookResult = bookResult,
+                        )
                     }
                 }
             }
 
-            val loadedStore = store
-            val loadedBook = bookResult
-            val ready = loadedStore != null && loadedBook != null
-
-            Crossfade(
-                targetState = ready,
-                animationSpec = tween(durationMillis = 140),
-                label = "medicine-bootstrap",
-            ) { isReady ->
-                if (!isReady) {
-                    MedicinaTheme(launchTheme) {
-                        BookLoadingScreen()
-                    }
+            val state = launchState
+            MedicinaTheme(state?.store?.settings?.theme ?: launchTheme) {
+                if (state == null) {
+                    BookLoadingScreen()
                 } else {
-                    val actualStore = loadedStore
-                    val actualBook = loadedBook
-                    if (actualStore == null || actualBook == null) {
-                        MedicinaTheme(launchTheme) { BookLoadingScreen() }
-                    } else {
-                        MedicinaTheme(actualStore.settings.theme) {
-                            actualBook.fold(
-                                onSuccess = { book ->
-                                    MedicinaApp(book = book, store = actualStore)
-                                },
-                                onFailure = { BookLoadErrorScreen() },
-                            )
-                        }
-                    }
+                    state.bookResult.fold(
+                        onSuccess = { book ->
+                            MedicinaApp(book = book, store = state.store)
+                        },
+                        onFailure = { BookLoadErrorScreen() },
+                    )
                 }
             }
         }
