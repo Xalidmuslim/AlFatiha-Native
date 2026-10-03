@@ -10,6 +10,7 @@ import android.util.TypedValue
 import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import androidx.compose.foundation.background
@@ -31,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,13 +73,28 @@ fun ReaderScreen(
         else listState.scrollToItem(0)
     }
 
+    val latestVisibleBlock = remember(chapter.id) { intArrayOf(0) }
+
     LaunchedEffect(chapter.id, listState) {
         snapshotFlow { listState.firstVisibleItemIndex }
             .distinctUntilChanged()
-            .collect { index ->
-                val blockIndex = (index - 1).coerceAtLeast(0).coerceAtMost((chapter.blocks.size - 1).coerceAtLeast(0))
+            .collectLatest { index ->
+                val blockIndex = (index - 1)
+                    .coerceAtLeast(0)
+                    .coerceAtMost((chapter.blocks.size - 1).coerceAtLeast(0))
+                latestVisibleBlock[0] = blockIndex
+
+                // Do not mutate Compose state / SharedPreferences for every row crossed
+                // during a fling. Persist only after the viewport settles briefly.
+                delay(220)
                 store.setLastPosition(chapter.id, blockIndex)
             }
+    }
+
+    DisposableEffect(chapter.id) {
+        onDispose {
+            store.setLastPosition(chapter.id, latestVisibleBlock[0])
+        }
     }
 
     Box(modifier.fillMaxSize()) {
@@ -444,6 +462,56 @@ private fun SelectableNativeText(chapter: Chapter, block: BookBlock, store: AppS
     val highlights = store.highlightsFor(chapter.id, block.id)
     val notes = store.notesFor(chapter.id, block.id)
 
+    val styledText = remember(block.text, highlights, notes, highlightColor) {
+        SpannableString(block.text).also { span ->
+            highlights.forEach { h ->
+                val start = h.start.coerceIn(0, block.text.length)
+                val end = h.end.coerceIn(start, block.text.length)
+                if (end > start) {
+                    span.setSpan(
+                        BackgroundColorSpan(highlightColor),
+                        start,
+                        end,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+                }
+            }
+            notes.forEach { n ->
+                val start = n.start.coerceIn(0, block.text.length)
+                val end = n.end.coerceIn(start, block.text.length)
+                if (end > start) {
+                    span.setSpan(
+                        UnderlineSpan(),
+                        start,
+                        end,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+                }
+            }
+        }
+    }
+    val renderKey = remember(
+        block.id,
+        settings.fontSizeSp,
+        settings.lineSpacing,
+        settings.fontFamily,
+        textColor,
+        highlightColor,
+        highlights,
+        notes,
+    ) {
+        listOf(
+            block.id,
+            settings.fontSizeSp,
+            settings.lineSpacing,
+            settings.fontFamily,
+            textColor,
+            highlightColor,
+            highlights.hashCode(),
+            notes.hashCode(),
+        ).joinToString("|")
+    }
+
     AndroidView(
         modifier = Modifier.fillMaxWidth(),
         factory = { context ->
@@ -452,6 +520,8 @@ private fun SelectableNativeText(chapter: Chapter, block: BookBlock, store: AppS
                 setTextColor(textColor)
                 setPadding(0, 0, 0, 0)
                 includeFontPadding = false
+                isVerticalScrollBarEnabled = false
+                overScrollMode = View.OVER_SCROLL_NEVER
 
                 customSelectionActionModeCallback = object : ActionMode.Callback {
                     override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
@@ -507,23 +577,14 @@ private fun SelectableNativeText(chapter: Chapter, block: BookBlock, store: AppS
             }
         },
         update = { tv ->
-            tv.setTextColor(textColor)
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, settings.fontSizeSp)
-            tv.setLineSpacing(0f, settings.lineSpacing)
-            tv.typeface = readerTypeface(tv.context, settings.fontFamily)
-
-            val span = SpannableString(block.text)
-            highlights.forEach { h ->
-                val start = h.start.coerceIn(0, block.text.length)
-                val end = h.end.coerceIn(start, block.text.length)
-                if (end > start) span.setSpan(BackgroundColorSpan(highlightColor), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (tv.tag != renderKey) {
+                tv.setTextColor(textColor)
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, settings.fontSizeSp)
+                tv.setLineSpacing(0f, settings.lineSpacing)
+                tv.typeface = readerTypeface(tv.context, settings.fontFamily)
+                tv.text = styledText
+                tv.tag = renderKey
             }
-            notes.forEach { n ->
-                val start = n.start.coerceIn(0, block.text.length)
-                val end = n.end.coerceIn(start, block.text.length)
-                if (end > start) span.setSpan(UnderlineSpan(), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
-            tv.text = span
         }
     )
 }
