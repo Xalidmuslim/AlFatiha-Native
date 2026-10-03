@@ -21,6 +21,7 @@ fun AzkarAppRoot(
     dateProvider: AzkarDateProvider = SystemAzkarDateProvider,
 ) {
     val applicationContext = LocalContext.current.applicationContext
+    val warmSnapshot = remember { AzkarWarmup.snapshotOrNull() }
     val repository = remember(applicationContext) {
         DataStoreAzkarPreferencesRepository(
             applicationContext.azkarPreferencesDataStore,
@@ -30,6 +31,7 @@ fun AzkarAppRoot(
     AzkarProductionReaderScreen(
         preferencesRepository = repository,
         dateProvider = dateProvider,
+        initialSnapshot = warmSnapshot,
         modifier = Modifier.fillMaxSize(),
     )
 }
