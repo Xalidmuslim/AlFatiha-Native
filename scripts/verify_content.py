@@ -37,7 +37,7 @@ else:
 
 for required in [
     "App.kt", "MainActivity.kt", "Models.kt", "Reader.kt", "Routes.kt",
-    "Screens.kt", "Store.kt", "Theme.kt", "Utils.kt", "WebDesign.kt", "MedicineSearchBridge.kt",
+    "Screens.kt", "Store.kt", "Theme.kt", "Utils.kt", "WebDesign.kt", "MedicineSearchBridge.kt", "MedicineRuntimeWarmup.kt",
 ]:
     if not (MEDICINE_SOURCE / required).is_file():
         fail(f"medicine: missing native source {required}")
