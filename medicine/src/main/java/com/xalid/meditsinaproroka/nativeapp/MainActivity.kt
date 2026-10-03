@@ -54,6 +54,7 @@ class MainActivity : ComponentActivity() {
                 val warmedStore = MedicineRuntimeWarmup.peekStore()
                 val warmedBook = MedicineBookCache.peekOrNull()
                 if (warmedStore != null && warmedBook != null) {
+                    warmedStore.syncSharedTheme()
                     MedicineLaunchState(
                         store = warmedStore,
                         bookResult = Result.success(warmedBook),
@@ -68,6 +69,7 @@ class MainActivity : ComponentActivity() {
                 if (launchState == null) {
                     launchState = withContext(Dispatchers.IO) {
                         val store = MedicineRuntimeWarmup.getOrCreateStore(appContext)
+                        store.syncSharedTheme()
                         val bookResult = MedicineBookCache.getOrLoad(appContext)
                         bookResult.exceptionOrNull()?.let { error ->
                             Log.e(TAG, "Failed to load bundled book.json", error)
@@ -94,6 +96,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        MedicineRuntimeWarmup.peekStore()?.syncSharedTheme()
     }
 
     private fun configureActivityTransitions() {
