@@ -99,6 +99,11 @@ public class MainActivity extends Activity {
         buildShell();
         renderHome(false);
         handleHeartNavIntent(getIntent());
+
+        // Warm heavy native modules in the background so opening them later does not
+        // stall the first visible frame of the destination activity.
+        app.xalidmuslim.azkar.AzkarWarmup.preload(getApplicationContext());
+        com.xalid.meditsinaproroka.nativeapp.MedicineBookCache.preload(getApplicationContext());
     }
 
     @Override protected void onNewIntent(Intent intent){
@@ -1185,7 +1190,7 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(39,45,41):Color.rgb(248,243,234),
                 dark?Color.rgb(35,41,38):Color.rgb(252,248,241),
                 25,0));
-        hero.setElevation(dp(1));
+        hero.setElevation(dp(2));
         hero.setClipToOutline(true);
         hero.setForeground(solidBg(
                 Color.TRANSPARENT,
@@ -1281,10 +1286,12 @@ public class MainActivity extends Activity {
         int quizPct=Math.min(100,quizDone*100/quizTotal);
         LinearLayout quizResume=homeSurface(
                 dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
-                18,6,1
+                20,8,2
         );
         quizResume.setOrientation(LinearLayout.HORIZONTAL);
         quizResume.setGravity(Gravity.CENTER_VERTICAL);
+        quizResume.setPadding(dp(12),dp(6),dp(9),dp(6));
+        quizResume.setElevation(dp(2));
         quizResume.setOnClickListener(v->continueLastQuiz());
 
         LinearLayout qrTop=new LinearLayout(this);
@@ -1317,7 +1324,7 @@ public class MainActivity extends Activity {
         qrpLp.setMargins(dp(6),0,0,0);
         quizResume.addView(qrProgress,qrpLp);
 
-        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(50));
+        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(54));
         qrLp.setMargins(0,0,0,dp(5));
         page.addView(quizResume,qrLp);
 
@@ -1341,7 +1348,9 @@ public class MainActivity extends Activity {
         r1b.setMargins(dp(6),0,0,0);
         row1.addView(f1,r1a);
         row1.addView(f2,r1b);
-        page.addView(row1,new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout.LayoutParams row1lp=new LinearLayout.LayoutParams(-1,-2);
+        row1lp.setMargins(0,dp(8),0,0);
+        page.addView(row1,row1lp);
 
         LinearLayout row2=new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
@@ -1391,14 +1400,15 @@ public class MainActivity extends Activity {
             int iconRes,String title,String sub,int tone,Runnable open){
 
         int cardTone=tone;
-        LinearLayout c=homeSurface(cardTone,20,8,1);
+        LinearLayout c=homeSurface(cardTone,22,9,2);
         c.setMinimumHeight(dp(homeTileHeightDp));
-
-        // Keep the icon + text composition vertically balanced inside the fixed
-        // dashboard tile instead of pinning the whole group to the top.
-        // This preserves the approved tile/icon/font sizes while distributing
-        // the free space above and below the content more evenly.
-        c.setGravity(Gravity.CENTER_VERTICAL);
+        c.setGravity(Gravity.TOP);
+        c.setElevation(dp(2));
+        int featureEnd=dark
+                ?blend(cardTone,Color.BLACK,.035f)
+                :blend(cardTone,Color.WHITE,.11f);
+        int featureStroke=dark?Color.rgb(61,70,65):Color.rgb(228,218,204);
+        c.setBackground(surfaceBg(cardTone,featureEnd,22,featureStroke));
 
         LinearLayout top=new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -1422,21 +1432,25 @@ public class MainActivity extends Activity {
         arrow.setElevation(0f);
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
         top.addView(arrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
-        c.addView(top);
+        c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
         TextView t=homeText(title,homeTileTitleSp,ink(),true);
-        t.setMaxLines(3);
+        t.setMinLines(2);
+        t.setMaxLines(2);
         t.setEllipsize(null);
+        t.setGravity(Gravity.TOP|Gravity.LEFT);
         t.setLineSpacing(0,1.00f);
-        t.setPadding(0,dp(3),0,0);
-        c.addView(t);
+        t.setPadding(0,dp(4),0,0);
+        c.addView(t,new LinearLayout.LayoutParams(-1,dp(36)));
 
         TextView st=homeText(sub,homeTileSubSp,muted(),false);
+        st.setMinLines(2);
         st.setMaxLines(2);
         st.setEllipsize(null);
-        st.setLineSpacing(dp(1),1.01f);
+        st.setGravity(Gravity.TOP|Gravity.LEFT);
+        st.setLineSpacing(0,1.00f);
         st.setPadding(0,0,0,0);
-        c.addView(st);
+        c.addView(st,new LinearLayout.LayoutParams(-1,dp(28)));
 
         c.setOnClickListener(v->open.run());
         return c;
