@@ -16,9 +16,8 @@ import android.widget.TextView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -51,21 +50,31 @@ fun ReaderScreen(
     if (chapter == null) {
         Column(modifier.fillMaxSize()) {
             PageHeader("Глава не найдена", null, back)
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Не удалось открыть главу") }
+            Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("Не удалось открыть главу")
+            }
         }
         return
     }
 
-    val listState = rememberLazyListState()
+    val scrollState = rememberScrollState()
     var settingsOpen by remember { mutableStateOf(false) }
     var bookmarkFolderOpen by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val topics = remember(book, chapter) { chapter.topics.mapNotNull { id -> book.topics.firstOrNull { it.id == id } } }
-    val remedies = remember(book, chapter) { chapter.remedies.mapNotNull { id -> book.remedies.firstOrNull { it.id == id } } }
+    val topics = remember(book, chapter) {
+        chapter.topics.mapNotNull { id ->
+            book.topics.firstOrNull { it.id == id }
+        }
+    }
+    val remedies = remember(book, chapter) {
+        chapter.remedies.mapNotNull { id ->
+            book.remedies.firstOrNull { it.id == id }
+        }
+    }
 
-    // A chapter has at most 111 blocks in the bundled book. Keeping the entire
-    // chapter body inside one lazy-list item prevents AndroidView/TextView churn
-    // while flinging; block offsets preserve precise resume/anchor navigation.
     val blockOffsets = remember(chapter.id) {
         IntArray(chapter.blocks.size) { -1 }
     }
@@ -75,23 +84,30 @@ fun ReaderScreen(
     var measuredBlockCount by remember(chapter.id) {
         mutableIntStateOf(0)
     }
-    val bodyMeasured = chapter.blocks.isEmpty() ||
-        measuredBlockCount == chapter.blocks.size
-    val latestVisibleBlock = remember(chapter.id) { intArrayOf(0) }
+    var bodyTopPx by remember(chapter.id) {
+        mutableIntStateOf(-1)
+    }
+    val bodyMeasured =
+        bodyTopPx >= 0 &&
+            (chapter.blocks.isEmpty() ||
+                measuredBlockCount == chapter.blocks.size)
+
+    val latestVisibleBlock = remember(chapter.id) {
+        intArrayOf(0)
+    }
 
     val targetBlock = remember(
         chapter.id,
         route.anchor,
         route.resume,
-        store.lastChapterId,
-        store.lastBlockIndex,
-        store.progress,
     ) {
         when {
             chapter.blocks.isEmpty() -> 0
             route.anchor != null ->
-                chapter.blocks.indexOfFirst { it.anchor == route.anchor }
-                    .takeIf { it >= 0 } ?: 0
+                chapter.blocks
+                    .indexOfFirst { it.anchor == route.anchor }
+                    .takeIf { it >= 0 }
+                    ?: 0
             route.resume ->
                 (store.progress[chapter.id]
                     ?: if (store.lastChapterId == chapter.id) {
@@ -116,189 +132,301 @@ fun ReaderScreen(
     ) {
         if (!bodyMeasured) return@LaunchedEffect
 
-        if ((route.anchor != null || route.resume) && chapter.blocks.isNotEmpty()) {
-            val offset = blockOffsets[targetBlock].coerceAtLeast(0)
-            listState.scrollToItem(1, offset)
+        if (
+            (route.anchor != null || route.resume) &&
+            chapter.blocks.isNotEmpty()
+        ) {
+            val y = bodyTopPx +
+                blockOffsets[targetBlock].coerceAtLeast(0)
+            scrollState.scrollTo(y.coerceIn(0, scrollState.maxValue))
             latestVisibleBlock[0] = targetBlock
         } else {
-            listState.scrollToItem(0)
+            scrollState.scrollTo(0)
             latestVisibleBlock[0] = 0
         }
     }
 
-    fun visibleBlockIndex(itemIndex: Int, itemOffset: Int): Int {
+    fun visibleBlockIndex(scrollY: Int): Int {
         if (chapter.blocks.isEmpty()) return 0
-        if (itemIndex <= 0) return 0
-        if (itemIndex >= 2) return chapter.blocks.lastIndex
 
+        val relativeY = (scrollY - bodyTopPx).coerceAtLeast(0)
         var best = 0
         for (index in blockOffsets.indices) {
             val top = blockOffsets[index]
-            if (top < 0 || top > itemOffset) break
+            if (top < 0 || top > relativeY) break
             best = index
         }
         return best.coerceIn(0, chapter.blocks.lastIndex)
     }
 
-    LaunchedEffect(chapter.id, listState, bodyMeasured) {
+    LaunchedEffect(chapter.id, scrollState, bodyMeasured) {
         if (!bodyMeasured) return@LaunchedEffect
 
-        // Observe only the start/stop state of the fling. The previous version
-        // observed firstVisibleItemScrollOffset, which changes on nearly every
-        // pixel and repeatedly cancelled/restarted coroutines during one swipe.
-        // That bookkeeping was visible as frame-by-frame scrolling on device.
-        snapshotFlow { listState.isScrollInProgress }
+        snapshotFlow { scrollState.isScrollInProgress }
             .distinctUntilChanged()
             .collect { scrolling ->
                 if (!scrolling) {
-                    val itemIndex = listState.firstVisibleItemIndex
-                    val itemOffset = listState.firstVisibleItemScrollOffset
-                    val blockIndex = visibleBlockIndex(itemIndex, itemOffset)
+                    val blockIndex =
+                        visibleBlockIndex(scrollState.value)
                     latestVisibleBlock[0] = blockIndex
-                    store.setLastPosition(chapter.id, blockIndex)
+                    store.setLastPosition(
+                        chapter.id,
+                        blockIndex,
+                    )
                 }
             }
     }
 
     DisposableEffect(chapter.id) {
         onDispose {
-            store.setLastPosition(chapter.id, latestVisibleBlock[0])
+            store.setLastPosition(
+                chapter.id,
+                latestVisibleBlock[0],
+            )
         }
     }
 
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            PageHeader(chapter.title, "Глава ${chapter.order} из ${book.chapters.size}", back)
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 104.dp),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                item(key = "header") {
-                    Text(
-                        chapter.section,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontFamily = WebSansFont,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        chapter.title,
-                        fontFamily = WebLiterataFont,
-                        fontSize = 28.sp,
-                        lineHeight = 31.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(Modifier.height(11.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.72f))
-                    Spacer(Modifier.height(7.dp))
-                }
+            PageHeader(
+                chapter.title,
+                "Глава ${chapter.order} из ${book.chapters.size}",
+                back,
+            )
 
-                item(
-                    key = "chapter-body",
-                    contentType = "chapter-body",
-                ) {
-                    Column(Modifier.fillMaxWidth()) {
-                        chapter.blocks.forEachIndexed { index, block ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .onGloballyPositioned { coordinates ->
-                                        if (!blockMeasured[index]) {
-                                            blockOffsets[index] =
-                                                coordinates
-                                                    .positionInParent()
-                                                    .y
-                                                    .roundToInt()
-                                                    .coerceAtLeast(0)
-                                            blockMeasured[index] = true
-                                            measuredBlockCount += 1
-                                        }
-                                    },
-                            ) {
-                                ReaderBlock(
-                                    chapter = chapter,
-                                    block = block,
-                                    store = store,
-                                )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        bottom = 104.dp,
+                    ),
+            ) {
+                Text(
+                    chapter.section,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontFamily = WebSansFont,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    chapter.title,
+                    fontFamily = WebLiterataFont,
+                    fontSize = 28.sp,
+                    lineHeight = 31.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(11.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline
+                        .copy(alpha = 0.72f)
+                )
+                Spacer(Modifier.height(7.dp))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned { coordinates ->
+                            if (bodyTopPx < 0) {
+                                bodyTopPx = coordinates
+                                    .positionInParent()
+                                    .y
+                                    .roundToInt()
+                                    .coerceAtLeast(0)
                             }
+                        },
+                ) {
+                    chapter.blocks.forEachIndexed { index, block ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onGloballyPositioned { coordinates ->
+                                    if (!blockMeasured[index]) {
+                                        blockOffsets[index] =
+                                            coordinates
+                                                .positionInParent()
+                                                .y
+                                                .roundToInt()
+                                                .coerceAtLeast(0)
+                                        blockMeasured[index] = true
+                                        measuredBlockCount += 1
+                                    }
+                                },
+                        ) {
+                            ReaderBlock(
+                                chapter = chapter,
+                                block = block,
+                                store = store,
+                            )
                         }
                     }
                 }
 
-                item(key = "actions") {
-                    Spacer(Modifier.height(24.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.height(16.dp))
-                    Text("Действия с главой", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedButton(
-                        onClick = { copyToClipboard(context, chapter.title, chapterPlainText(book, chapter)) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Icon(Icons.Default.ContentCopy, null); Spacer(Modifier.width(6.dp)); Text("Копировать главу") }
-                    Spacer(Modifier.height(7.dp))
-                    OutlinedButton(
-                        onClick = { copyToClipboard(context, chapter.title, chapterPlainText(book, chapter, includeSource = true)) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Icon(Icons.Default.FormatQuote, null); Spacer(Modifier.width(6.dp)); Text("Копировать с названием книги и главы") }
-                    Spacer(Modifier.height(7.dp))
-                    OutlinedButton(
-                        onClick = { shareText(context, chapter.title, chapterPlainText(book, chapter, includeSource = true)) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Icon(Icons.Default.Share, null); Spacer(Modifier.width(6.dp)); Text("Поделиться") }
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            if (store.isChapterBookmarked(chapter.id)) store.toggleChapterBookmark(chapter.id)
-                            else bookmarkFolderOpen = true
+                Spacer(Modifier.height(24.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Действия с главой",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                )
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        copyToClipboard(
+                            context,
+                            chapter.title,
+                            chapterPlainText(book, chapter),
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.ContentCopy, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Копировать главу")
+                }
+
+                Spacer(Modifier.height(7.dp))
+                OutlinedButton(
+                    onClick = {
+                        copyToClipboard(
+                            context,
+                            chapter.title,
+                            chapterPlainText(
+                                book,
+                                chapter,
+                                includeSource = true,
+                            ),
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.FormatQuote, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Копировать с названием книги и главы")
+                }
+
+                Spacer(Modifier.height(7.dp))
+                OutlinedButton(
+                    onClick = {
+                        shareText(
+                            context,
+                            chapter.title,
+                            chapterPlainText(
+                                book,
+                                chapter,
+                                includeSource = true,
+                            ),
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.Share, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Поделиться")
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        if (store.isChapterBookmarked(chapter.id)) {
+                            store.toggleChapterBookmark(chapter.id)
+                        } else {
+                            bookmarkFolderOpen = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        if (store.isChapterBookmarked(chapter.id)) {
+                            Icons.Default.Star
+                        } else {
+                            Icons.Default.StarBorder
                         },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(if (store.isChapterBookmarked(chapter.id)) Icons.Default.Star else Icons.Default.StarBorder, null)
-                        Spacer(Modifier.width(7.dp))
-                        Text(if (store.isChapterBookmarked(chapter.id)) "Убрать из закладок" else "В закладки")
-                    }
+                        null,
+                    )
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        if (store.isChapterBookmarked(chapter.id)) {
+                            "Убрать из закладок"
+                        } else {
+                            "В закладки"
+                        }
+                    )
                 }
 
                 if (topics.isNotEmpty() || remedies.isNotEmpty()) {
-                    item(key = "related-title") {
-                        Spacer(Modifier.height(22.dp))
-                        Text("Связанные материалы", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Spacer(Modifier.height(8.dp))
-                    }
-                    items(count = topics.size, key = { "topic-${topics[it].id}" }) { i ->
+                    Spacer(Modifier.height(22.dp))
+                    Text(
+                        "Связанные материалы",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    topics.forEach { topic ->
                         SuggestionChip(
-                            onClick = { navigate(Route.TopicDetail(topics[i].id)) },
-                            label = { Text(topics[i].title) },
-                            modifier = Modifier.fillMaxWidth()
+                            onClick = {
+                                navigate(Route.TopicDetail(topic.id))
+                            },
+                            label = { Text(topic.title) },
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    items(count = remedies.size, key = { "remedy-${remedies[it].id}" }) { i ->
+                    remedies.forEach { remedy ->
                         SuggestionChip(
-                            onClick = { navigate(Route.RemedyDetail(remedies[i].id)) },
-                            label = { Text(remedies[i].title) },
-                            modifier = Modifier.fillMaxWidth()
+                            onClick = {
+                                navigate(Route.RemedyDetail(remedy.id))
+                            },
+                            label = { Text(remedy.title) },
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
 
-                item(key = "nav") {
-                    Spacer(Modifier.height(24.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        val prev = book.chapters.firstOrNull { it.id == chapter.previousId }
-                        val next = book.chapters.firstOrNull { it.id == chapter.nextId }
-                        OutlinedButton(
-                            onClick = { if (prev != null) navigate(Route.Reader(prev.id)) },
-                            enabled = prev != null,
-                            modifier = Modifier.weight(1f)
-                        ) { Icon(Icons.Default.ChevronLeft, null); Text("Предыдущая") }
-                        Button(
-                            onClick = { if (next != null) navigate(Route.Reader(next.id)) },
-                            enabled = next != null,
-                            modifier = Modifier.weight(1f)
-                        ) { Text("Следующая"); Icon(Icons.Default.ChevronRight, null) }
+                Spacer(Modifier.height(24.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(10.dp),
+                ) {
+                    val prev = book.chapters.firstOrNull {
+                        it.id == chapter.previousId
+                    }
+                    val next = book.chapters.firstOrNull {
+                        it.id == chapter.nextId
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            if (prev != null) {
+                                navigate(Route.Reader(prev.id))
+                            }
+                        },
+                        enabled = prev != null,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(Icons.Default.ChevronLeft, null)
+                        Text("Предыдущая")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (next != null) {
+                                navigate(Route.Reader(next.id))
+                            }
+                        },
+                        enabled = next != null,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Следующая")
+                        Icon(Icons.Default.ChevronRight, null)
                     }
                 }
             }
@@ -306,43 +434,75 @@ fun ReaderScreen(
 
         FloatingActionButton(
             onClick = { settingsOpen = true },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 16.dp),
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
         ) {
-            Text("Aa", fontFamily = WebSerifFont, fontWeight = FontWeight.Bold)
+            Text(
+                "Aa",
+                fontFamily = WebSerifFont,
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
 
     if (settingsOpen) {
-        ModalBottomSheet(onDismissRequest = { settingsOpen = false }) {
-            WebReaderSettingsSheet(store = store, onDone = { settingsOpen = false })
+        ModalBottomSheet(
+            onDismissRequest = { settingsOpen = false },
+        ) {
+            WebReaderSettingsSheet(
+                store = store,
+                onDone = { settingsOpen = false },
+            )
         }
     }
 
     if (bookmarkFolderOpen) {
         AlertDialog(
-            onDismissRequest = { bookmarkFolderOpen = false },
-            title = { Text("Сохранить в папку") },
+            onDismissRequest = {
+                bookmarkFolderOpen = false
+            },
+            title = {
+                Text("Сохранить в папку")
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(4.dp),
+                ) {
                     store.bookmarkFolders.forEach { folder ->
                         TextButton(
                             onClick = {
-                                store.toggleChapterBookmark(chapter.id, folder)
+                                store.toggleChapterBookmark(
+                                    chapter.id,
+                                    folder,
+                                )
                                 bookmarkFolderOpen = false
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(Icons.Default.Folder, null)
                             Spacer(Modifier.width(8.dp))
-                            Text(folder, modifier = Modifier.weight(1f))
+                            Text(
+                                folder,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { bookmarkFolderOpen = false }) { Text("Отмена") } }
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        bookmarkFolderOpen = false
+                    },
+                ) {
+                    Text("Отмена")
+                }
+            },
         )
     }
 }
