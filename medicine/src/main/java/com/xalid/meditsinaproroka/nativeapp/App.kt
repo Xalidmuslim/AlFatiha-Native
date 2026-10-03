@@ -1,8 +1,7 @@
 package com.xalid.meditsinaproroka.nativeapp
 
 import android.app.Activity
-import android.os.SystemClock
-import android.widget.Toast
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -23,11 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -52,7 +50,6 @@ fun MedicinaApp(book: BookData, store: AppStore) {
     var searchQuery by remember { mutableStateOf("") }
     var searchFilter by remember { mutableStateOf(SearchFilter.ALL) }
     var bookmarkFolder by remember { mutableStateOf("Все") }
-    var lastExitAttemptAt by remember { mutableLongStateOf(0L) }
     val context = LocalContext.current
     val activity = context as? Activity
 
@@ -74,28 +71,18 @@ fun MedicinaApp(book: BookData, store: AppStore) {
         when {
             backStack.isNotEmpty() -> goBack()
             current != Route.Home -> root(Route.Home)
-            else -> {
-                val now = SystemClock.elapsedRealtime()
-                if (now - lastExitAttemptAt <= 1800L) {
-                    activity?.finish()
-                } else {
-                    lastExitAttemptAt = now
-                    Toast.makeText(context, "Ещё раз назад — выйти", Toast.LENGTH_SHORT).show()
-                }
-            }
+            else -> navigateToHeartPrayer(context, "home")
         }
     }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            BottomNav(
-                current = current,
-                onHome = { root(Route.Home) },
-                onTopics = { root(Route.Topics) },
-                onSearch = { root(Route.Search) },
-                onBookmarks = { root(Route.Bookmarks) },
-                onMore = { root(Route.More) },
+            HeartPrayerBottomNav(
+                onHome = { navigateToHeartPrayer(context, "home") },
+                onTools = { navigateToHeartPrayer(context, "menu") },
+                onProgress = { navigateToHeartPrayer(context, "progress") },
+                onMenu = { navigateToHeartPrayer(context, "menu") },
             )
         },
     ) { insets ->
@@ -115,7 +102,14 @@ fun MedicinaApp(book: BookData, store: AppStore) {
         ) { route ->
             screenStateHolder.SaveableStateProvider(routeStateKey(route)) {
                 when (route) {
-                Route.Home -> WebHomeScreen(book, store, modifier, ::navigate)
+                Route.Home -> WebHomeScreen(
+                    book = book,
+                    store = store,
+                    modifier = modifier,
+                    navigate = ::navigate,
+                    onGlobalSearch = { navigateToHeartPrayer(context, "search") },
+                    onToggleTheme = store::toggleSharedTheme,
+                )
                 Route.Book -> BookScreen(book, modifier, ::goBack) { navigate(Route.Reader(it)) }
                 Route.Topics -> TopicsScreen(book, modifier) { navigate(Route.TopicDetail(it)) }
                 Route.Search -> SearchScreen(
@@ -193,80 +187,54 @@ private fun routeStateKey(route: Route): String = when (route) {
     is Route.GlossaryDetail -> "glossary:${route.id}"
     is Route.Reader -> "reader:${route.chapterId}:${route.anchor.orEmpty()}:${route.resume}"
 }
+private fun navigateToHeartPrayer(context: android.content.Context, destination: String) {
+    val intent = Intent()
+        .setClassName(context.packageName, "app.alfatiha.tafsir.MainActivity")
+        .putExtra("heart_nav", destination)
+        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    context.startActivity(intent)
+    (context as? Activity)?.finish()
+}
+
 @Composable
-private fun BottomNav(
-    current: Route,
+private fun HeartPrayerBottomNav(
     onHome: () -> Unit,
-    onTopics: () -> Unit,
-    onSearch: () -> Unit,
-    onBookmarks: () -> Unit,
-    onMore: () -> Unit,
+    onTools: () -> Unit,
+    onProgress: () -> Unit,
+    onMenu: () -> Unit,
 ) {
     data class NavItem(
         val label: String,
         val icon: androidx.compose.ui.graphics.vector.ImageVector,
         val action: () -> Unit,
+        val active: Boolean = false,
     )
 
     val items = listOf(
         NavItem("Главная", Icons.Default.Home, onHome),
-        NavItem("Темы", Icons.Default.GridView, onTopics),
-        NavItem("Поиск", Icons.Default.Search, onSearch),
-        NavItem("Закладки", Icons.Default.Bookmarks, onBookmarks),
-        NavItem("Ещё", Icons.Default.MoreHoriz, onMore),
+        NavItem("Инструменты", Icons.Default.GridView, onTools),
+        NavItem("Прогресс", Icons.Default.BarChart, onProgress),
+        NavItem("Меню", Icons.Default.MoreHoriz, onMenu),
     )
-
-    val selectedIndex = when (current) {
-        Route.Home -> 0
-        Route.Topics, is Route.TopicDetail -> 1
-        Route.Search -> 2
-        Route.Bookmarks -> 3
-        Route.More, Route.Remedies, Route.Treatments, Route.Notes, Route.Settings,
-        Route.Hadiths, Route.History, Route.Offline, Route.About, Route.Collections,
-        Route.Glossary, Route.Source, is Route.RemedyDetail, is Route.CollectionDetail,
-        is Route.GlossaryDetail -> 4
-        else -> -1
-    }
 
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {
-        items.forEachIndexed { index, item ->
-            val selected = selectedIndex == index
-            val scale by animateFloatAsState(
-                targetValue = if (selected) 1.06f else 1f,
-                animationSpec = tween(140),
-                label = "bottomNavScale",
-            )
+        items.forEach { item ->
             NavigationBarItem(
-                selected = selected,
+                selected = item.active,
                 onClick = item.action,
                 icon = {
-                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                            modifier = Modifier.size(23.dp).graphicsLayer(scaleX = scale, scaleY = scale),
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        if (selected) {
-                            Box(
-                                Modifier.width(22.dp).height(3.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.primary,
-                                        RoundedCornerShape(999.dp),
-                                    )
-                            )
-                        } else {
-                            Spacer(Modifier.height(3.dp))
-                        }
-                    }
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label,
+                        modifier = Modifier.size(23.dp),
+                    )
                 },
                 label = {
                     Text(
                         item.label,
-                        modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale),
                         fontSize = 11.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                         maxLines = 1,
