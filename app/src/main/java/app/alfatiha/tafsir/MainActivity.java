@@ -98,7 +98,7 @@ public class MainActivity extends Activity {
         // This keeps cold-start work away from the first visible frame.
         getWindow().getDecorView().post(() -> {
             app.xalidmuslim.azkar.AzkarWarmup.preload(getApplicationContext());
-            com.xalid.meditsinaproroka.nativeapp.MedicineBookCache.preload(getApplicationContext());
+            com.xalid.meditsinaproroka.nativeapp.MedicineRuntimeWarmup.preload(getApplicationContext());
         });
     }
 
@@ -1411,6 +1411,15 @@ public class MainActivity extends Activity {
         int tilePad=homeTileHeightDp<=112?6:homeTileHeightDp<=120?7:8;
         int titleZoneDp=homeTileHeightDp<=112?30:homeTileHeightDp<=120?32:34;
         int subZoneDp=homeTileHeightDp<=112?24:homeTileHeightDp<=120?26:26;
+        final boolean prayerTile="Тайны молитвы".equals(title);
+        final boolean medicineTile=title!=null && title.startsWith("Медицина");
+        if(prayerTile){
+            titleZoneDp-=4;
+            subZoneDp+=4;
+        }else if(medicineTile){
+            titleZoneDp-=1;
+            subZoneDp+=1;
+        }
         LinearLayout c=homeSurface(cardTone,22,tilePad,2);
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
@@ -1445,7 +1454,25 @@ public class MainActivity extends Activity {
         top.addView(arrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
         c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
-        TextView t=homeText(title,homeTileTitleSp,ink(),true);
+        float titleSp=medicineTile?Math.max(11.8f,homeTileTitleSp-.35f):homeTileTitleSp;
+        TextView t=homeText(title,titleSp,ink(),true);
+        if(medicineTile && title!=null && title.contains("ﷺ")){
+            android.text.SpannableString styledTitle=new android.text.SpannableString(title);
+            int salawatStart=title.indexOf("ﷺ");
+            styledTitle.setSpan(
+                    new android.text.style.RelativeSizeSpan(.58f),
+                    salawatStart,
+                    salawatStart+1,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+            styledTitle.setSpan(
+                    new android.text.style.SuperscriptSpan(),
+                    salawatStart,
+                    salawatStart+1,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            );
+            t.setText(styledTitle);
+        }
         t.setMinLines(1);
         t.setMaxLines(2);
         t.setEllipsize(null);
@@ -1461,6 +1488,7 @@ public class MainActivity extends Activity {
         st.setGravity(Gravity.TOP|Gravity.LEFT);
         st.setLineSpacing(0,1.00f);
         st.setPadding(0,0,0,0);
+        if(prayerTile || medicineTile)st.setTranslationY(-dp(2));
         c.addView(st,new LinearLayout.LayoutParams(-1,dp(subZoneDp)));
 
         c.setOnClickListener(v->open.run());
