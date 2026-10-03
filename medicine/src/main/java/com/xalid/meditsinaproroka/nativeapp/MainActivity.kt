@@ -2,6 +2,8 @@ package com.xalid.meditsinaproroka.nativeapp
 
 import android.os.Bundle
 import android.util.Log
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -28,34 +30,64 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val store = AppStore(this)
         val appContext = applicationContext
+        val launchTheme = if (
+            getSharedPreferences("alfatiha_native", MODE_PRIVATE).getBoolean("dark", false)
+        ) "dark" else "light"
 
         setContent {
+            var store by remember { mutableStateOf<AppStore?>(null) }
             var bookResult by remember { mutableStateOf<Result<BookData>?>(null) }
 
             LaunchedEffect(Unit) {
-                bookResult = withContext(Dispatchers.IO) {
-                    MedicineBookCache.getOrLoad(appContext)
-                }
-                bookResult?.exceptionOrNull()?.let { error ->
-                    Log.e(TAG, "Failed to load bundled book.json", error)
+                coroutineScope {
+                    val storeDeferred = async(Dispatchers.IO) { AppStore(appContext) }
+                    val bookDeferred = async(Dispatchers.IO) {
+                        MedicineBookCache.getOrLoad(appContext)
+                    }
+                    store = storeDeferred.await()
+                    bookResult = bookDeferred.await()
+                    bookResult?.exceptionOrNull()?.let { error ->
+                        Log.e(TAG, "Failed to load bundled book.json", error)
+                    }
                 }
             }
 
-            MedicinaTheme(store.settings.theme) {
-                when (val result = bookResult) {
-                    null -> BookLoadingScreen()
-                    else -> result.fold(
-                        onSuccess = { book -> MedicinaApp(book = book, store = store) },
-                        onFailure = { BookLoadErrorScreen() },
-                    )
+            val loadedStore = store
+            val loadedBook = bookResult
+            val ready = loadedStore != null && loadedBook != null
+
+            Crossfade(
+                targetState = ready,
+                animationSpec = tween(durationMillis = 140),
+                label = "medicine-bootstrap",
+            ) { isReady ->
+                if (!isReady) {
+                    MedicinaTheme(launchTheme) {
+                        BookLoadingScreen()
+                    }
+                } else {
+                    val actualStore = loadedStore
+                    val actualBook = loadedBook
+                    if (actualStore == null || actualBook == null) {
+                        MedicinaTheme(launchTheme) { BookLoadingScreen() }
+                    } else {
+                        MedicinaTheme(actualStore.settings.theme) {
+                            actualBook.fold(
+                                onSuccess = { book ->
+                                    MedicinaApp(book = book, store = actualStore)
+                                },
+                                onFailure = { BookLoadErrorScreen() },
+                            )
+                        }
+                    }
                 }
             }
         }
