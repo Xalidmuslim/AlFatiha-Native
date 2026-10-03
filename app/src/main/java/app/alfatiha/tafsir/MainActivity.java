@@ -2149,9 +2149,11 @@ public class MainActivity extends Activity {
 
         LinearLayout progress=card(sageSoft());
         progress.addView(kicker("ПРОГРЕСС",C_SAGE));
-        progress.addView(text(seen+" из "+total+" этапов открыто",17,ink(),true));
+        progress.addView(text(seen+" из "+total+" этапов открыто · осталось "+Math.max(0,total-seen),17,ink(),true));
         progress.addView(progressBar(total==0?0:Math.min(100,seen*100/total),C_SAGE),new LinearLayout.LayoutParams(-1,dp(10)));
-        if(seen>0){Button resume=action(prayerSecretResumeLine(),C_SAGE);resume.setOnClickListener(v->continuePrayerSecrets());progress.addView(resume);}
+        Button resume=action(seen>0?prayerSecretResumeLine():"Начать курс",C_SAGE);
+        resume.setOnClickListener(v->continuePrayerSecrets());
+        progress.addView(resume);
 
         gap(10);TextView prep=text("ПОДГОТОВКА К МОЛИТВЕ",12,Color.rgb(145,104,42),true);prep.setLetterSpacing(.07f);add(prep);
         for(int i=1;i<=2&&i<data.length();i++){JSONObject o=data.optJSONObject(i);if(o==null)continue;final int idx=i;courseStep(String.format(Locale.ROOT,"%02d",i),o.optString("title"),o.optString("subtitle"),Color.rgb(145,104,42),()->renderPrayerSecretLesson(idx,true),false);}
