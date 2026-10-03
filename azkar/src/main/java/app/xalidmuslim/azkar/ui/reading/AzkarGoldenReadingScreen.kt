@@ -237,7 +237,7 @@ internal fun AzkarHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AzkarSpacing.brandGap),
         ) {
-            val brandShape = RoundedCornerShape(AzkarRadius.brandIcon)
+            val brandShape = RoundedCornerShape(14.dp)
             Box(
                 modifier = Modifier
                     .size(AzkarDimensions.brandIcon)
@@ -250,20 +250,31 @@ internal fun AzkarHeader(
                     painter = painterResource(R.drawable.heart_prayer_azkar_exact),
                     contentDescription = null,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp)),
-                    contentScale = ContentScale.Crop,
+                        .fillMaxSize()
+                        .clip(brandShape),
+                    contentScale = ContentScale.Fit,
                 )
             }
-            Column {
+            Column(
+                modifier = Modifier.offset(y = 2.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
                 BasicText(
                     text = "Азкары",
-                    style = AzkarThemeValues.typography.brandTitle.copy(color = colors.foreground),
+                    style = AzkarThemeValues.typography.brandTitle.copy(
+                        color = colors.foreground,
+                        fontSize = 16.2.sp,
+                        lineHeight = 20.sp,
+                    ),
                 )
                 BasicText(
-                    text = "УТРО · ВЕЧЕР",
+                    text = "Утро и вечер · ат-Тарифи",
                     modifier = Modifier.padding(top = AzkarSpacing.brandSubtitleTop),
-                    style = AzkarThemeValues.typography.brandSubtitle.copy(color = colors.muted),
+                    style = AzkarThemeValues.typography.sourceNote.copy(
+                        color = colors.muted,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                    ),
                 )
             }
         }
