@@ -1050,6 +1050,86 @@ public class MainActivity extends Activity {
     }
 
     private int seenMindCount(){return Math.min(8,prefs.getStringSet("mind_seen",new HashSet<>()).size());}
+
+    private void markPrimaryLearningTrack(String track){
+        prefs.edit().putString("last_learning_track",track).apply();
+    }
+
+    private String primaryLearningTrack(){
+        String saved=prefs.getString("last_learning_track","");
+        if("mind".equals(saved)||"prayer".equals(saved))return saved;
+        return seenPrayerSecretCount()>0&&seenMindCount()==0?"prayer":"mind";
+    }
+
+    private int primaryLearningProgress(){
+        if("prayer".equals(primaryLearningTrack())){
+            int total=Math.max(1,arr("prayer_secrets.json").length()-1);
+            return Math.min(100,seenPrayerSecretCount()*100/total);
+        }
+        return Math.min(100,seenMindCount()*100/8);
+    }
+
+    private String primaryLearningResumeText(){
+        if("prayer".equals(primaryLearningTrack())){
+            String line=prayerSecretResumeLine().replace("Продолжить · ","");
+            return "Тайны молитвы · "+line;
+        }
+        String line=mindCourseResumeLine().replace("Продолжить · ","");
+        if("Начать курс".equals(line))line="часть 1 из 8";
+        return "Аль-Фатиха · "+line;
+    }
+
+    private void continuePrimaryLearning(){
+        if("prayer".equals(primaryLearningTrack()))continuePrayerSecrets();
+        else continueMindCourse();
+    }
+
+    private int quizAnsweredCount(String mode){
+        JSONArray data=quizArray(mode);
+        Set<String> answered=prefs.getStringSet("answered_ids",new HashSet<>());
+        int done=0;
+        for(int i=0;i<data.length();i++){
+            JSONObject q=data.optJSONObject(i);
+            if(q!=null&&answered.contains(qid(mode,q)))done++;
+        }
+        return done;
+    }
+
+    private String lastQuizKey(){
+        String key=prefs.getString("last_quiz_kind","");
+        if(!key.isEmpty())return key;
+        String mode=prefs.getString("last_quiz_mode","");
+        return mode.isEmpty()?"classic":mode;
+    }
+
+    private int lastQuizTotal(){
+        String key=lastQuizKey();
+        if("minor_shirk".equals(key))return arr("minor_shirk_quiz.json").length();
+        if("prayer_basic".equals(key))return arr("prayer_check.json").length();
+        return quizArray(key).length();
+    }
+
+    private int lastQuizAnswered(){
+        String key=lastQuizKey();
+        if("minor_shirk".equals(key))return minorShirkSeenCount("minor_shirk_quiz_answered");
+        if("prayer_basic".equals(key))return prayerCheckAnsweredCount();
+        return quizAnsweredCount(key);
+    }
+
+    private String lastQuizTitle(){
+        String key=lastQuizKey();
+        if("minor_shirk".equals(key))return "Малый ширк";
+        if("prayer_basic".equals(key))return "Тайны молитвы · базовый";
+        return modeTitle(key);
+    }
+
+    private void continueLastQuiz(){
+        String key=lastQuizKey();
+        if("minor_shirk".equals(key)){continueMinorShirkQuiz();return;}
+        if("prayer_basic".equals(key)){continuePrayerCheck();return;}
+        continueQuiz(key);
+    }
+
     private int repeatCount(){return prefs.getStringSet("wrong_ids",new HashSet<>()).size();}
 
     private void openMindExam(){
@@ -1097,8 +1177,7 @@ public class MainActivity extends Activity {
             homeTileTitleSp=13.4f; homeTileSubSp=10.0f;
         }
 
-        int seen=seenMindCount();
-        int pct=Math.min(100,seen*100/8);
+        int pct=primaryLearningProgress();
 
         // Hero: real native text/actions over the approved interior artwork.
         FrameLayout hero=new FrameLayout(this);
@@ -1113,7 +1192,7 @@ public class MainActivity extends Activity {
                 25,
                 dark?Color.rgb(58,67,62):Color.rgb(236,230,220)));
         hero.setContentDescription("Продолжить обучение");
-        hero.setOnClickListener(v->continueMindCourse());
+        hero.setOnClickListener(v->continuePrimaryLearning());
 
         ImageView heroArt=new ImageView(this);
         heroArt.setImageResource(R.drawable.heart_prayer_hero_exact);
@@ -1163,11 +1242,9 @@ public class MainActivity extends Activity {
                 16,
                 dark?line():Color.rgb(229,219,205)
         ));
-        heroResume.setOnClickListener(v->continueMindCourse());
+        heroResume.setOnClickListener(v->continuePrimaryLearning());
 
-        String heroResumeText=seen>0
-                ?mindCourseResumeLine().replace("Продолжить · ","")
-                :"Осознанное чтение Аль-Фатихи · часть 1 из 8";
+        String heroResumeText=primaryLearningResumeText();
         TextView heroResumeLabel=homeText(
                 heroResumeText,
                 10.4f,
@@ -1263,42 +1340,47 @@ public class MainActivity extends Activity {
         row3lp.setMargins(0,dp(6),0,0);
         page.addView(row3,row3lp);
 
-        TextView quickTitle=homeText("Быстрый доступ",14.2f,ink(),true);
-        LinearLayout.LayoutParams qtlp=new LinearLayout.LayoutParams(-1,-2);
-        qtlp.setMargins(dp(2),dp(12),0,dp(5));
-        page.addView(quickTitle,qtlp);
+        int quizTotal=Math.max(1,lastQuizTotal());
+        int quizDone=Math.min(quizTotal,lastQuizAnswered());
+        int quizPct=Math.min(100,quizDone*100/quizTotal);
+        LinearLayout quizResume=homeSurface(
+                dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
+                20,9,1
+        );
+        quizResume.setOrientation(LinearLayout.VERTICAL);
+        quizResume.setOnClickListener(v->continueLastQuiz());
 
-        HorizontalScrollView quickScroll=new HorizontalScrollView(this);
-        quickScroll.setHorizontalScrollBarEnabled(false);
-        quickScroll.setClipToPadding(false);
-        LinearLayout quickRow=new LinearLayout(this);
-        quickRow.setOrientation(LinearLayout.HORIZONTAL);
-        quickRow.addView(homeQuickChip("Повторение",()->renderRepeatHub(true)));
-        quickRow.addView(homeQuickChip("Закладки",()->renderTaskNavigator(5,true)));
-        quickRow.addView(homeQuickChip("История",()->renderExamHistory(true)));
-        quickRow.addView(homeQuickChip("Сохранённое",()->renderSavedMaterials(true)));
-        quickScroll.addView(quickRow,new HorizontalScrollView.LayoutParams(-2,dp(44)));
-        LinearLayout.LayoutParams qslp=new LinearLayout.LayoutParams(-1,dp(44));
-        qslp.setMargins(0,0,0,dp(4));
-        page.addView(quickScroll,qslp);
-    }
+        LinearLayout qrTop=new LinearLayout(this);
+        qrTop.setOrientation(LinearLayout.HORIZONTAL);
+        qrTop.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout qrText=new LinearLayout(this);
+        qrText.setOrientation(LinearLayout.VERTICAL);
+        qrText.addView(homeText("Продолжить викторину",13.5f,ink(),true));
+        qrText.addView(homeText(lastQuizTitle()+" · "+quizDone+" из "+quizTotal,10.2f,muted(),false));
+        qrTop.addView(qrText,new LinearLayout.LayoutParams(0,-2,1));
+        TextView qrArrow=homeText("›",20,ink(),false);
+        qrArrow.setGravity(Gravity.CENTER);
+        qrArrow.setBackground(surfaceBg(
+                dark?Color.rgb(45,52,48):Color.rgb(249,245,238),
+                dark?Color.rgb(41,48,44):Color.rgb(245,239,230),
+                18,dark?line():Color.rgb(230,221,208)));
+        qrTop.addView(qrArrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
+        quizResume.addView(qrTop);
 
-    private TextView homeQuickChip(String label,Runnable open){
-        TextView chip=homeText(label,11.4f,ink(),false);
-        chip.setGravity(Gravity.CENTER);
-        chip.setMinWidth(dp(108));
-        chip.setPadding(dp(15),0,dp(15),0);
-        chip.setBackground(surfaceBg(
-                dark?Color.rgb(39,46,42):Color.rgb(249,245,238),
-                dark?Color.rgb(35,42,39):Color.rgb(246,240,231),
-                20,
-                line()
-        ));
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,dp(42));
-        lp.setMargins(0,0,dp(7),0);
-        chip.setLayoutParams(lp);
-        chip.setOnClickListener(v->open.run());
-        return chip;
+        LinearLayout qrProgress=new LinearLayout(this);
+        qrProgress.setOrientation(LinearLayout.HORIZONTAL);
+        qrProgress.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams qrBarLp=new LinearLayout.LayoutParams(0,dp(6),1);
+        qrBarLp.setMargins(0,dp(5),dp(8),0);
+        qrProgress.addView(progressBar(quizPct,C_BLUE),qrBarLp);
+        TextView qrPct=homeText(quizPct+"%",9.7f,muted(),false);
+        qrPct.setGravity(Gravity.CENTER);
+        qrProgress.addView(qrPct,new LinearLayout.LayoutParams(dp(36),dp(20)));
+        quizResume.addView(qrProgress);
+
+        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(76));
+        qrLp.setMargins(0,dp(10),0,dp(4));
+        page.addView(quizResume,qrLp);
     }
 
     private LinearLayout homeFeature(
@@ -1366,16 +1448,42 @@ public class MainActivity extends Activity {
     private void markMinorShirkSeen(String key,int idx){
         HashSet<String> set=new HashSet<>(prefs.getStringSet(key,new HashSet<>()));
         set.add(String.valueOf(idx));
-        prefs.edit().putStringSet(key,set).apply();
+        SharedPreferences.Editor e=prefs.edit().putStringSet(key,set);
+        if("minor_shirk_course_seen".equals(key))e.putInt("minor_shirk_last_idx",idx);
+        e.apply();
+    }
+
+    private void continueMinorShirkCourse(){
+        JSONArray a=arr("minor_shirk_course.json");
+        if(a.length()==0)return;
+        Set<String> seen=prefs.getStringSet("minor_shirk_course_seen",new HashSet<>());
+        int last=Math.max(-1,Math.min(a.length()-1,prefs.getInt("minor_shirk_last_idx",-1)));
+        for(int step=1;step<=a.length();step++){
+            int idx=(last+step+a.length())%a.length();
+            if(!seen.contains(String.valueOf(idx))){renderMinorShirkCourse(idx,true);return;}
+        }
+        renderMinorShirkCourse(Math.max(0,last),true);
     }
 
     private void renderMinorShirkHub(boolean push){
         clearActiveFlow();clear("minorShirkHub","",push);currentSection="minorShirk";appTop();
         JSONArray course=arr("minor_shirk_course.json");
         JSONArray daily=arr("minor_shirk_daily.json");
-        JSONArray quiz=arr("minor_shirk_quiz.json");
 
         header("Малый ширк","Практический курс о защите единобожия: намерение, причины, упование, страх, надежда и состояние сердца.");
+
+        int courseSeen=minorShirkSeenCount("minor_shirk_course_seen");
+        int courseTotal=Math.max(1,course.length());
+        int courseLeft=Math.max(0,courseTotal-courseSeen);
+        LinearLayout resumeCard=card(sageSoft());
+        resumeCard.addView(kicker("ПРОДОЛЖИТЬ",C_SAGE));
+        resumeCard.addView(text(courseSeen==0?"Начать курс":"Продолжить курс",19,ink(),true));
+        resumeCard.addView(text("Пройдено "+courseSeen+" из "+courseTotal+" · осталось "+courseLeft,13.5f,muted(),false));
+        resumeCard.addView(progressBar(Math.min(100,courseSeen*100/courseTotal),C_SAGE),new LinearLayout.LayoutParams(-1,dp(9)));
+        Button continueCourse=action(courseLeft==0?"Повторить курс":"Продолжить",C_SAGE);
+        continueCourse.setOnClickListener(v->continueMinorShirkCourse());
+        resumeCard.addView(continueCourse);
+        resumeCard.setOnClickListener(v->continueMinorShirkCourse());
 
         LinearLayout courseCard=card(sageSoft());
         courseCard.addView(kicker("КУРС",C_SAGE));
@@ -1394,16 +1502,6 @@ public class MainActivity extends Activity {
         db.setOnClickListener(v->renderMinorShirkDailyList(true));
         dailyCard.addView(db);
         dailyCard.setOnClickListener(v->renderMinorShirkDailyList(true));
-
-        int answered=minorShirkSeenCount("minor_shirk_quiz_answered");
-        LinearLayout quizCard=card(lavSoft());
-        quizCard.addView(kicker("ВИКТОРИНА",Color.rgb(112,96,134)));
-        quizCard.addView(text("Проверка понимания",20.5f,ink(),true));
-        quizCard.addView(text(quiz.length()+" сложных вопросов · отвечено "+answered+"/"+quiz.length(),13.8f,muted(),false));
-        Button qb=action(answered>=quiz.length()?"Посмотреть результат":"Продолжить",Color.rgb(112,96,134));
-        qb.setOnClickListener(v->continueMinorShirkQuiz());
-        quizCard.addView(qb);
-        quizCard.setOnClickListener(v->continueMinorShirkQuiz());
 
         LinearLayout note=card(sandSoft());
         note.addView(kicker("ВАЖНАЯ ГРАНИЦА",Color.rgb(145,104,42)));
@@ -1546,7 +1644,8 @@ public class MainActivity extends Activity {
         HashSet<String> correct=new HashSet<>(prefs.getStringSet("minor_shirk_quiz_correct",new HashSet<>()));
         String id=String.valueOf(idx);
         answered.add(id);if(ok)correct.add(id);else correct.remove(id);
-        prefs.edit().putStringSet("minor_shirk_quiz_answered",answered).putStringSet("minor_shirk_quiz_correct",correct).apply();
+        prefs.edit().putStringSet("minor_shirk_quiz_answered",answered).putStringSet("minor_shirk_quiz_correct",correct)
+                .putString("last_quiz_kind","minor_shirk").apply();
     }
 
     private void renderMinorShirkQuiz(int idx,boolean push){
@@ -1950,7 +2049,8 @@ public class MainActivity extends Activity {
 
     private void rememberMindCourse(String screen,String arg,String label){
         prefs.edit().putString("mind_course_screen",screen).putString("mind_course_arg",arg==null?"":arg)
-                .putString("mind_course_label",label==null?"":label).apply();
+                .putString("mind_course_label",label==null?"":label)
+                .putString("last_learning_track","mind").apply();
     }
 
     private String mindCourseResumeLine(){
@@ -1990,7 +2090,8 @@ public class MainActivity extends Activity {
     private void markPrayerSecretSeen(int idx){
         HashSet<String> seen=new HashSet<>(prefs.getStringSet("prayer_secrets_seen",new HashSet<>()));
         seen.add(String.valueOf(idx));
-        prefs.edit().putStringSet("prayer_secrets_seen",seen).putInt("prayer_secrets_last_idx",idx).apply();
+        prefs.edit().putStringSet("prayer_secrets_seen",seen).putInt("prayer_secrets_last_idx",idx)
+                .putString("last_learning_track","prayer").apply();
     }
 
     private String prayerSecretResumeLine(){
@@ -2034,6 +2135,7 @@ public class MainActivity extends Activity {
     }
 
     private void renderPrayerSecretsHub(boolean push){
+        markPrimaryLearningTrack("prayer");
         clearActiveFlow();clear("prayerSecretsHub","",push);currentSection="prayerSecrets";appTop();
         JSONArray data=arr("prayer_secrets.json");
         int total=Math.max(0,data.length()-1),seen=seenPrayerSecretCount();
@@ -2147,7 +2249,8 @@ public class MainActivity extends Activity {
         String id=q.optString("id",String.valueOf(idx));
         answered.add(id);
         if(ok)correct.add(id);else correct.remove(id);
-        prefs.edit().putStringSet("prayer_check_answered",answered).putStringSet("prayer_check_correct",correct).putInt("prayer_check_last_idx",idx).apply();
+        prefs.edit().putStringSet("prayer_check_answered",answered).putStringSet("prayer_check_correct",correct).putInt("prayer_check_last_idx",idx)
+                .putString("last_quiz_kind","prayer_basic").apply();
     }
 
     private void renderPrayerCheck(int idx,boolean push){
@@ -2509,6 +2612,7 @@ public class MainActivity extends Activity {
     }
 
     private void renderMindHub(boolean push){
+        markPrimaryLearningTrack("mind");
         clearActiveFlow();clear("mindHub","",push);currentSection="mind";appTop();
         header("Осознанное чтение Аль-Фатихи","Пять последовательных разделов: понять слова, увидеть связь аятов, распознать ошибки, проверить понимание и закрепить материал.");
 
@@ -3310,6 +3414,18 @@ public class MainActivity extends Activity {
         prayer.addView(text(prayerTotal+" вопросов · базовый, средний и сложный уровни.",14,muted(),false));
         Button pb=action("Выбрать Тайны молитвы",Color.rgb(145,104,42));pb.setOnClickListener(v->renderPrayerQuizHub(true));prayer.addView(pb);
         prayer.setOnClickListener(v->renderPrayerQuizHub(true));
+
+        JSONArray shirkQuiz=arr("minor_shirk_quiz.json");
+        int shirkAnswered=minorShirkSeenCount("minor_shirk_quiz_answered");
+        LinearLayout shirk=card(lavSoft());
+        shirk.addView(kicker("МАЛЫЙ ШИРК",Color.rgb(112,96,134)));
+        shirk.addView(text("Викторина по малому ширку",21,ink(),true));
+        shirk.addView(text(shirkQuiz.length()+" сложных вопросов · пройдено "+shirkAnswered+" из "+shirkQuiz.length()+".",14,muted(),false));
+        shirk.addView(progressBar(shirkQuiz.length()==0?0:Math.min(100,shirkAnswered*100/shirkQuiz.length()),Color.rgb(112,96,134)),new LinearLayout.LayoutParams(-1,dp(8)));
+        Button sb=action(shirkAnswered>=shirkQuiz.length()&&shirkQuiz.length()>0?"Посмотреть результат":shirkAnswered>0?"Продолжить":"Начать",Color.rgb(112,96,134));
+        sb.setOnClickListener(v->continueMinorShirkQuiz());
+        shirk.addView(sb);
+        shirk.setOnClickListener(v->continueMinorShirkQuiz());
     }
 
     private void renderQuizHub(boolean push){
@@ -3355,6 +3471,7 @@ public class MainActivity extends Activity {
 
         if(!isMindMode(mode)){
             qe.putString("last_quiz_mode",mode)
+              .putString("last_quiz_kind",mode)
               .putString("last_mode",mode);
         }
 
