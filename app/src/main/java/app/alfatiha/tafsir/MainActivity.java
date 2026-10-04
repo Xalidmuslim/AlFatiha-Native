@@ -1357,14 +1357,14 @@ public class MainActivity extends Activity {
                         Color.TRANSPARENT
                 });
         wash.setBackground(washBg);
-        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(292), -1);
+        FrameLayout.LayoutParams wlp=new FrameLayout.LayoutParams(dp(258), -1);
         wlp.gravity=Gravity.LEFT;
         hero.addView(wash,wlp);
 
         LinearLayout heroText=new LinearLayout(this);
         heroText.setOrientation(LinearLayout.VERTICAL);
         heroText.setGravity(Gravity.TOP);
-        heroText.setPadding(dp(16),dp(12),dp(5),dp(10));
+        heroText.setPadding(dp(16),dp(13),dp(4),dp(10));
 
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
 
@@ -1384,9 +1384,9 @@ public class MainActivity extends Activity {
         reminder.setPadding(dp(10),0,dp(10),0);
         heroText.addView(reminder,new LinearLayout.LayoutParams(-2,dp(28)));
 
-        float hadithSp=heroH<=180?17.8f:heroH<=198?19.2f:21.0f;
+        float hadithSp=heroH<=180?16.8f:heroH<=198?18.2f:19.6f;
         TextView hadith=homeText(
-                "«Если сердце\nисправно — исправно\nвсё тело».",
+                "«Если сердце\nисправно —\nисправно всё тело».",
                 hadithSp,
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),
                 true
@@ -1396,18 +1396,18 @@ public class MainActivity extends Activity {
         hadith.setLineSpacing(0,1.00f);
         LinearLayout.LayoutParams hadithLp=
                 new LinearLayout.LayoutParams(-1,-2);
-        hadithLp.setMargins(0,dp(8),0,0);
+        hadithLp.setMargins(0,dp(7),0,0);
         heroText.addView(hadith,hadithLp);
 
         TextView hadithSource=homeText(
                 "аль-Бухари, Муслим",
-                heroH<=180?10.8f:11.6f,
+                heroH<=180?10.2f:11.0f,
                 dark?Color.rgb(198,205,201):Color.rgb(103,101,94),
                 false
         );
         LinearLayout.LayoutParams sourceLp=
                 new LinearLayout.LayoutParams(-1,-2);
-        sourceLp.setMargins(0,dp(5),0,0);
+        sourceLp.setMargins(0,dp(4),0,0);
         heroText.addView(hadithSource,sourceLp);
 
         heroText.addView(new Space(this),new LinearLayout.LayoutParams(1,0,1f));
@@ -1431,10 +1431,14 @@ public class MainActivity extends Activity {
         String heroResumeText=primaryLearningResumeText();
         TextView heroResumeLabel=homeText(
                 heroResumeText,
-                10.4f,
+                10.0f,
                 dark?Color.rgb(209,216,212):Color.rgb(68,82,76),
                 true
         );
+        heroResumeLabel.setMaxLines(2);
+        heroResumeLabel.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        heroResumeLabel.setLineSpacing(0,1.00f);
+
         LinearLayout.LayoutParams heroLabelLp=
                 new LinearLayout.LayoutParams(-1,-2);
         heroLabelLp.setMargins(0,dp(2),0,0);
@@ -1476,7 +1480,7 @@ public class MainActivity extends Activity {
 
         TextView continueBtn=homeText(
                 "Продолжить ›",
-                9.9f,
+                9.5f,
                 Color.WHITE,
                 true
         );
@@ -1491,15 +1495,15 @@ public class MainActivity extends Activity {
         ));
         continueBtn.setOnClickListener(v->continuePrimaryLearning());
         LinearLayout.LayoutParams continueLp=
-                new LinearLayout.LayoutParams(dp(84),dp(34));
+                new LinearLayout.LayoutParams(dp(78),dp(32));
         continueLp.setMargins(dp(6),0,0,0);
         heroResume.addView(continueBtn,continueLp);
 
         LinearLayout.LayoutParams hap=
-                new LinearLayout.LayoutParams(dp(222),dp(50));
+                new LinearLayout.LayoutParams(dp(214),dp(48));
         heroText.addView(heroResume,hap);
 
-        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(286),-1);
+        FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(248),-1);
         htlp.gravity=Gravity.LEFT|Gravity.CENTER_VERTICAL;
         hero.addView(heroText,htlp);
 
