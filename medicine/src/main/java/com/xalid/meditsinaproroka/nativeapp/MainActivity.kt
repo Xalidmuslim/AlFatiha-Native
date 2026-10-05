@@ -105,11 +105,8 @@ class MainActivity : ComponentActivity() {
 
     private fun configureActivityTransitions() {
         if (Build.VERSION.SDK_INT >= 34) {
-            overrideActivityTransition(
-                Activity.OVERRIDE_TRANSITION_OPEN,
-                R.anim.section_enter,
-                R.anim.section_exit,
-            )
+            // Opening is already driven by ActivityOptions.makeCustomAnimation()
+            // in the host activity. Do not stack a second OPEN transition here.
             overrideActivityTransition(
                 Activity.OVERRIDE_TRANSITION_CLOSE,
                 R.anim.section_return_enter,
