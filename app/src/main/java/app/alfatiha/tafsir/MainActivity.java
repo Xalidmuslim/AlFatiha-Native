@@ -2080,6 +2080,75 @@ public class MainActivity extends Activity {
         return row;
     }
 
+    private void renderMinorShirkIntro(boolean push){
+        clear("minorShirkIntro","",push);
+        currentSection="minorShirk";
+        appTop();
+
+        JSONArray data=arr("minor_shirk_intro.json");
+        JSONObject o=data.optJSONObject(0);
+        if(o==null){
+            renderMinorShirkHub(false);
+            return;
+        }
+        prefs.edit().putBoolean("minor_shirk_intro_seen",true).apply();
+
+        header(o.optString("title"),o.optString("subtitle"));
+        sectionCard(
+                "Зачем этот раздел",
+                o.optString("lead"),
+                minorShirkSoft(),
+                minorShirkAccent()
+        );
+
+        JSONArray sections=o.optJSONArray("sections");
+        if(sections!=null){
+            for(int i=0;i<sections.length();i++){
+                JSONArray row=sections.optJSONArray(i);
+                if(row==null)continue;
+                int tone=i%3;
+                sectionCard(
+                        row.optString(0),
+                        row.optString(1),
+                        tone==0?panel():tone==1?blueSoft():sandSoft(),
+                        tone==0?minorShirkAccent():tone==1?C_BLUE:Color.rgb(145,104,42)
+                );
+            }
+        }
+
+        JSONArray roadmap=o.optJSONArray("roadmap");
+        if(roadmap!=null&&roadmap.length()>0){
+            LinearLayout card=card(panel());
+            card.addView(kicker("КАК ПРОХОДИТЬ РАЗДЕЛ",minorShirkAccent()));
+            for(int i=0;i<roadmap.length();i++){
+                card.addView(text(
+                        (i+1)+". "+roadmap.optString(i),
+                        13.5f,
+                        ink(),
+                        false
+                ));
+            }
+        }
+
+        JSONArray sources=o.optJSONArray("sources");
+        if(sources!=null&&sources.length()>0){
+            LinearLayout card=card(panel());
+            card.addView(kicker("ОСНОВАНИЯ И ИСТОЧНИКИ",C_BLUE));
+            for(int i=0;i<sources.length();i++){
+                card.addView(text(
+                        "• "+sources.optString(i),
+                        12.8f,
+                        muted(),
+                        false
+                ));
+            }
+        }
+
+        Button start=action("Перейти к курсу →",minorShirkAccent());
+        start.setOnClickListener(v->renderMinorShirkCourseList(true));
+        page.addView(start);
+    }
+
     private void renderMinorShirkHub(boolean push){
         clearActiveFlow();
         clear("minorShirkHub","",push);
@@ -2092,8 +2161,48 @@ public class MainActivity extends Activity {
 
         header(
                 "Защита единобожия",
-                "Практический курс: намерение, причины, упование, страх, надежда и состояние сердца."
+                "Малый ширк, пути к нему и тонкие границы: слова, намерение, причины, упование, страх и современные бытовые ситуации."
         );
+
+        boolean introSeen=prefs.getBoolean("minor_shirk_intro_seen",false);
+        LinearLayout introCard=homeSurface(
+                dark?Color.rgb(43,49,46):Color.rgb(248,246,240),
+                20,
+                13,
+                1
+        );
+        introCard.setOrientation(LinearLayout.HORIZONTAL);
+        introCard.setGravity(Gravity.CENTER_VERTICAL);
+        introCard.setOnClickListener(v->renderMinorShirkIntro(true));
+
+        LinearLayout introText=new LinearLayout(this);
+        introText.setOrientation(LinearLayout.VERTICAL);
+        TextView introTitle=text(
+                introSeen?"Предисловие · прочитано":"Сначала прочитайте предисловие",
+                15.6f,
+                ink(),
+                true
+        );
+        introTitle.setPadding(0,0,0,0);
+        introText.addView(introTitle);
+        TextView introSub=text(
+                "Как отличать малый ширк от греха, средства к ширку и большого ширка — без крайностей.",
+                11.8f,
+                muted(),
+                false
+        );
+        introSub.setPadding(0,dp(3),0,0);
+        introText.addView(introSub);
+        introCard.addView(introText,new LinearLayout.LayoutParams(0,-2,1));
+        TextView introArrow=text("›",24,minorShirkAccent(),false);
+        introArrow.setGravity(Gravity.CENTER);
+        introArrow.setPadding(0,0,0,0);
+        introCard.addView(introArrow,new LinearLayout.LayoutParams(dp(34),dp(46)));
+
+        LinearLayout.LayoutParams introLp=
+                new LinearLayout.LayoutParams(-1,-2);
+        introLp.setMargins(0,dp(2),0,dp(8));
+        page.addView(introCard,introLp);
 
         int courseSeen=minorShirkSeenCount(
                 "minor_shirk_course_seen"
@@ -2128,15 +2237,17 @@ public class MainActivity extends Activity {
         );
 
         TextView resumeTitle=text(
-                courseSeen==0
-                        ?"Начать курс"
-                        :"Продолжить: "+
-                          shortText(
-                                  nextTopic==null
-                                          ?"следующая тема"
-                                          :nextTopic.optString("title"),
-                                  58
-                          ),
+                !introSeen
+                        ?"Сначала: предисловие"
+                        :courseSeen==0
+                                ?"Начать курс"
+                                :"Продолжить: "+
+                                  shortText(
+                                          nextTopic==null
+                                                  ?"следующая тема"
+                                                  :nextTopic.optString("title"),
+                                          58
+                                  ),
                 18.2f,
                 ink(),
                 true
@@ -2168,18 +2279,20 @@ public class MainActivity extends Activity {
         );
 
         Button continueButton=action(
-                courseLeft==0
-                        ?"Повторить курс"
-                        :"Продолжить →",
+                !introSeen
+                        ?"Открыть предисловие →"
+                        :courseLeft==0
+                                ?"Повторить курс"
+                                :"Продолжить →",
                 minorShirkAccent()
         );
         continueButton.setTextSize(sz(14.2f));
         continueButton.setOnClickListener(
-                v->continueMinorShirkCourse()
+                v->{if(!introSeen)renderMinorShirkIntro(true);else continueMinorShirkCourse();}
         );
         resume.addView(continueButton);
         resume.setOnClickListener(
-                v->continueMinorShirkCourse()
+                v->{if(!introSeen)renderMinorShirkIntro(true);else continueMinorShirkCourse();}
         );
 
         LinearLayout searchCard=homeSurface(
@@ -2249,7 +2362,7 @@ public class MainActivity extends Activity {
         LinearLayout quizTile=minorShirkHubTile(
                 R.drawable.ic_minor_check_modern,
                 "Проверка",
-                quiz.length()+" вопросов · проверить понимание темы",
+                quiz.length()+" сложных вопросов · продвинутый уровень",
                 this::continueMinorShirkQuiz
         );
         LinearLayout savedTile=minorShirkHubTile(
@@ -2325,6 +2438,20 @@ public class MainActivity extends Activity {
         );
         addMinorShirkTwoColumnRow(q3,q4,144,7);
 
+        LinearLayout q5=minorShirkQuickCard(
+                "Слова и клятвы",
+                "Клятвы, «Аллах и ты», благодарность и приписывание результата.",
+                "Подборка",
+                ()->renderMinorShirkCollection("words",true)
+        );
+        LinearLayout q6=minorShirkQuickCard(
+                "Суеверия и ложные причины",
+                "Амулеты, гороскопы, приметы, счастливые числа и знаки.",
+                "Подборка",
+                ()->renderMinorShirkCollection("omens",true)
+        );
+        addMinorShirkTwoColumnRow(q5,q6,154,7);
+
         TextView moreTitle=text(
                 "Продолжить изучение",
                 18.8f,
@@ -2347,11 +2474,13 @@ public class MainActivity extends Activity {
         chips.setPadding(0,0,dp(6),0);
 
         String[] labels={
+                "Предисловие",
                 "Тонкие границы",
                 "Реальные ситуации",
                 "Мои закладки"
         };
         Runnable[] opens={
+                ()->renderMinorShirkIntro(true),
                 ()->renderMinorShirkCollection("boundaries",true),
                 ()->renderMinorShirkDailyList(true),
                 ()->renderMinorShirkSaved(true)
@@ -2434,6 +2563,16 @@ public class MainActivity extends Activity {
                         "кадар","предопредел","если бы",
                         "время","недоволь","потер"
                 };
+            case "words":
+                return new String[]{
+                        "клятв","аллах и","аллах, затем",
+                        "слова","благодар","приписыв","воля"
+                };
+            case "omens":
+                return new String[]{
+                        "амулет","суевер","примет","гороскоп",
+                        "звезд","зодиак","счастлив","тийар","ложн"
+                };
             case "boundaries":
             default:
                 return new String[]{
@@ -2449,6 +2588,8 @@ public class MainActivity extends Activity {
             case "riya": return "Рия и намерение";
             case "heart": return "Страх и надежда";
             case "qadar": return "Кадар и «если бы»";
+            case "words": return "Слова и клятвы";
+            case "omens": return "Суеверия и ложные причины";
             default: return "Тонкие границы";
         }
     }
@@ -2857,7 +2998,7 @@ public class MainActivity extends Activity {
     private void renderMinorShirkCourseList(boolean push){
         clear("minorShirkCourseList","",push);currentSection="minorShirk";appTop();
         JSONArray a=arr("minor_shirk_course.json");
-        header("Малый ширк · курс","Выберите тему. Материал перенесён из нашего незаконченного проекта без WebView.");
+        header("Малый ширк · курс",a.length()+" тем: определения, словесный ширк, рия, причины, суеверия, современные ситуации и точные границы.");
         Set<String> seen=prefs.getStringSet("minor_shirk_course_seen",new HashSet<>());
         for(int i=0;i<a.length();i++){
             JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
@@ -2927,7 +3068,7 @@ public class MainActivity extends Activity {
     private void renderMinorShirkDailyList(boolean push){
         clear("minorShirkDailyList","",push);currentSection="minorShirk";appTop();
         JSONArray a=arr("minor_shirk_daily.json");
-        header("Повседневные ситуации","Реальный случай → что происходит в сердце → опасная грань → правильное состояние.");
+        header("Повседневные ситуации",a.length()+" реальных кейсов · ситуация → сердце → точная граница → правильное состояние.");
         for(int i=0;i<a.length();i++){
             JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
             LinearLayout c=card(i%2==0?blueSoft():panel());
@@ -3020,7 +3161,7 @@ public class MainActivity extends Activity {
         final int currentIdx=idx;
         JSONObject q=a.optJSONObject(idx);if(q==null)return;
 
-        header("Викторина · Малый ширк","Вопрос "+(idx+1)+" из "+a.length()+" · варианты намеренно близкие.");
+        header("Викторина · Малый ширк","Продвинутый уровень · вопрос "+(idx+1)+" из "+a.length()+" · все варианты намеренно близкие, выбирайте самую точную границу.");
         LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,dp(7));pp.setMargins(0,0,0,dp(8));
         page.addView(progressBar((idx+1)*100/a.length(),minorShirkAccent()),pp);
 
@@ -6790,7 +6931,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"minorShirkSearch":renderMinorShirkSearch(false);break;case"minorShirkSaved":renderMinorShirkSaved(false);break;case"minorShirkCollection":renderMinorShirkCollection(s.arg,false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"minorShirkIntro":renderMinorShirkIntro(false);break;case"minorShirkSearch":renderMinorShirkSearch(false);break;case"minorShirkSaved":renderMinorShirkSaved(false);break;case"minorShirkCollection":renderMinorShirkCollection(s.arg,false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}

@@ -242,6 +242,77 @@ for name in ["mind_check.json", "mind_exam.json", "prayer_check.json", "alfatiha
     if total_single >= 8 and max(counts) > (total_single + 1) // 2:
         fail(f"{name}: correct-answer position is too predictable: {counts}")
 
+# 8.5. Minor-shirk section must remain substantial, sourced and genuinely advanced.
+minor_intro = parsed.get("minor_shirk_intro.json", [])
+minor_course = parsed.get("minor_shirk_course.json", [])
+minor_daily = parsed.get("minor_shirk_daily.json", [])
+minor_quiz = parsed.get("minor_shirk_quiz.json", [])
+
+if len(minor_intro) != 1:
+    fail(f"minor_shirk_intro.json: expected one preface object, got {len(minor_intro)}")
+if len(minor_course) < 18:
+    fail(f"minor_shirk_course.json: expected at least 18 topics, got {len(minor_course)}")
+if len(minor_daily) < 35:
+    fail(f"minor_shirk_daily.json: expected at least 35 scenarios, got {len(minor_daily)}")
+if len(minor_quiz) < 36:
+    fail(f"minor_shirk_quiz.json: expected at least 36 advanced questions, got {len(minor_quiz)}")
+
+for name, data, required in [
+    ("minor_shirk_course.json", minor_course, ["id", "title", "short", "understand", "element", "boundary", "deep", "sources"]),
+    ("minor_shirk_daily.json", minor_daily, ["id", "title", "case", "verdict", "inner", "element", "boundary", "correct", "source"]),
+]:
+    ids = []
+    for i, item in enumerate(data):
+        if not isinstance(item, dict):
+            fail(f"{name}[{i}]: expected object")
+            continue
+        ids.append(str(item.get("id", "")).strip())
+        for key in required:
+            value = item.get(key)
+            if isinstance(value, list):
+                ok = any(str(x).strip() for x in value)
+            else:
+                ok = bool(str(value or "").strip())
+            if not ok:
+                fail(f"{name}[{i}]: missing {key}")
+    if len(ids) != len(set(ids)):
+        fail(f"{name}: duplicate ids")
+
+minor_counts = [0, 0, 0, 0]
+minor_questions = set()
+for i, item in enumerate(minor_quiz):
+    if not isinstance(item, dict):
+        fail(f"minor_shirk_quiz.json[{i}]: expected object")
+        continue
+    question = re.sub(r"\s+", " ", str(item.get("q", "")).strip().lower())
+    if not question:
+        fail(f"minor_shirk_quiz.json[{i}]: empty question")
+    elif question in minor_questions:
+        fail(f"minor_shirk_quiz.json[{i}]: duplicate question")
+    minor_questions.add(question)
+
+    opts = item.get("o")
+    answer = item.get("c")
+    explanation = str(item.get("e", "")).strip()
+    if not isinstance(opts, list) or len(opts) != 4:
+        fail(f"minor_shirk_quiz.json[{i}]: expected exactly 4 options")
+        continue
+    normalized_opts = [re.sub(r"\s+", " ", str(x).strip()) for x in opts]
+    if len(set(x.lower() for x in normalized_opts)) != 4:
+        fail(f"minor_shirk_quiz.json[{i}]: duplicate options")
+    for option in normalized_opts:
+        if len(option) < 70:
+            fail(f"minor_shirk_quiz.json[{i}]: option too short/obvious: {option!r}")
+    if not isinstance(answer, int) or not 0 <= answer < 4:
+        fail(f"minor_shirk_quiz.json[{i}]: invalid correct index {answer!r}")
+    else:
+        minor_counts[answer] += 1
+    if len(explanation) < 55:
+        fail(f"minor_shirk_quiz.json[{i}]: explanation too short")
+
+if minor_quiz and max(minor_counts) - min(minor_counts) > 1:
+    fail(f"minor_shirk_quiz.json: answer positions are imbalanced: {minor_counts}")
+
 # 9. Removed UX patterns must not reappear in user-visible code/data.
 
 
