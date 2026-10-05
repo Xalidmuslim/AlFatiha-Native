@@ -207,10 +207,15 @@ public class MainActivity extends Activity {
         bottom=new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setGravity(Gravity.CENTER);
-        bottom.setPadding(dp(8),dp(6),dp(8),dp(6));
-        bottom.setBackground(surfaceBg(dark?Color.rgb(31,37,34):Color.rgb(251,247,240),dark?Color.rgb(28,33,31):Color.rgb(247,242,233),28,line()));
-        bottom.setElevation(dp(6));
-        LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(66));
+        bottom.setPadding(dp(8),dp(5),dp(8),dp(5));
+        bottom.setBackground(surfaceBg(
+                dark?Color.rgb(31,37,34):Color.rgb(251,247,240),
+                dark?Color.rgb(29,34,32):Color.rgb(248,244,236),
+                18,
+                line()
+        ));
+        bottom.setElevation(dp(3));
+        LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(64));
         blp.setMargins(dp(8),0,dp(8),dp(8));
         root.addView(bottom,blp);
         setContentView(root);
@@ -3146,13 +3151,13 @@ public class MainActivity extends Activity {
     private void openAzkar(){
         try{
             Intent i=new Intent(this,app.xalidmuslim.azkar.MainActivity.class);
-            startActivity(i);
-            if(android.os.Build.VERSION.SDK_INT<34){
-                overridePendingTransition(
-                        app.xalidmuslim.azkar.R.anim.azkar_enter,
-                        app.xalidmuslim.azkar.R.anim.azkar_exit
-                );
-            }
+            android.app.ActivityOptions options=
+                    android.app.ActivityOptions.makeCustomAnimation(
+                            this,
+                            app.xalidmuslim.azkar.R.anim.azkar_enter,
+                            app.xalidmuslim.azkar.R.anim.azkar_exit
+                    );
+            startActivity(i,options.toBundle());
         }catch(Exception e){
             toast("Не удалось открыть раздел азкаров");
         }
@@ -3161,13 +3166,13 @@ public class MainActivity extends Activity {
     private void openMedicine(){
         try{
             Intent i=new Intent(this,com.xalid.meditsinaproroka.nativeapp.MainActivity.class);
-            startActivity(i);
-            if(android.os.Build.VERSION.SDK_INT<34){
-                overridePendingTransition(
-                        com.xalid.meditsinaproroka.nativeapp.R.anim.section_enter,
-                        com.xalid.meditsinaproroka.nativeapp.R.anim.section_exit
-                );
-            }
+            android.app.ActivityOptions options=
+                    android.app.ActivityOptions.makeCustomAnimation(
+                            this,
+                            com.xalid.meditsinaproroka.nativeapp.R.anim.section_enter,
+                            com.xalid.meditsinaproroka.nativeapp.R.anim.section_exit
+                    );
+            startActivity(i,options.toBundle());
         }catch(Exception e){
             toast("Не удалось открыть «Медицину Пророка ﷺ»");
         }
@@ -6361,50 +6366,256 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void showContentsDialog(){
-        final Dialog d=new Dialog(this);
-        LinearLayout shell=newSurface(dark?Color.rgb(34,41,37):panel(),28,14,8);
+    private LinearLayout dialogSheet(String title,String subtitle,int iconRes){
+        LinearLayout shell=newSurface(
+                dark?Color.rgb(34,41,37):panel(),
+                22,
+                12,
+                5
+        );
+
+        View handle=new View(this);
+        handle.setBackground(solidBg(
+                dark?Color.rgb(86,94,89):Color.rgb(205,198,187),
+                99,
+                0
+        ));
+        LinearLayout.LayoutParams handleLp=
+                new LinearLayout.LayoutParams(dp(34),dp(4));
+        handleLp.gravity=Gravity.CENTER_HORIZONTAL;
+        handleLp.setMargins(0,0,0,dp(10));
+        shell.addView(handle,handleLp);
 
         LinearLayout head=new LinearLayout(this);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(text("Содержание",21,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
+
+        ImageView icon=new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setColorFilter(dark?Color.rgb(176,195,185):Color.rgb(82,112,97));
+        icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        icon.setPadding(dp(9),dp(9),dp(9),dp(9));
+        icon.setBackground(surfaceBg(
+                dark?Color.rgb(45,55,50):Color.rgb(239,243,239),
+                dark?Color.rgb(42,51,47):Color.rgb(246,245,240),
+                13,
+                dark?Color.rgb(62,72,67):Color.rgb(227,222,213)
+        ));
+        head.addView(icon,new LinearLayout.LayoutParams(dp(42),dp(42)));
+
+        LinearLayout titles=new LinearLayout(this);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        titles.setGravity(Gravity.CENTER_VERTICAL);
+        titles.setPadding(dp(10),0,dp(4),0);
+
+        TextView h=text(title,20.5f,ink(),true);
+        h.setPadding(0,0,0,0);
+        titles.addView(h,new LinearLayout.LayoutParams(-1,-2));
+
+        TextView sub=text(subtitle,11.2f,muted(),false);
+        sub.setPadding(0,dp(2),0,0);
+        sub.setSingleLine(true);
+        sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        titles.addView(sub,new LinearLayout.LayoutParams(-1,-2));
+
+        head.addView(titles,new LinearLayout.LayoutParams(0,dp(46),1));
+
         Button close=outline("×");
-        close.setTextSize(sz(20));
+        close.setTextSize(sz(18));
         close.setMinWidth(0);
         close.setMinimumWidth(0);
+        close.setPadding(0,0,0,0);
         head.addView(close,new LinearLayout.LayoutParams(dp(38),dp(38)));
-        shell.addView(head);
+        close.setTag("dialog-close");
 
-        LinearLayout row1=new LinearLayout(this);row1.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout a=sectionDialogCard("Аль-Фатиха","Осознанное чтение","Продолжить курс",C_SAGE);
+        shell.addView(head,new LinearLayout.LayoutParams(-1,dp(48)));
+
+        View divider=new View(this);
+        divider.setBackgroundColor(line());
+        LinearLayout.LayoutParams dividerLp=
+                new LinearLayout.LayoutParams(-1,dp(1));
+        dividerLp.setMargins(0,dp(8),0,dp(10));
+        shell.addView(divider,dividerLp);
+
+        return shell;
+    }
+
+    private Button dialogCloseButton(LinearLayout shell){
+        LinearLayout head=(LinearLayout)shell.getChildAt(1);
+        return (Button)head.getChildAt(head.getChildCount()-1);
+    }
+
+    private LinearLayout sectionDialogCard(
+            int iconRes,
+            boolean artwork,
+            String title,
+            String sub,
+            String detail,
+            int accent){
+
+        LinearLayout c=homeSurface(
+                dark?Color.rgb(39,46,42):Color.rgb(251,248,242),
+                18,
+                10,
+                1
+        );
+        c.setGravity(Gravity.TOP);
+
+        LinearLayout top=new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+
+        ImageView icon=new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setScaleType(
+                artwork
+                        ?ImageView.ScaleType.FIT_CENTER
+                        :ImageView.ScaleType.CENTER_INSIDE
+        );
+        if(!artwork){
+            icon.setColorFilter(accent);
+            icon.setPadding(dp(9),dp(9),dp(9),dp(9));
+        }else{
+            icon.setPadding(dp(1),dp(1),dp(1),dp(1));
+        }
+        icon.setBackground(surfaceBg(
+                dark?Color.rgb(47,55,51):blend(accent,Color.WHITE,.88f),
+                dark?Color.rgb(44,52,48):blend(accent,Color.WHITE,.93f),
+                12,
+                dark?Color.rgb(63,72,68):blend(accent,Color.WHITE,.72f)
+        ));
+        top.addView(icon,new LinearLayout.LayoutParams(dp(40),dp(40)));
+
+        top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
+
+        TextView arrow=text("›",20,muted(),false);
+        arrow.setGravity(Gravity.CENTER);
+        arrow.setPadding(0,0,0,0);
+        top.addView(arrow,new LinearLayout.LayoutParams(dp(26),dp(36)));
+
+        c.addView(top,new LinearLayout.LayoutParams(-1,dp(40)));
+
+        TextView titleView=text(title,15.1f,ink(),true);
+        titleView.setPadding(0,dp(6),0,0);
+        titleView.setMaxLines(2);
+        titleView.setEllipsize(null);
+        c.addView(titleView,new LinearLayout.LayoutParams(-1,-2));
+
+        TextView subView=text(sub,11.0f,muted(),false);
+        subView.setPadding(0,dp(2),0,0);
+        subView.setMaxLines(2);
+        subView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        c.addView(subView,new LinearLayout.LayoutParams(-1,-2));
+
+        TextView detailView=text(detail,10.8f,accent,true);
+        detailView.setPadding(0,dp(3),0,0);
+        detailView.setSingleLine(true);
+        detailView.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        c.addView(detailView,new LinearLayout.LayoutParams(-1,-2));
+
+        return c;
+    }
+
+    private void showContentsDialog(){
+        final Dialog d=new Dialog(this);
+        LinearLayout shell=dialogSheet(
+                "Содержание",
+                "Все основные разделы в одном месте",
+                R.drawable.ic_nav_contents
+        );
+        Button close=dialogCloseButton(shell);
+
+        LinearLayout row1=new LinearLayout(this);
+        row1.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout a=sectionDialogCard(
+                R.drawable.home_book_mockup,
+                true,
+                "Аль-Фатиха",
+                "Осознанное чтение",
+                "Продолжить курс",
+                C_SAGE
+        );
         a.setOnClickListener(v->{d.dismiss();renderMindHub(true);});
-        row1.addView(a,new LinearLayout.LayoutParams(0,dp(104),1));
-        LinearLayout b=sectionDialogCard("Тайны молитвы","Слова и состояния","Открыть раздел",Color.rgb(145,104,42));
-        b.setOnClickListener(v->{d.dismiss();renderPrayerSecretsHub(true);});
-        LinearLayout.LayoutParams bLp=new LinearLayout.LayoutParams(0,dp(104),1);bLp.setMargins(dp(7),0,0,0);
-        row1.addView(b,bLp);shell.addView(row1);
+        row1.addView(a,new LinearLayout.LayoutParams(0,dp(126),1));
 
-        LinearLayout row2=new LinearLayout(this);row2.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout c=sectionDialogCard("Малый ширк","Защита единобожия","Курс и ситуации",C_SAGE);
+        LinearLayout b=sectionDialogCard(
+                R.drawable.home_mihrab_mockup,
+                true,
+                "Тайны молитвы",
+                "Слова и состояния сердца",
+                "Открыть раздел",
+                Color.rgb(132,108,74)
+        );
+        b.setOnClickListener(v->{d.dismiss();renderPrayerSecretsHub(true);});
+        LinearLayout.LayoutParams bLp=
+                new LinearLayout.LayoutParams(0,dp(126),1);
+        bLp.setMargins(dp(7),0,0,0);
+        row1.addView(b,bLp);
+        shell.addView(row1);
+
+        LinearLayout row2=new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout c=sectionDialogCard(
+                R.drawable.home_minor_shirk_exact,
+                true,
+                "Малый ширк",
+                "Защита единобожия",
+                "Курс и ситуации",
+                dark?Color.rgb(137,153,145):Color.rgb(103,126,115)
+        );
         c.setOnClickListener(v->{d.dismiss();renderMinorShirkHub(true);});
-        row2.addView(c,new LinearLayout.LayoutParams(0,dp(104),1));
-        LinearLayout az=sectionDialogCard("Азкары","Утро и вечер","ат-Тарифи",C_BLUE);
+        row2.addView(c,new LinearLayout.LayoutParams(0,dp(126),1));
+
+        LinearLayout az=sectionDialogCard(
+                R.drawable.home_azkar_mockup,
+                true,
+                "Азкары",
+                "Утро и вечер",
+                "ат-Тарифи",
+                dark?Color.rgb(144,165,177):Color.rgb(102,128,143)
+        );
         az.setOnClickListener(v->{d.dismiss();openAzkar();});
-        LinearLayout.LayoutParams azLp=new LinearLayout.LayoutParams(0,dp(104),1);azLp.setMargins(dp(7),0,0,0);
+        LinearLayout.LayoutParams azLp=
+                new LinearLayout.LayoutParams(0,dp(126),1);
+        azLp.setMargins(dp(7),0,0,0);
         row2.addView(az,azLp);
-        LinearLayout.LayoutParams r2p=new LinearLayout.LayoutParams(-1,-2);r2p.setMargins(0,dp(7),0,0);
+        LinearLayout.LayoutParams r2p=
+                new LinearLayout.LayoutParams(-1,-2);
+        r2p.setMargins(0,dp(7),0,0);
         shell.addView(row2,r2p);
 
-        LinearLayout row3=new LinearLayout(this);row3.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout q=sectionDialogCard("Викторины","Проверка понимания","Все режимы",Color.rgb(112,96,134));
+        LinearLayout row3=new LinearLayout(this);
+        row3.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout q=sectionDialogCard(
+                R.drawable.home_quiz_mockup,
+                true,
+                "Викторины",
+                "Проверка понимания",
+                "Все режимы",
+                dark?Color.rgb(157,143,171):Color.rgb(112,96,134)
+        );
         q.setOnClickListener(v->{d.dismiss();renderQuizCenter(true);});
-        row3.addView(q,new LinearLayout.LayoutParams(0,dp(104),1));
-        LinearLayout m=sectionDialogCard("Медицина Пророка ﷺ","Книга Ибн аль-Каййима","Открыть книгу",C_BLUE);
+        row3.addView(q,new LinearLayout.LayoutParams(0,dp(126),1));
+
+        LinearLayout m=sectionDialogCard(
+                R.drawable.home_medicine_exact,
+                true,
+                "Медицина Пророка ﷺ",
+                "Книга Ибн аль-Каййима",
+                "Открыть книгу",
+                dark?Color.rgb(144,165,177):Color.rgb(102,128,143)
+        );
         m.setOnClickListener(v->{d.dismiss();openMedicine();});
-        LinearLayout.LayoutParams mLp=new LinearLayout.LayoutParams(0,dp(104),1);mLp.setMargins(dp(7),0,0,0);
+        LinearLayout.LayoutParams mLp=
+                new LinearLayout.LayoutParams(0,dp(126),1);
+        mLp.setMargins(dp(7),0,0,0);
         row3.addView(m,mLp);
-        LinearLayout.LayoutParams r3p=new LinearLayout.LayoutParams(-1,-2);r3p.setMargins(0,dp(7),0,0);
+        LinearLayout.LayoutParams r3p=
+                new LinearLayout.LayoutParams(-1,-2);
+        r3p.setMargins(0,dp(7),0,0);
         shell.addView(row3,r3p);
 
         close.setOnClickListener(v->d.dismiss());
@@ -6412,15 +6623,21 @@ public class MainActivity extends Activity {
         d.show();
         Window w=d.getWindow();
         if(w!=null){
-            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-            w.setDimAmount(.36f);
+            w.setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(
+                            Color.TRANSPARENT
+                    )
+            );
+            w.setDimAmount(.34f);
             w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            WindowManager.LayoutParams aLp=w.getAttributes();
-            aLp.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;
-            aLp.width=(int)(getResources().getDisplayMetrics().widthPixels*.96f);
-            aLp.height=WindowManager.LayoutParams.WRAP_CONTENT;
-            aLp.y=dp(8);
-            w.setAttributes(aLp);
+            WindowManager.LayoutParams lp=w.getAttributes();
+            lp.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;
+            lp.width=(int)(
+                    getResources().getDisplayMetrics().widthPixels*.96f
+            );
+            lp.height=WindowManager.LayoutParams.WRAP_CONTENT;
+            lp.y=dp(8);
+            w.setAttributes(lp);
         }
     }
 
@@ -6428,48 +6645,115 @@ public class MainActivity extends Activity {
         final Dialog d=new Dialog(this);
         KnowledgeAnalytics model=analytics();
 
-        LinearLayout shell=newSurface(dark?Color.rgb(34,41,37):panel(),28,14,8);
-        LinearLayout head=new LinearLayout(this);
-        head.setOrientation(LinearLayout.HORIZONTAL);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(text("Инструменты",21,ink(),true),new LinearLayout.LayoutParams(0,-2,1));
-        Button close=outline("×");
-        close.setTextSize(sz(20));
-        close.setMinWidth(0);
-        close.setMinimumWidth(0);
-        head.addView(close,new LinearLayout.LayoutParams(dp(38),dp(38)));
-        shell.addView(head);
+        LinearLayout shell=dialogSheet(
+                "Инструменты",
+                "Поиск, повторение и сохранённые материалы",
+                R.drawable.ic_nav_menu
+        );
+        Button close=dialogCloseButton(shell);
 
-        LinearLayout row1=new LinearLayout(this);row1.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout search=sectionDialogCard("Поиск","По всему приложению","Слова и смыслы",Color.rgb(112,96,134));
+        LinearLayout row1=new LinearLayout(this);
+        row1.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout search=sectionDialogCard(
+                R.drawable.ic_tool_search_modern,
+                false,
+                "Поиск",
+                "По всему приложению",
+                "Слова и смыслы",
+                dark?Color.rgb(157,143,171):Color.rgb(112,96,134)
+        );
         search.setOnClickListener(v->{d.dismiss();renderSearch(true);});
-        row1.addView(search,new LinearLayout.LayoutParams(0,dp(112),1));
-        LinearLayout repeat=sectionDialogCard("Повторение","Ошибки и закрепление",model.reviewNowCount()+" сейчас",C_SAGE);
+        row1.addView(search,new LinearLayout.LayoutParams(0,dp(132),1));
+
+        LinearLayout repeat=sectionDialogCard(
+                R.drawable.ic_tool_repeat_modern,
+                false,
+                "Повторение",
+                "Ошибки и закрепление",
+                model.reviewNowCount()+" сейчас",
+                dark?Color.rgb(137,153,145):Color.rgb(103,126,115)
+        );
         repeat.setOnClickListener(v->{d.dismiss();renderRepeatHub(true);});
-        LinearLayout.LayoutParams r1b=new LinearLayout.LayoutParams(0,dp(112),1);r1b.setMargins(dp(7),0,0,0);
+        LinearLayout.LayoutParams r1b=
+                new LinearLayout.LayoutParams(0,dp(132),1);
+        r1b.setMargins(dp(7),0,0,0);
         row1.addView(repeat,r1b);
         shell.addView(row1);
 
-        LinearLayout row2=new LinearLayout(this);row2.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout bookmarks=sectionDialogCard("Закладки","Отмеченные вопросы","Быстрый доступ",Color.rgb(145,104,42));
-        bookmarks.setOnClickListener(v->{d.dismiss();renderTaskNavigator(5,true);});
-        row2.addView(bookmarks,new LinearLayout.LayoutParams(0,dp(112),1));
-        LinearLayout historyCard=sectionDialogCard("История","Экзамены и попытки","Сохранённые результаты",C_BLUE);
-        historyCard.setOnClickListener(v->{d.dismiss();renderExamHistory(true);});
-        LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(112),1);r2b.setMargins(dp(7),0,0,0);
+        LinearLayout row2=new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout bookmarks=sectionDialogCard(
+                R.drawable.ic_tool_bookmark_modern,
+                false,
+                "Закладки",
+                "Отмеченные вопросы",
+                "Быстрый доступ",
+                dark?Color.rgb(174,147,103):Color.rgb(145,104,42)
+        );
+        bookmarks.setOnClickListener(
+                v->{d.dismiss();renderTaskNavigator(5,true);}
+        );
+        row2.addView(
+                bookmarks,
+                new LinearLayout.LayoutParams(0,dp(132),1)
+        );
+
+        LinearLayout historyCard=sectionDialogCard(
+                R.drawable.ic_tool_history_modern,
+                false,
+                "История",
+                "Экзамены и попытки",
+                "Сохранённые результаты",
+                dark?Color.rgb(144,165,177):Color.rgb(102,128,143)
+        );
+        historyCard.setOnClickListener(
+                v->{d.dismiss();renderExamHistory(true);}
+        );
+        LinearLayout.LayoutParams r2b=
+                new LinearLayout.LayoutParams(0,dp(132),1);
+        r2b.setMargins(dp(7),0,0,0);
         row2.addView(historyCard,r2b);
-        LinearLayout.LayoutParams r2p=new LinearLayout.LayoutParams(-1,-2);r2p.setMargins(0,dp(7),0,0);
+        LinearLayout.LayoutParams r2p=
+                new LinearLayout.LayoutParams(-1,-2);
+        r2p.setMargins(0,dp(7),0,0);
         shell.addView(row2,r2p);
 
-        LinearLayout row3=new LinearLayout(this);row3.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout exam=sectionDialogCard("Экзамен","Итоговые проверки",model.lastExamPercent()<0?"Ещё не проходился":"Последний "+model.lastExamPercent()+"%",C_BLUE);
+        LinearLayout row3=new LinearLayout(this);
+        row3.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout exam=sectionDialogCard(
+                R.drawable.ic_tool_exam_modern,
+                false,
+                "Экзамен",
+                "Итоговые проверки",
+                model.lastExamPercent()<0
+                        ?"Ещё не проходился"
+                        :"Последний "+model.lastExamPercent()+"%",
+                dark?Color.rgb(144,165,177):Color.rgb(102,128,143)
+        );
         exam.setOnClickListener(v->{d.dismiss();renderExamCenter(true);});
-        row3.addView(exam,new LinearLayout.LayoutParams(0,dp(112),1));
-        LinearLayout saved=sectionDialogCard("Сохранённое","Важные смыслы","Материалы курса",Color.rgb(112,96,134));
-        saved.setOnClickListener(v->{d.dismiss();renderSavedMaterials(true);});
-        LinearLayout.LayoutParams r3b=new LinearLayout.LayoutParams(0,dp(112),1);r3b.setMargins(dp(7),0,0,0);
+        row3.addView(exam,new LinearLayout.LayoutParams(0,dp(132),1));
+
+        LinearLayout saved=sectionDialogCard(
+                R.drawable.ic_tool_saved_modern,
+                false,
+                "Сохранённое",
+                "Важные смыслы",
+                "Материалы курса",
+                dark?Color.rgb(157,143,171):Color.rgb(112,96,134)
+        );
+        saved.setOnClickListener(
+                v->{d.dismiss();renderSavedMaterials(true);}
+        );
+        LinearLayout.LayoutParams r3b=
+                new LinearLayout.LayoutParams(0,dp(132),1);
+        r3b.setMargins(dp(7),0,0,0);
         row3.addView(saved,r3b);
-        LinearLayout.LayoutParams r3p=new LinearLayout.LayoutParams(-1,-2);r3p.setMargins(0,dp(7),0,0);
+        LinearLayout.LayoutParams r3p=
+                new LinearLayout.LayoutParams(-1,-2);
+        r3p.setMargins(0,dp(7),0,0);
         shell.addView(row3,r3p);
 
         close.setOnClickListener(v->d.dismiss());
@@ -6477,20 +6761,24 @@ public class MainActivity extends Activity {
         d.show();
         Window w=d.getWindow();
         if(w!=null){
-            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-            w.setDimAmount(.36f);
+            w.setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(
+                            Color.TRANSPARENT
+                    )
+            );
+            w.setDimAmount(.34f);
             w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            WindowManager.LayoutParams a=w.getAttributes();
-            a.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;
-            a.width=(int)(getResources().getDisplayMetrics().widthPixels*.96f);
-            a.height=WindowManager.LayoutParams.WRAP_CONTENT;
-            a.y=dp(8);
-            w.setAttributes(a);
+            WindowManager.LayoutParams lp=w.getAttributes();
+            lp.gravity=Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL;
+            lp.width=(int)(
+                    getResources().getDisplayMetrics().widthPixels*.96f
+            );
+            lp.height=WindowManager.LayoutParams.WRAP_CONTENT;
+            lp.y=dp(8);
+            w.setAttributes(lp);
         }
     }
 
-
-    private LinearLayout sectionDialogCard(String title,String sub,String detail,int accent){LinearLayout c=newSurface(panel(),18,11,1);c.addView(text(title,16,ink(),true));c.addView(text(sub,11.8f,muted(),false));c.addView(text(detail,11.8f,accent,true));return c;}
 
     private void openSection(){if(currentSection.equals("mind"))renderMindHub(true);else if(currentSection.equals("prayerSecrets"))renderPrayerSecretsHub(true);else if(currentSection.equals("minorShirk"))renderMinorShirkHub(true);else if(currentSection.equals("medicine"))openMedicine();else if(currentSection.equals("quiz"))renderQuizCenter(true);else if(currentSection.equals("review"))renderRepeatHub(true);else if(currentSection.equals("exam"))renderExamCenter(true);else if(currentSection.equals("profile")||currentSection.equals("settings"))renderProfile(true);else if(currentSection.equals("search"))renderSearch(true);else renderHome(true);}
     private void goBack(){
