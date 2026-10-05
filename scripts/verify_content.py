@@ -250,12 +250,12 @@ minor_quiz = parsed.get("minor_shirk_quiz.json", [])
 
 if len(minor_intro) != 1:
     fail(f"minor_shirk_intro.json: expected one preface object, got {len(minor_intro)}")
-if len(minor_course) < 18:
-    fail(f"minor_shirk_course.json: expected at least 18 topics, got {len(minor_course)}")
-if len(minor_daily) < 35:
-    fail(f"minor_shirk_daily.json: expected at least 35 scenarios, got {len(minor_daily)}")
-if len(minor_quiz) < 36:
-    fail(f"minor_shirk_quiz.json: expected at least 36 advanced questions, got {len(minor_quiz)}")
+if len(minor_course) < 32:
+    fail(f"minor_shirk_course.json: expected at least 32 topics, got {len(minor_course)}")
+if len(minor_daily) < 60:
+    fail(f"minor_shirk_daily.json: expected at least 60 scenarios, got {len(minor_daily)}")
+if len(minor_quiz) != 100:
+    fail(f"minor_shirk_quiz.json: expected exactly 100 advanced questions, got {len(minor_quiz)}")
 
 for name, data, required in [
     ("minor_shirk_course.json", minor_course, ["id", "title", "short", "understand", "element", "boundary", "deep", "sources"]),
@@ -312,6 +312,53 @@ for i, item in enumerate(minor_quiz):
 
 if minor_quiz and max(minor_counts) - min(minor_counts) > 1:
     fail(f"minor_shirk_quiz.json: answer positions are imbalanced: {minor_counts}")
+
+course_ids = {
+    str(item.get("id", "")).strip()
+    for item in minor_course
+    if isinstance(item, dict) and str(item.get("id", "")).strip()
+}
+topic_counts = {topic_id: 0 for topic_id in course_ids}
+for i, item in enumerate(minor_quiz):
+    if not isinstance(item, dict):
+        continue
+    topic = str(item.get("topic", "")).strip()
+    difficulty = str(item.get("difficulty", "")).strip()
+    if difficulty != "advanced":
+        fail(f"minor_shirk_quiz.json[{i}]: expected difficulty='advanced'")
+    if not topic:
+        fail(f"minor_shirk_quiz.json[{i}]: missing topic mapping")
+    elif topic != "mixed" and topic not in course_ids:
+        fail(f"minor_shirk_quiz.json[{i}]: unknown topic {topic!r}")
+    elif topic in topic_counts:
+        topic_counts[topic] += 1
+
+for topic_id, count in sorted(topic_counts.items()):
+    if count < 2:
+        fail(f"minor_shirk_quiz.json: topic {topic_id!r} has only {count} mapped questions; expected at least 2")
+
+# Book/user-facing content must never mention implementation history or developer migration notes.
+developer_phrases = [
+    "webview",
+    "веб-приложение",
+    "веб приложение",
+    "веб-версия",
+    "веб версия",
+    "незаконченного проекта",
+    "перенесён из проекта",
+    "перенесен из проекта",
+    "исходный проект",
+    "для разработчика",
+]
+developer_scan_files = [MAIN] + [
+    path for path in sorted(ASSETS.glob("*.json"))
+    if path.name != "app_meta.json"
+]
+for path in developer_scan_files:
+    raw = path.read_text(encoding="utf-8").lower()
+    for phrase in developer_phrases:
+        if phrase in raw:
+            fail(f"{path.relative_to(ROOT)}: developer-facing phrase remains: {phrase!r}")
 
 # 9. Removed UX patterns must not reappear in user-visible code/data.
 
