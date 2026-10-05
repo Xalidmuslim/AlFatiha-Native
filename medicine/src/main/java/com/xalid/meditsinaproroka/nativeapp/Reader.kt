@@ -267,102 +267,151 @@ fun ReaderScreen(
                     }
                 }
 
-                Spacer(Modifier.height(24.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    "Действия с главой",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                )
-                Spacer(Modifier.height(10.dp))
-
-                OutlinedButton(
-                    onClick = {
-                        copyToClipboard(
-                            context,
-                            chapter.title,
-                            chapterPlainText(book, chapter),
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
+                Spacer(Modifier.height(20.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Icon(Icons.Default.ContentCopy, null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Копировать главу")
-                }
+                    val prev = book.chapters.firstOrNull {
+                        it.id == chapter.previousId
+                    }
+                    val next = book.chapters.firstOrNull {
+                        it.id == chapter.nextId
+                    }
 
-                Spacer(Modifier.height(7.dp))
-                OutlinedButton(
-                    onClick = {
-                        copyToClipboard(
-                            context,
-                            chapter.title,
-                            chapterPlainText(
-                                book,
-                                chapter,
-                                includeSource = true,
-                            ),
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Default.FormatQuote, null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Копировать с названием книги и главы")
-                }
-
-                Spacer(Modifier.height(7.dp))
-                OutlinedButton(
-                    onClick = {
-                        shareText(
-                            context,
-                            chapter.title,
-                            chapterPlainText(
-                                book,
-                                chapter,
-                                includeSource = true,
-                            ),
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Default.Share, null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Поделиться")
-                }
-
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        if (store.isChapterBookmarked(chapter.id)) {
-                            store.toggleChapterBookmark(chapter.id)
-                        } else {
-                            bookmarkFolderOpen = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        if (store.isChapterBookmarked(chapter.id)) {
-                            Icons.Default.Star
-                        } else {
-                            Icons.Default.StarBorder
+                    OutlinedButton(
+                        onClick = {
+                            if (prev != null) {
+                                navigate(Route.Reader(prev.id))
+                            }
                         },
-                        null,
-                    )
-                    Spacer(Modifier.width(7.dp))
-                    Text(
-                        if (store.isChapterBookmarked(chapter.id)) {
-                            "Убрать из закладок"
-                        } else {
-                            "В закладки"
-                        }
-                    )
+                        enabled = prev != null,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            Icons.Default.ChevronLeft,
+                            contentDescription = null,
+                        )
+                        Text("Предыдущая")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (next != null) {
+                                navigate(Route.Reader(next.id))
+                            }
+                        },
+                        enabled = next != null,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Следующая")
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            copyToClipboard(
+                                context,
+                                chapter.title,
+                                chapterPlainText(book, chapter),
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(
+                            horizontal = 8.dp,
+                            vertical = 10.dp,
+                        ),
+                    ) {
+                        Icon(
+                            Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Копировать",
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            shareText(
+                                context,
+                                chapter.title,
+                                chapterPlainText(
+                                    book,
+                                    chapter,
+                                    includeSource = true,
+                                ),
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(
+                            horizontal = 8.dp,
+                            vertical = 10.dp,
+                        ),
+                    ) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Поделиться",
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            if (store.isChapterBookmarked(chapter.id)) {
+                                store.toggleChapterBookmark(chapter.id)
+                            } else {
+                                bookmarkFolderOpen = true
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(
+                            horizontal = 8.dp,
+                            vertical = 10.dp,
+                        ),
+                    ) {
+                        Icon(
+                            if (store.isChapterBookmarked(chapter.id)) {
+                                Icons.Default.Star
+                            } else {
+                                Icons.Default.StarBorder
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Закладка",
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                        )
+                    }
                 }
 
                 if (topics.isNotEmpty() || remedies.isNotEmpty()) {
-                    Spacer(Modifier.height(22.dp))
+                    Spacer(Modifier.height(20.dp))
                     Text(
                         "Связанные материалы",
                         fontWeight = FontWeight.Bold,
@@ -387,46 +436,6 @@ fun ReaderScreen(
                             label = { Text(remedy.title) },
                             modifier = Modifier.fillMaxWidth(),
                         )
-                    }
-                }
-
-                Spacer(Modifier.height(24.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(10.dp),
-                ) {
-                    val prev = book.chapters.firstOrNull {
-                        it.id == chapter.previousId
-                    }
-                    val next = book.chapters.firstOrNull {
-                        it.id == chapter.nextId
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            if (prev != null) {
-                                navigate(Route.Reader(prev.id))
-                            }
-                        },
-                        enabled = prev != null,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(Icons.Default.ChevronLeft, null)
-                        Text("Предыдущая")
-                    }
-
-                    Button(
-                        onClick = {
-                            if (next != null) {
-                                navigate(Route.Reader(next.id))
-                            }
-                        },
-                        enabled = next != null,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Следующая")
-                        Icon(Icons.Default.ChevronRight, null)
                     }
                 }
             }
