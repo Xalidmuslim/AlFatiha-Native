@@ -2238,7 +2238,7 @@ public class MainActivity extends Activity {
 
         header(
                 "Защита единобожия",
-                "Малый ширк, пути к нему и тонкие границы: слова, намерение, причины, упование, страх и современные бытовые ситуации."
+                "Малый ширк и деяния сердца: как грехи ослабляют таухид, как страсть порабощает сердце и где начинается специальный хукм малого ширка."
         );
 
         boolean introSeen=prefs.getBoolean("minor_shirk_intro_seen",false);
@@ -2263,7 +2263,7 @@ public class MainActivity extends Activity {
         introTitle.setPadding(0,0,0,0);
         introText.addView(introTitle);
         TextView introSub=text(
-                "Как отличать малый ширк от греха, средства к ширку и большого ширка — без крайностей.",
+                "Почему все грехи ослабляют таухид и где начинается специальный хукм малого ширка.",
                 11.8f,
                 muted(),
                 false
@@ -3143,7 +3143,7 @@ public class MainActivity extends Activity {
         }
 
         sectionCard("Как понять",o.optString("understand"),blueSoft(),C_BLUE);
-        sectionCard("Где элемент малого ширка",o.optString("element"),sandSoft(),Color.rgb(145,104,42));
+        sectionCard("Связь с таухидом и малым ширком",o.optString("element"),sandSoft(),Color.rgb(145,104,42));
         sectionCard("Тонкая граница",o.optString("boundary"),lavSoft(),Color.rgb(112,96,134));
         sectionCard("Пример",o.optString("example"),panel(),minorShirkAccent());
         sectionCard("Глубже",o.optString("deep"),minorShirkSoft(),minorShirkAccent());
@@ -3337,9 +3337,9 @@ public class MainActivity extends Activity {
         task.addView(kicker("САМОСТОЯТЕЛЬНЫЙ РАЗБОР",Color.rgb(145,104,42)));
         String[] prompts={
                 "1. Что здесь является реальной причиной, а что только предполагаемой?",
-                "2. Какое действие сердца нужно проверить: намерение, страх, надежду, упование или возвеличивание?",
-                "3. Каких данных не хватает, чтобы не вынести лишний хукм?",
-                "4. Где проходит точная граница между дозволенным, грехом и ширком?"
+                "2. Какое действие сердца проявилось: намерение, страх, надежда, упование, любовь или возвеличивание?",
+                "3. Что здесь уже является نقصом таухида, а что имеет специальный хукм малого ширка?",
+                "4. Что в этом случае подчинилось страсти или созданной причине и как это исправить?"
         };
         for(String p:prompts){
             TextView line=text(p,13.5f,ink(),false);

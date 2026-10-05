@@ -250,8 +250,8 @@ minor_quiz = parsed.get("minor_shirk_quiz.json", [])
 
 if len(minor_intro) != 1:
     fail(f"minor_shirk_intro.json: expected one preface object, got {len(minor_intro)}")
-if len(minor_course) < 32:
-    fail(f"minor_shirk_course.json: expected at least 32 topics, got {len(minor_course)}")
+if len(minor_course) < 33:
+    fail(f"minor_shirk_course.json: expected at least 33 topics, got {len(minor_course)}")
 if len(minor_daily) < 60:
     fail(f"minor_shirk_daily.json: expected at least 60 scenarios, got {len(minor_daily)}")
 if len(minor_quiz) != 100:
@@ -338,6 +338,28 @@ for topic_id, count in sorted(topic_counts.items()):
         fail(f"minor_shirk_quiz.json: topic {topic_id!r} has only {count} mapped questions; expected at least 2")
 
 # Book/user-facing content must never mention implementation history or developer migration notes.
+minor_shirk_user_text = "\n".join(
+    (ASSETS / name).read_text(encoding="utf-8").lower()
+    for name in [
+        "minor_shirk_intro.json",
+        "minor_shirk_course.json",
+        "minor_shirk_daily.json",
+        "minor_shirk_quiz.json",
+    ]
+)
+for phrase in [
+    "такфир",
+    "не переносим хукм",
+    "хукм конкретного человека",
+    "хукм конкретного лица",
+    "обвинять человека в ширке",
+    "обвинять владельца",
+    "необоснованных ярлыков",
+    "самообвинение в ширке",
+]:
+    if phrase in minor_shirk_user_text:
+        fail(f"minor-shirk content: stale accusation/takfir framing remains: {phrase!r}")
+
 developer_phrases = [
     "webview",
     "веб-приложение",
