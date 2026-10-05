@@ -6537,7 +6537,7 @@ public class MainActivity extends Activity {
                 C_SAGE
         );
         a.setOnClickListener(v->{d.dismiss();renderMindHub(true);});
-        row1.addView(a,new LinearLayout.LayoutParams(0,dp(126),1));
+        row1.addView(a,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout b=sectionDialogCard(
                 R.drawable.home_mihrab_mockup,
@@ -6549,7 +6549,7 @@ public class MainActivity extends Activity {
         );
         b.setOnClickListener(v->{d.dismiss();renderPrayerSecretsHub(true);});
         LinearLayout.LayoutParams bLp=
-                new LinearLayout.LayoutParams(0,dp(126),1);
+                new LinearLayout.LayoutParams(0,dp(132),1);
         bLp.setMargins(dp(7),0,0,0);
         row1.addView(b,bLp);
         shell.addView(row1);
@@ -6566,7 +6566,7 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(137,153,145):Color.rgb(103,126,115)
         );
         c.setOnClickListener(v->{d.dismiss();renderMinorShirkHub(true);});
-        row2.addView(c,new LinearLayout.LayoutParams(0,dp(126),1));
+        row2.addView(c,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout az=sectionDialogCard(
                 R.drawable.home_azkar_mockup,
@@ -6578,7 +6578,7 @@ public class MainActivity extends Activity {
         );
         az.setOnClickListener(v->{d.dismiss();openAzkar();});
         LinearLayout.LayoutParams azLp=
-                new LinearLayout.LayoutParams(0,dp(126),1);
+                new LinearLayout.LayoutParams(0,dp(132),1);
         azLp.setMargins(dp(7),0,0,0);
         row2.addView(az,azLp);
         LinearLayout.LayoutParams r2p=
@@ -6598,7 +6598,7 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(157,143,171):Color.rgb(112,96,134)
         );
         q.setOnClickListener(v->{d.dismiss();renderQuizCenter(true);});
-        row3.addView(q,new LinearLayout.LayoutParams(0,dp(126),1));
+        row3.addView(q,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout m=sectionDialogCard(
                 R.drawable.home_medicine_exact,
@@ -6610,7 +6610,7 @@ public class MainActivity extends Activity {
         );
         m.setOnClickListener(v->{d.dismiss();openMedicine();});
         LinearLayout.LayoutParams mLp=
-                new LinearLayout.LayoutParams(0,dp(126),1);
+                new LinearLayout.LayoutParams(0,dp(132),1);
         mLp.setMargins(dp(7),0,0,0);
         row3.addView(m,mLp);
         LinearLayout.LayoutParams r3p=
