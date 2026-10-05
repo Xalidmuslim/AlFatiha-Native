@@ -2998,7 +2998,7 @@ public class MainActivity extends Activity {
     private void renderMinorShirkCourseList(boolean push){
         clear("minorShirkCourseList","",push);currentSection="minorShirk";appTop();
         JSONArray a=arr("minor_shirk_course.json");
-        header("Малый ширк · курс","18 тем: определения, словесный ширк, рия, причины, суеверия, современные ситуации и точные границы.");
+        header("Малый ширк · курс",a.length()+" тем: определения, словесный ширк, рия, причины, суеверия, современные ситуации и точные границы.");
         Set<String> seen=prefs.getStringSet("minor_shirk_course_seen",new HashSet<>());
         for(int i=0;i<a.length();i++){
             JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
@@ -3068,7 +3068,7 @@ public class MainActivity extends Activity {
     private void renderMinorShirkDailyList(boolean push){
         clear("minorShirkDailyList","",push);currentSection="minorShirk";appTop();
         JSONArray a=arr("minor_shirk_daily.json");
-        header("Повседневные ситуации","Реальный случай → что происходит в сердце → опасная грань → правильное состояние.");
+        header("Повседневные ситуации",a.length()+" реальных кейсов · ситуация → сердце → точная граница → правильное состояние.");
         for(int i=0;i<a.length();i++){
             JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
             LinearLayout c=card(i%2==0?blueSoft():panel());
