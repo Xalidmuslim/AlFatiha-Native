@@ -1759,7 +1759,7 @@ public class MainActivity extends Activity {
         return c;
     }
 
-    // --- Малый ширк: native integration of preserved v3.4 content ---
+    // --- Малый ширк ---
 
     private int minorShirkSeenCount(String key){
         return prefs.getStringSet(key,new HashSet<>()).size();
@@ -1831,6 +1831,83 @@ public class MainActivity extends Activity {
         prefs.edit()
                 .putStringSet("minor_shirk_bookmarks",set)
                 .apply();
+    }
+
+    private int minorShirkWrongQuizCount(){
+        Set<String> answered=prefs.getStringSet(
+                "minor_shirk_quiz_answered",
+                new HashSet<>()
+        );
+        Set<String> correct=prefs.getStringSet(
+                "minor_shirk_quiz_correct",
+                new HashSet<>()
+        );
+        int count=0;
+        for(String id:answered)if(!correct.contains(id))count++;
+        return count;
+    }
+
+    private int nextMinorShirkWrongQuizIndex(int after){
+        JSONArray a=arr("minor_shirk_quiz.json");
+        Set<String> answered=prefs.getStringSet(
+                "minor_shirk_quiz_answered",
+                new HashSet<>()
+        );
+        Set<String> correct=prefs.getStringSet(
+                "minor_shirk_quiz_correct",
+                new HashSet<>()
+        );
+        if(a.length()==0)return -1;
+        for(int step=1;step<=a.length();step++){
+            int idx=(after+step+a.length())%a.length();
+            String id=String.valueOf(idx);
+            if(answered.contains(id)&&!correct.contains(id))return idx;
+        }
+        return -1;
+    }
+
+    private void continueMinorShirkWrongQuiz(){
+        int next=nextMinorShirkWrongQuizIndex(-1);
+        if(next<0){
+            toast("Ошибок для повторения пока нет");
+            return;
+        }
+        prefs.edit()
+                .putBoolean("minor_shirk_wrong_mode",true)
+                .remove("minor_shirk_topic_mode")
+                .apply();
+        renderMinorShirkQuiz(next,true);
+    }
+
+    private int firstMinorShirkTopicQuizIndex(String topicId){
+        JSONArray a=arr("minor_shirk_quiz.json");
+        for(int i=0;i<a.length();i++){
+            JSONObject q=a.optJSONObject(i);
+            if(q!=null&&topicId.equals(q.optString("topic")))return i;
+        }
+        return -1;
+    }
+
+    private int nextMinorShirkTopicQuizIndex(String topicId,int after){
+        JSONArray a=arr("minor_shirk_quiz.json");
+        for(int i=after+1;i<a.length();i++){
+            JSONObject q=a.optJSONObject(i);
+            if(q!=null&&topicId.equals(q.optString("topic")))return i;
+        }
+        return -1;
+    }
+
+    private void openMinorShirkTopicCheck(String topicId){
+        int idx=firstMinorShirkTopicQuizIndex(topicId);
+        if(idx<0){
+            toast("Для этой темы проверка пока не найдена");
+            return;
+        }
+        prefs.edit()
+                .putBoolean("minor_shirk_wrong_mode",false)
+                .putString("minor_shirk_topic_mode",topicId)
+                .apply();
+        renderMinorShirkQuiz(idx,true);
     }
 
     private LinearLayout minorShirkHubTile(
@@ -2378,6 +2455,35 @@ public class MainActivity extends Activity {
                 7
         );
 
+        int trainerSeen=minorShirkSeenCount("minor_shirk_trainer_seen");
+        LinearLayout trainerTile=minorShirkHubTile(
+                R.drawable.ic_minor_cases_modern,
+                "Тренажёр",
+                trainerSeen+" из "+daily.length()+" кейсов · сначала разбор, потом ответ",
+                ()->renderMinorShirkTrainer(
+                        Math.min(
+                                Math.max(0,prefs.getInt("minor_shirk_trainer_idx",0)),
+                                Math.max(0,daily.length()-1)
+                        ),
+                        true
+                )
+        );
+        int wrongCount=minorShirkWrongQuizCount();
+        LinearLayout wrongTile=minorShirkHubTile(
+                R.drawable.ic_tool_repeat_modern,
+                "Ошибки",
+                wrongCount==0
+                        ?"Нет ошибок · появятся после проверки"
+                        :wrongCount+" вопросов · повторить слабые места",
+                this::continueMinorShirkWrongQuiz
+        );
+        addMinorShirkTwoColumnRow(
+                trainerTile,
+                wrongTile,
+                142,
+                7
+        );
+
         LinearLayout quickHead=new LinearLayout(this);
         quickHead.setOrientation(LinearLayout.HORIZONTAL);
         quickHead.setGravity(Gravity.CENTER_VERTICAL);
@@ -2475,12 +2581,14 @@ public class MainActivity extends Activity {
 
         String[] labels={
                 "Предисловие",
+                "Справочник",
                 "Тонкие границы",
                 "Реальные ситуации",
                 "Мои закладки"
         };
         Runnable[] opens={
                 ()->renderMinorShirkIntro(true),
+                ()->renderMinorShirkGlossary(true),
                 ()->renderMinorShirkCollection("boundaries",true),
                 ()->renderMinorShirkDailyList(true),
                 ()->renderMinorShirkSaved(true)
