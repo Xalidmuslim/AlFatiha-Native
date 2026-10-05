@@ -2237,15 +2237,17 @@ public class MainActivity extends Activity {
         );
 
         TextView resumeTitle=text(
-                courseSeen==0
-                        ?"Начать курс"
-                        :"Продолжить: "+
-                          shortText(
-                                  nextTopic==null
-                                          ?"следующая тема"
-                                          :nextTopic.optString("title"),
-                                  58
-                          ),
+                !introSeen
+                        ?"Сначала: предисловие"
+                        :courseSeen==0
+                                ?"Начать курс"
+                                :"Продолжить: "+
+                                  shortText(
+                                          nextTopic==null
+                                                  ?"следующая тема"
+                                                  :nextTopic.optString("title"),
+                                          58
+                                  ),
                 18.2f,
                 ink(),
                 true
@@ -2277,18 +2279,20 @@ public class MainActivity extends Activity {
         );
 
         Button continueButton=action(
-                courseLeft==0
-                        ?"Повторить курс"
-                        :"Продолжить →",
+                !introSeen
+                        ?"Открыть предисловие →"
+                        :courseLeft==0
+                                ?"Повторить курс"
+                                :"Продолжить →",
                 minorShirkAccent()
         );
         continueButton.setTextSize(sz(14.2f));
         continueButton.setOnClickListener(
-                v->continueMinorShirkCourse()
+                v->{if(!introSeen)renderMinorShirkIntro(true);else continueMinorShirkCourse();}
         );
         resume.addView(continueButton);
         resume.setOnClickListener(
-                v->continueMinorShirkCourse()
+                v->{if(!introSeen)renderMinorShirkIntro(true);else continueMinorShirkCourse();}
         );
 
         LinearLayout searchCard=homeSurface(
@@ -2358,7 +2362,7 @@ public class MainActivity extends Activity {
         LinearLayout quizTile=minorShirkHubTile(
                 R.drawable.ic_minor_check_modern,
                 "Проверка",
-                quiz.length()+" вопросов · проверить понимание темы",
+                quiz.length()+" сложных вопросов · продвинутый уровень",
                 this::continueMinorShirkQuiz
         );
         LinearLayout savedTile=minorShirkHubTile(
@@ -2434,6 +2438,20 @@ public class MainActivity extends Activity {
         );
         addMinorShirkTwoColumnRow(q3,q4,144,7);
 
+        LinearLayout q5=minorShirkQuickCard(
+                "Слова и клятвы",
+                "Клятвы, «Аллах и ты», благодарность и приписывание результата.",
+                "Подборка",
+                ()->renderMinorShirkCollection("words",true)
+        );
+        LinearLayout q6=minorShirkQuickCard(
+                "Суеверия и ложные причины",
+                "Амулеты, гороскопы, приметы, счастливые числа и знаки.",
+                "Подборка",
+                ()->renderMinorShirkCollection("omens",true)
+        );
+        addMinorShirkTwoColumnRow(q5,q6,154,7);
+
         TextView moreTitle=text(
                 "Продолжить изучение",
                 18.8f,
@@ -2456,11 +2474,13 @@ public class MainActivity extends Activity {
         chips.setPadding(0,0,dp(6),0);
 
         String[] labels={
+                "Предисловие",
                 "Тонкие границы",
                 "Реальные ситуации",
                 "Мои закладки"
         };
         Runnable[] opens={
+                ()->renderMinorShirkIntro(true),
                 ()->renderMinorShirkCollection("boundaries",true),
                 ()->renderMinorShirkDailyList(true),
                 ()->renderMinorShirkSaved(true)
@@ -2543,6 +2563,16 @@ public class MainActivity extends Activity {
                         "кадар","предопредел","если бы",
                         "время","недоволь","потер"
                 };
+            case "words":
+                return new String[]{
+                        "клятв","аллах и","аллах, затем",
+                        "слова","благодар","приписыв","воля"
+                };
+            case "omens":
+                return new String[]{
+                        "амулет","суевер","примет","гороскоп",
+                        "звезд","зодиак","счастлив","тийар","ложн"
+                };
             case "boundaries":
             default:
                 return new String[]{
@@ -2558,6 +2588,8 @@ public class MainActivity extends Activity {
             case "riya": return "Рия и намерение";
             case "heart": return "Страх и надежда";
             case "qadar": return "Кадар и «если бы»";
+            case "words": return "Слова и клятвы";
+            case "omens": return "Суеверия и ложные причины";
             default: return "Тонкие границы";
         }
     }
@@ -2966,7 +2998,7 @@ public class MainActivity extends Activity {
     private void renderMinorShirkCourseList(boolean push){
         clear("minorShirkCourseList","",push);currentSection="minorShirk";appTop();
         JSONArray a=arr("minor_shirk_course.json");
-        header("Малый ширк · курс","Выберите тему. Материал перенесён из нашего незаконченного проекта без WebView.");
+        header("Малый ширк · курс","18 тем: определения, словесный ширк, рия, причины, суеверия, современные ситуации и точные границы.");
         Set<String> seen=prefs.getStringSet("minor_shirk_course_seen",new HashSet<>());
         for(int i=0;i<a.length();i++){
             JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
@@ -3129,7 +3161,7 @@ public class MainActivity extends Activity {
         final int currentIdx=idx;
         JSONObject q=a.optJSONObject(idx);if(q==null)return;
 
-        header("Викторина · Малый ширк","Вопрос "+(idx+1)+" из "+a.length()+" · варианты намеренно близкие.");
+        header("Викторина · Малый ширк","Продвинутый уровень · вопрос "+(idx+1)+" из "+a.length()+" · все варианты намеренно близкие, выбирайте самую точную границу.");
         LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,dp(7));pp.setMargins(0,0,0,dp(8));
         page.addView(progressBar((idx+1)*100/a.length(),minorShirkAccent()),pp);
 
