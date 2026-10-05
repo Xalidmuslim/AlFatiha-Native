@@ -3163,6 +3163,16 @@ public class MainActivity extends Activity {
         courseActionsLp.setMargins(0,dp(5),0,dp(9));
         page.addView(courseActions,courseActionsLp);
 
+        final String topicId=o.optString("id");
+        if(firstMinorShirkTopicQuizIndex(topicId)>=0){
+            Button topicCheck=outline("Проверить тему · 2 вопроса");
+            topicCheck.setOnClickListener(v->openMinorShirkTopicCheck(topicId));
+            LinearLayout.LayoutParams checkLp=
+                    new LinearLayout.LayoutParams(-1,dp(50));
+            checkLp.setMargins(0,0,0,dp(9));
+            page.addView(topicCheck,checkLp);
+        }
+
         LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);
         Button prev=outline("← Предыдущая");prev.setEnabled(idx>0);prev.setAlpha(idx>0?1f:.45f);
         if(idx>0){final int p=idx-1;prev.setOnClickListener(v->renderMinorShirkCourse(p,true));}
@@ -3239,6 +3249,162 @@ public class MainActivity extends Activity {
         page.addView(nav);
     }
 
+    private void renderMinorShirkGlossary(boolean push){
+        clear("minorShirkGlossary","",push);
+        currentSection="minorShirk";
+        appTop();
+
+        JSONArray course=arr("minor_shirk_course.json");
+        LinkedHashMap<String,String> glossary=new LinkedHashMap<>();
+        for(int i=0;i<course.length();i++){
+            JSONObject o=course.optJSONObject(i);
+            if(o==null)continue;
+            JSONArray terms=o.optJSONArray("terms");
+            if(terms==null)continue;
+            for(int j=0;j<terms.length();j++){
+                JSONArray row=terms.optJSONArray(j);
+                if(row==null)continue;
+                String name=row.optString(0).trim();
+                String meaning=row.optString(1).trim();
+                if(name.isEmpty()||meaning.isEmpty())continue;
+                boolean exists=false;
+                for(String key:glossary.keySet()){
+                    if(key.equalsIgnoreCase(name)){
+                        exists=true;
+                        break;
+                    }
+                }
+                if(!exists)glossary.put(name,meaning);
+            }
+        }
+
+        header(
+                "Справочник терминов",
+                glossary.size()+" понятий из курса · короткие определения для повторения."
+        );
+
+        ArrayList<String> keys=new ArrayList<>(glossary.keySet());
+        Collections.sort(keys,String.CASE_INSENSITIVE_ORDER);
+        for(String key:keys){
+            LinearLayout item=homeSurface(
+                    dark?Color.rgb(40,47,43):Color.rgb(251,247,240),
+                    16,
+                    11,
+                    1
+            );
+            TextView term=text(key,15.4f,ink(),true);
+            term.setPadding(0,0,0,0);
+            item.addView(term);
+            TextView meaning=text(glossary.get(key),12.8f,muted(),false);
+            meaning.setPadding(0,dp(3),0,0);
+            item.addView(meaning);
+            LinearLayout.LayoutParams lp=
+                    new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(0,0,0,dp(6));
+            page.addView(item,lp);
+        }
+    }
+
+    private void renderMinorShirkTrainer(int idx,boolean push){
+        JSONArray a=arr("minor_shirk_daily.json");
+        if(a.length()==0)return;
+        if(idx<0||idx>=a.length())idx=0;
+
+        clear("minorShirkTrainer",String.valueOf(idx),push);
+        currentSection="minorShirk";
+        appTop();
+
+        final int currentIdx=idx;
+        final JSONObject o=a.optJSONObject(idx);
+        if(o==null)return;
+        prefs.edit().putInt("minor_shirk_trainer_idx",idx).apply();
+
+        int seen=minorShirkSeenCount("minor_shirk_trainer_seen");
+        header(
+                "Тренажёр разбора",
+                "Кейс "+(idx+1)+" из "+a.length()+" · разобрано "+seen+
+                ". Сначала сформулируйте ответ сами, затем откройте разбор."
+        );
+
+        LinearLayout caseCard=card(panel());
+        caseCard.addView(kicker("СИТУАЦИЯ",C_BLUE));
+        caseCard.addView(text(o.optString("title"),18.4f,ink(),true));
+        TextView body=text(o.optString("case"),14.0f,ink(),false);
+        body.setPadding(0,dp(6),0,0);
+        caseCard.addView(body);
+
+        LinearLayout task=card(dark?Color.rgb(47,48,39):sandSoft());
+        task.addView(kicker("САМОСТОЯТЕЛЬНЫЙ РАЗБОР",Color.rgb(145,104,42)));
+        String[] prompts={
+                "1. Что здесь является реальной причиной, а что только предполагаемой?",
+                "2. Какое действие сердца нужно проверить: намерение, страх, надежду, упование или возвеличивание?",
+                "3. Каких данных не хватает, чтобы не вынести лишний хукм?",
+                "4. Где проходит точная граница между дозволенным, грехом и ширком?"
+        };
+        for(String p:prompts){
+            TextView line=text(p,13.5f,ink(),false);
+            line.setPadding(0,dp(4),0,0);
+            task.addView(line);
+        }
+
+        LinearLayout revealHost=new LinearLayout(this);
+        revealHost.setOrientation(LinearLayout.VERTICAL);
+        page.addView(revealHost,new LinearLayout.LayoutParams(-1,-2));
+
+        Button reveal=outline("Показать разбор");
+        LinearLayout.LayoutParams revealLp=
+                new LinearLayout.LayoutParams(-1,dp(50));
+        revealLp.setMargins(0,dp(4),0,dp(8));
+        page.addView(reveal,revealLp);
+
+        Button next=action(
+                currentIdx==a.length()-1?"С начала тренажёра":"Следующий кейс →",
+                C_BLUE
+        );
+        next.setVisibility(View.GONE);
+        page.addView(next,new LinearLayout.LayoutParams(-1,dp(52)));
+
+        final boolean[] opened={false};
+        reveal.setOnClickListener(v->{
+            if(opened[0])return;
+            opened[0]=true;
+            markMinorShirkSeen("minor_shirk_trainer_seen",currentIdx);
+
+            LinearLayout result=card(minorShirkSoft());
+            result.addView(kicker("ЭТАЛОННЫЙ РАЗБОР",minorShirkAccent()));
+            result.addView(text("Итог",14.0f,ink(),true));
+            result.addView(text(o.optString("verdict"),13.4f,muted(),false));
+            TextView heartTitle=text("Что происходит в сердце",14.0f,ink(),true);
+            heartTitle.setPadding(0,dp(8),0,0);
+            result.addView(heartTitle);
+            result.addView(text(o.optString("inner"),13.4f,muted(),false));
+            TextView boundaryTitle=text("Точная граница",14.0f,ink(),true);
+            boundaryTitle.setPadding(0,dp(8),0,0);
+            result.addView(boundaryTitle);
+            result.addView(text(o.optString("boundary"),13.4f,muted(),false));
+            TextView correctTitle=text("Правильное состояние",14.0f,ink(),true);
+            correctTitle.setPadding(0,dp(8),0,0);
+            result.addView(correctTitle);
+            result.addView(text(o.optString("correct"),13.4f,muted(),false));
+            revealHost.addView(result);
+
+            reveal.setText("✓ Разбор открыт");
+            reveal.setEnabled(false);
+            reveal.setAlpha(.70f);
+            next.setVisibility(View.VISIBLE);
+            next.post(()->scroll.smoothScrollTo(
+                    0,
+                    Math.max(0,revealHost.getTop()-dp(12))
+            ));
+        });
+
+        next.setOnClickListener(v->{
+            int n=currentIdx+1<a.length()?currentIdx+1:0;
+            prefs.edit().putInt("minor_shirk_trainer_idx",n).apply();
+            renderMinorShirkTrainer(n,true);
+        });
+    }
+
     private int nextMinorShirkQuizIndex(){
         JSONArray a=arr("minor_shirk_quiz.json");
         Set<String> answered=prefs.getStringSet("minor_shirk_quiz_answered",new HashSet<>());
@@ -3247,8 +3413,82 @@ public class MainActivity extends Activity {
     }
 
     private void continueMinorShirkQuiz(){
+        prefs.edit()
+                .putBoolean("minor_shirk_wrong_mode",false)
+                .remove("minor_shirk_topic_mode")
+                .apply();
         int next=nextMinorShirkQuizIndex();
         if(next<0)renderMinorShirkQuizResult(true);else renderMinorShirkQuiz(next,true);
+    }
+
+    private int minorShirkTopicQuizCount(String topicId){
+        JSONArray a=arr("minor_shirk_quiz.json");
+        int count=0;
+        for(int i=0;i<a.length();i++){
+            JSONObject q=a.optJSONObject(i);
+            if(q!=null&&topicId.equals(q.optString("topic")))count++;
+        }
+        return count;
+    }
+
+    private int minorShirkTopicQuizPosition(String topicId,int currentIdx){
+        JSONArray a=arr("minor_shirk_quiz.json");
+        int pos=0;
+        for(int i=0;i<a.length();i++){
+            JSONObject q=a.optJSONObject(i);
+            if(q==null||!topicId.equals(q.optString("topic")))continue;
+            pos++;
+            if(i==currentIdx)return pos;
+        }
+        return 1;
+    }
+
+    private int minorShirkCourseIndexById(String topicId){
+        JSONArray a=arr("minor_shirk_course.json");
+        for(int i=0;i<a.length();i++){
+            JSONObject o=a.optJSONObject(i);
+            if(o!=null&&topicId.equals(o.optString("id")))return i;
+        }
+        return 0;
+    }
+
+    private void advanceMinorShirkQuiz(int currentIdx){
+        JSONArray a=arr("minor_shirk_quiz.json");
+        boolean wrongMode=prefs.getBoolean("minor_shirk_wrong_mode",false);
+        String topicMode=prefs.getString("minor_shirk_topic_mode","");
+
+        if(wrongMode){
+            int next=nextMinorShirkWrongQuizIndex(currentIdx);
+            if(next>=0){
+                renderMinorShirkQuiz(next,true);
+                return;
+            }
+            prefs.edit().putBoolean("minor_shirk_wrong_mode",false).apply();
+            toast("Ошибки повторены");
+            renderMinorShirkHub(true);
+            return;
+        }
+
+        if(!topicMode.isEmpty()){
+            int next=nextMinorShirkTopicQuizIndex(topicMode,currentIdx);
+            if(next>=0){
+                renderMinorShirkQuiz(next,true);
+                return;
+            }
+            prefs.edit().remove("minor_shirk_topic_mode").apply();
+            toast("Тема закреплена");
+            renderMinorShirkCourse(
+                    minorShirkCourseIndexById(topicMode),
+                    true
+            );
+            return;
+        }
+
+        if(currentIdx+1<a.length()){
+            renderMinorShirkQuiz(currentIdx+1,true);
+        }else{
+            renderMinorShirkQuizResult(true);
+        }
     }
 
     private void saveMinorShirkQuizAnswer(int idx,boolean ok){
@@ -3269,9 +3509,33 @@ public class MainActivity extends Activity {
         final int currentIdx=idx;
         JSONObject q=a.optJSONObject(idx);if(q==null)return;
 
-        header("Викторина · Малый ширк","Продвинутый уровень · вопрос "+(idx+1)+" из "+a.length()+" · все варианты намеренно близкие, выбирайте самую точную границу.");
+        boolean wrongMode=prefs.getBoolean("minor_shirk_wrong_mode",false);
+        String topicMode=prefs.getString("minor_shirk_topic_mode","");
+        String quizTitle=wrongMode
+                ?"Повторение ошибок"
+                :!topicMode.isEmpty()
+                        ?"Проверка темы"
+                        :"Викторина · Малый ширк";
+        String quizSub;
+        int progressPct;
+        if(!topicMode.isEmpty()){
+            int topicCount=Math.max(1,minorShirkTopicQuizCount(topicMode));
+            int topicPos=Math.max(1,minorShirkTopicQuizPosition(topicMode,idx));
+            quizSub="Закрепление материала · вопрос "+topicPos+" из "+topicCount+
+                    " · выбирайте самую точную границу.";
+            progressPct=topicPos*100/topicCount;
+        }else if(wrongMode){
+            quizSub="Повторяем только вопросы, где раньше была ошибка. Осталось: "+
+                    Math.max(1,minorShirkWrongQuizCount())+".";
+            progressPct=0;
+        }else{
+            quizSub="Продвинутый уровень · вопрос "+(idx+1)+" из "+a.length()+
+                    " · все варианты намеренно близкие.";
+            progressPct=(idx+1)*100/a.length();
+        }
+        header(quizTitle,quizSub);
         LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,dp(7));pp.setMargins(0,0,0,dp(8));
-        page.addView(progressBar((idx+1)*100/a.length(),minorShirkAccent()),pp);
+        page.addView(progressBar(progressPct,minorShirkAccent()),pp);
 
         LinearLayout qc=card(panel());
         qc.addView(text(q.optString("q"),19.2f,ink(),true));
@@ -3294,8 +3558,18 @@ public class MainActivity extends Activity {
                 LinearLayout result=card(ok?(dark?Color.rgb(36,60,48):C_GOOD_BG):(dark?Color.rgb(64,42,41):C_BAD_BG));
                 result.addView(text(ok?"✓ Верно":"✕ Нужно уточнить",18,ok?C_GOOD:C_BAD,true));
                 result.addView(text(q.optString("e"),14.2f,ink(),false));
-                Button next=action(currentIdx==a.length()-1?"Результат":"Следующий вопрос",minorShirkAccent());
-                next.setOnClickListener(x->{if(currentIdx+1<a.length())renderMinorShirkQuiz(currentIdx+1,true);else renderMinorShirkQuizResult(true);});
+                boolean specialMode=
+                        prefs.getBoolean("minor_shirk_wrong_mode",false)
+                        ||!prefs.getString("minor_shirk_topic_mode","").isEmpty();
+                Button next=action(
+                        specialMode
+                                ?"Дальше →"
+                                :currentIdx==a.length()-1
+                                        ?"Результат"
+                                        :"Следующий вопрос",
+                        minorShirkAccent()
+                );
+                next.setOnClickListener(x->advanceMinorShirkQuiz(currentIdx));
                 result.addView(next);
                 result.post(()->scroll.smoothScrollTo(0,Math.max(0,result.getTop()-dp(12))));
             });
@@ -3317,6 +3591,19 @@ public class MainActivity extends Activity {
         Button again=outline("Пройти заново");
         again.setOnClickListener(v->{prefs.edit().remove("minor_shirk_quiz_answered").remove("minor_shirk_quiz_correct").apply();renderMinorShirkQuiz(0,true);});
         c.addView(again,new LinearLayout.LayoutParams(-1,dp(52)));
+
+        int wrong=minorShirkWrongQuizCount();
+        if(wrong>0){
+            Button repeatWrong=action(
+                    "Повторить ошибки · "+wrong,
+                    minorShirkAccent()
+            );
+            repeatWrong.setOnClickListener(v->continueMinorShirkWrongQuiz());
+            LinearLayout.LayoutParams wrongLp=
+                    new LinearLayout.LayoutParams(-1,dp(52));
+            wrongLp.setMargins(0,dp(7),0,0);
+            c.addView(repeatWrong,wrongLp);
+        }
     }
 
 
