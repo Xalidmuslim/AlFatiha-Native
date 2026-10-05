@@ -21,12 +21,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,11 +44,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -221,52 +232,77 @@ private fun HeartPrayerBottomNav(
         val action: () -> Unit,
     )
 
+    // Keep these dimensions in lock-step with MainActivity.buildShell()/navBtn().
+    // This section is a separate Compose activity, but visually it must remain
+    // indistinguishable from the main application's bottom navigation.
     val items = listOf(
         NavItem("Главная", R.drawable.ic_nav_home, onHome),
         NavItem("Содержание", R.drawable.ic_nav_contents, onContents),
         NavItem("Прогресс", R.drawable.ic_nav_progress, onProgress),
         NavItem("Меню", R.drawable.ic_nav_menu, onMenu),
     )
+    val dark = MaterialTheme.colorScheme.background.red < 0.25f
+    val navStart = if (dark) Color(0xFF1F2522) else Color(0xFFFBF7F0)
+    val navEnd = if (dark) Color(0xFF1D2220) else Color(0xFFF8F4EC)
+    val navLine = if (dark) Color(0xFF3D4641) else Color(0xFFE6DDD0)
+    val homeColor = Color(0xFF356D57)
+    val mutedColor = if (dark) Color(0xFFAAB3AD) else Color(0xFF6E6A63)
+    val shape = RoundedCornerShape(18.dp)
 
-    Surface(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.72f),
-        ),
-        shadowElevation = 6.dp,
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+            .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+            .height(64.dp)
+            .shadow(3.dp, shape, clip = false)
+            .clip(shape)
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(navStart, navEnd),
+                ),
+                shape = shape,
+            )
+            .border(1.dp, navLine, shape),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            items.forEach { item ->
+            items.forEachIndexed { index, item ->
+                val color = if (index == 0) homeColor else mutedColor
                 Column(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .clickable(onClick = item.action)
-                        .padding(vertical = 2.dp),
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Image(
                         painter = painterResource(item.iconRes),
                         contentDescription = item.label,
                         modifier = Modifier.size(24.dp),
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
+                        colorFilter = ColorFilter.tint(color),
                     )
-                    Text(
-                        item.label,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                        maxLines = 1,
-                    )
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(22.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = item.label,
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 11.2.sp,
+                            color = color,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
