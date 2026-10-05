@@ -1,4 +1,4 @@
-name: Build Madarij v7 APK
+name: Build Madarij v8 APK
 
 on:
   push:
@@ -25,14 +25,14 @@ jobs:
       - name: Install Android 36
         run: yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      - name: Download Madarij v7 source
+      - name: Download Madarij v8 source
         run: |
-          curl -fL --retry 3 -o madarij-v7.zip "https://cdn.creativeclaw.co/u/5fdd59ac/zips/ea7b80d6-1bdd-44f1-a7e5-b6006f8e76f9.zip"
+          curl -fL --retry 3 -o madarij-v8.zip "https://cdn.creativeclaw.co/u/5fdd59ac/zips/e189f9c4-43f3-4d34-9e09-b5eeb8589d61.zip"
           mkdir madarij
-          unzip -q madarij-v7.zip -d madarij
+          unzip -q madarij-v8.zip -d madarij
 
       - name: Build debug APK
-        working-directory: madarij
+        working-directory: madarij/Madarij-Native
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleDebug --stacktrace
@@ -40,6 +40,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Madarij-v7-design-debug
-          path: madarij/app/build/outputs/apk/debug/app-debug.apk
+          name: Madarij-v8-polish-debug
+          path: madarij/Madarij-Native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
