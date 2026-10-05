@@ -2080,6 +2080,75 @@ public class MainActivity extends Activity {
         return row;
     }
 
+    private void renderMinorShirkIntro(boolean push){
+        clear("minorShirkIntro","",push);
+        currentSection="minorShirk";
+        appTop();
+
+        JSONArray data=arr("minor_shirk_intro.json");
+        JSONObject o=data.optJSONObject(0);
+        if(o==null){
+            renderMinorShirkHub(false);
+            return;
+        }
+        prefs.edit().putBoolean("minor_shirk_intro_seen",true).apply();
+
+        header(o.optString("title"),o.optString("subtitle"));
+        sectionCard(
+                "Зачем этот раздел",
+                o.optString("lead"),
+                minorShirkSoft(),
+                minorShirkAccent()
+        );
+
+        JSONArray sections=o.optJSONArray("sections");
+        if(sections!=null){
+            for(int i=0;i<sections.length();i++){
+                JSONArray row=sections.optJSONArray(i);
+                if(row==null)continue;
+                int tone=i%3;
+                sectionCard(
+                        row.optString(0),
+                        row.optString(1),
+                        tone==0?panel():tone==1?blueSoft():sandSoft(),
+                        tone==0?minorShirkAccent():tone==1?C_BLUE:Color.rgb(145,104,42)
+                );
+            }
+        }
+
+        JSONArray roadmap=o.optJSONArray("roadmap");
+        if(roadmap!=null&&roadmap.length()>0){
+            LinearLayout card=card(panel());
+            card.addView(kicker("КАК ПРОХОДИТЬ РАЗДЕЛ",minorShirkAccent()));
+            for(int i=0;i<roadmap.length();i++){
+                card.addView(text(
+                        (i+1)+". "+roadmap.optString(i),
+                        13.5f,
+                        ink(),
+                        false
+                ));
+            }
+        }
+
+        JSONArray sources=o.optJSONArray("sources");
+        if(sources!=null&&sources.length()>0){
+            LinearLayout card=card(panel());
+            card.addView(kicker("ОСНОВАНИЯ И ИСТОЧНИКИ",C_BLUE));
+            for(int i=0;i<sources.length();i++){
+                card.addView(text(
+                        "• "+sources.optString(i),
+                        12.8f,
+                        muted(),
+                        false
+                ));
+            }
+        }
+
+        Button start=action("Перейти к курсу →",minorShirkAccent());
+        start.setOnClickListener(v->renderMinorShirkCourseList(true));
+        page.addView(start);
+    }
+
     private void renderMinorShirkHub(boolean push){
         clearActiveFlow();
         clear("minorShirkHub","",push);
@@ -2092,8 +2161,48 @@ public class MainActivity extends Activity {
 
         header(
                 "Защита единобожия",
-                "Практический курс: намерение, причины, упование, страх, надежда и состояние сердца."
+                "Малый ширк, пути к нему и тонкие границы: слова, намерение, причины, упование, страх и современные бытовые ситуации."
         );
+
+        boolean introSeen=prefs.getBoolean("minor_shirk_intro_seen",false);
+        LinearLayout introCard=homeSurface(
+                dark?Color.rgb(43,49,46):Color.rgb(248,246,240),
+                20,
+                13,
+                1
+        );
+        introCard.setOrientation(LinearLayout.HORIZONTAL);
+        introCard.setGravity(Gravity.CENTER_VERTICAL);
+        introCard.setOnClickListener(v->renderMinorShirkIntro(true));
+
+        LinearLayout introText=new LinearLayout(this);
+        introText.setOrientation(LinearLayout.VERTICAL);
+        TextView introTitle=text(
+                introSeen?"Предисловие · прочитано":"Сначала прочитайте предисловие",
+                15.6f,
+                ink(),
+                true
+        );
+        introTitle.setPadding(0,0,0,0);
+        introText.addView(introTitle);
+        TextView introSub=text(
+                "Как отличать малый ширк от греха, средства к ширку и большого ширка — без крайностей.",
+                11.8f,
+                muted(),
+                false
+        );
+        introSub.setPadding(0,dp(3),0,0);
+        introText.addView(introSub);
+        introCard.addView(introText,new LinearLayout.LayoutParams(0,-2,1));
+        TextView introArrow=text("›",24,minorShirkAccent(),false);
+        introArrow.setGravity(Gravity.CENTER);
+        introArrow.setPadding(0,0,0,0);
+        introCard.addView(introArrow,new LinearLayout.LayoutParams(dp(34),dp(46)));
+
+        LinearLayout.LayoutParams introLp=
+                new LinearLayout.LayoutParams(-1,-2);
+        introLp.setMargins(0,dp(2),0,dp(8));
+        page.addView(introCard,introLp);
 
         int courseSeen=minorShirkSeenCount(
                 "minor_shirk_course_seen"
