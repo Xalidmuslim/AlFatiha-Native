@@ -32,11 +32,10 @@ class MainActivity : ComponentActivity() {
 
     private fun configureActivityTransitions() {
         if (Build.VERSION.SDK_INT >= 34) {
-            overrideActivityTransition(
-                Activity.OVERRIDE_TRANSITION_OPEN,
-                R.anim.azkar_enter,
-                R.anim.azkar_exit,
-            )
+            // Opening is already driven by ActivityOptions.makeCustomAnimation()
+            // in the host activity. Registering a second OPEN transition here
+            // made Android 14+ compose two window animations and exposed the
+            // task background between frames. Keep only the close transition.
             overrideActivityTransition(
                 Activity.OVERRIDE_TRANSITION_CLOSE,
                 R.anim.azkar_return_enter,

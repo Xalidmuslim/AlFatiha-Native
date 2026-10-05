@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -52,6 +53,8 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -295,11 +298,17 @@ private fun HeartPrayerBottomNav(
                             .height(22.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
+                        BasicText(
                             text = item.label,
-                            fontFamily = FontFamily.SansSerif,
-                            fontSize = 11.2.sp,
-                            color = color,
+                            style = TextStyle(
+                                color = color,
+                                fontFamily = FontFamily.SansSerif,
+                                fontSize = 11.2.sp,
+                                lineHeight = 13.sp,
+                                platformStyle = PlatformTextStyle(
+                                    includeFontPadding = false,
+                                ),
+                            ),
                             maxLines = 1,
                         )
                     }
