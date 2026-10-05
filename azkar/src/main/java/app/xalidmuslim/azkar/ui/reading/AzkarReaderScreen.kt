@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,6 +46,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -53,6 +57,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.xalidmuslim.azkar.R
@@ -424,7 +430,10 @@ fun AzkarReaderScreen(
                         state = uiState,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(bottom = 84.dp),
+                            .windowInsetsPadding(
+                                WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
+                            )
+                            .padding(bottom = 72.dp),
                         onPrevious = previous,
                         onNext = next,
                         shellScrollState = shellScrollState,
@@ -469,7 +478,10 @@ fun AzkarReaderScreen(
                         settings = settings,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(bottom = 84.dp),
+                            .windowInsetsPadding(
+                                WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
+                            )
+                            .padding(bottom = 72.dp),
                         onOpenSettings = resolvedUiController::openSettings,
                         onOpenSearch = { navigateToHeartPrayer(context, "search") },
                         isDarkTheme = isDarkTheme,
@@ -594,44 +606,58 @@ private fun HeartPrayerBottomNav(
     onMenu: () -> Unit,
 ) {
     val colors = AzkarThemeValues.colors
-    val shape = RoundedCornerShape(28.dp)
+    // Exact visual contract of MainActivity.buildShell()/navBtn().
+    val dark = colors.background.red < 0.25f
+    val navStart = if (dark) Color(0xFF1F2522) else Color(0xFFFBF7F0)
+    val navEnd = if (dark) Color(0xFF1D2220) else Color(0xFFF8F4EC)
+    val navLine = if (dark) Color(0xFF3D4641) else Color(0xFFE6DDD0)
+    val homeColor = Color(0xFF356D57)
+    val mutedColor = if (dark) Color(0xFFAAB3AD) else Color(0xFF6E6A63)
+    val shape = RoundedCornerShape(18.dp)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 8.dp)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-            .background(colors.card.copy(alpha = 0.98f), shape)
-            .border(1.dp, colors.border.copy(alpha = 0.72f), shape)
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+            .height(64.dp)
+            .shadow(3.dp, shape, clip = false)
+            .clip(shape)
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(navStart, navEnd),
+                ),
+                shape = shape,
+            )
+            .border(1.dp, navLine, shape)
+            .padding(horizontal = 8.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_home,
             label = "Главная",
-            color = colors.primary,
+            color = homeColor,
             onClick = onHome,
             modifier = Modifier.weight(1f),
         )
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_contents,
             label = "Содержание",
-            color = colors.muted,
+            color = mutedColor,
             onClick = onContents,
             modifier = Modifier.weight(1f),
         )
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_progress,
             label = "Прогресс",
-            color = colors.muted,
+            color = mutedColor,
             onClick = onProgress,
             modifier = Modifier.weight(1f),
         )
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_menu,
             label = "Меню",
-            color = colors.muted,
+            color = mutedColor,
             onClick = onMenu,
             modifier = Modifier.weight(1f),
         )
@@ -642,17 +668,18 @@ private fun HeartPrayerBottomNav(
 private fun HeartPrayerNavItem(
     iconRes: Int,
     label: String,
-    color: androidx.compose.ui.graphics.Color,
+    color: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
+            .fillMaxHeight()
             .clickable(onClick = onClick)
             .semantics { contentDescription = label }
-            .padding(vertical = 2.dp),
+            .padding(horizontal = 4.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.Center,
     ) {
         Image(
             painter = painterResource(iconRes),
@@ -660,13 +687,22 @@ private fun HeartPrayerNavItem(
             modifier = Modifier.size(24.dp),
             colorFilter = ColorFilter.tint(color),
         )
-        BasicText(
-            text = label,
-            style = AzkarThemeValues.typography.sourceNote.copy(
-                color = color,
-                fontSize = 11.sp,
-            ),
-        )
+        Box(Modifier.height(2.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(22.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            BasicText(
+                text = label,
+                style = TextStyle(
+                    color = color,
+                    fontFamily = FontFamily.SansSerif,
+                    fontSize = 11.2.sp,
+                ),
+            )
+        }
     }
 }
 
