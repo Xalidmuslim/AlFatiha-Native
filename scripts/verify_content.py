@@ -107,8 +107,19 @@ qudsi_meta = parsed.get("hadith_qudsi_meta.json", {})
 if not isinstance(qudsi_meta, dict):
     fail("hadith_qudsi_meta.json: expected object")
 else:
-    if len(qudsi_meta.get("intro", [])) != 5:
-        fail("hadith_qudsi_meta.json: expected 5 exact preface paragraphs")
+    intro = qudsi_meta.get("intro", [])
+    if len(intro) != 3:
+        fail("hadith_qudsi_meta.json: expected 3 concise preface paragraphs")
+    removed_phrases = [
+        "Повторяющиеся передачи объединены",
+        "Переводы подготовлены для настоящего сборника",
+        "Составлено по проверенным хадисным источникам",
+        "Включены хадисы с явной передачей слов Аллаха в основном содержании",
+    ]
+    intro_text = " ".join(str(x) for x in intro)
+    for phrase in removed_phrases:
+        if phrase in intro_text:
+            fail(f"hadith_qudsi_meta.json: removed preface phrase returned: {phrase}")
     if len(qudsi_meta.get("sources", [])) != 9:
         fail("hadith_qudsi_meta.json: expected 9 used-source lines")
     if len(qudsi_meta.get("verification", [])) != 5:

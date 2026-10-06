@@ -3195,7 +3195,7 @@ public class MainActivity extends Activity {
         for(int i=0;i<a.length();i++){
             JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
             LinearLayout c=card(i%2==0?blueSoft():panel());
-            c.addView(kicker("КЕЙС "+(i+1),i%2==0?C_BLUE:minorShirkAccent()));
+            c.addView(kicker(String.format(Locale.ROOT,"%02d",i+1),i%2==0?C_BLUE:minorShirkAccent()));
             c.addView(text(o.optString("title"),17.8f,ink(),true));
             c.addView(text(shortText(o.optString("case"),150),13.1f,muted(),false));
             c.setOnClickListener(v->renderMinorShirkDaily(idx,true));
@@ -3327,7 +3327,7 @@ public class MainActivity extends Activity {
         int seen=minorShirkSeenCount("minor_shirk_trainer_seen");
         header(
                 "Тренажёр разбора",
-                "Кейс "+(idx+1)+" из "+a.length()+" · разобрано "+seen+
+                (idx+1)+" из "+a.length()+" · разобрано "+seen+
                 ". Сначала сформулируйте ответ сами, затем откройте разбор."
         );
 
@@ -3363,7 +3363,7 @@ public class MainActivity extends Activity {
         page.addView(reveal,revealLp);
 
         Button next=action(
-                currentIdx==a.length()-1?"С начала тренажёра":"Следующий кейс →",
+                currentIdx==a.length()-1?"С начала тренажёра":"Следующая →",
                 C_BLUE
         );
         next.setVisibility(View.GONE);
@@ -7222,17 +7222,57 @@ public class MainActivity extends Activity {
     }
 
     private void openContents(){
-        if(currentSection.equals("hadithQudsi")){
-            if(current!=null && "hadithQudsiHub".equals(current.type)){
+        String type=current==null?"":current.type;
+
+        // Return to the contents/list of the section currently being read.
+        if(type.startsWith("hadithQudsi") || "hadithQudsi".equals(currentSection)){
+            if("hadithQudsiHub".equals(type)){
                 if(scroll!=null)scroll.smoothScrollTo(0,0);
             }else{
                 renderHadithQudsiHub(true);
             }
-        }else if(currentSection.equals("mind")||currentSection.equals("prayerSecrets")||currentSection.equals("minorShirk")||currentSection.equals("quiz")){
-            openSection();
-        }else{
-            showContentsDialog();
+            return;
         }
+
+        if(type.startsWith("minorShirk")){
+            if("minorShirkCourse".equals(type)){
+                renderMinorShirkCourseList(true);
+            }else if("minorShirkDaily".equals(type) || "minorShirkTrainer".equals(type)){
+                renderMinorShirkDailyList(true);
+            }else if("minorShirkCourseList".equals(type) || "minorShirkDailyList".equals(type) || "minorShirkHub".equals(type)){
+                if(scroll!=null)scroll.smoothScrollTo(0,0);
+            }else{
+                renderMinorShirkHub(true);
+            }
+            return;
+        }
+
+        if(type.startsWith("prayer")){
+            if("prayerSecretsHub".equals(type)){
+                if(scroll!=null)scroll.smoothScrollTo(0,0);
+            }else if("prayerQuizHub".equals(type) || "prayerCheck".equals(type) || "prayerCheckResult".equals(type)){
+                renderPrayerQuizHub(true);
+            }else{
+                renderPrayerSecretsHub(true);
+            }
+            return;
+        }
+
+        if(type.startsWith("mind") || "intro".equals(type)){
+            if("mindHub".equals(type)){
+                if(scroll!=null)scroll.smoothScrollTo(0,0);
+            }else{
+                renderMindHub(true);
+            }
+            return;
+        }
+
+        if("quizCenter".equals(type) || "quizHub".equals(type) || "quiz".equals(type) || "quizResult".equals(type)){
+            renderQuizCenter(true);
+            return;
+        }
+
+        showContentsDialog();
     }
 
     private LinearLayout dialogSheet(String title,String subtitle,int iconRes){
