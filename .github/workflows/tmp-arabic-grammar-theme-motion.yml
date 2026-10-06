@@ -26,7 +26,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/ag
-          cat tmp-arabic-build/part_*.b64 | base64 -d > /tmp/ag/source.zip
+          : > /tmp/ag/source.zip
+          for p in tmp-arabic-build/part_*.b64; do
+            base64 -d "$p" >> /tmp/ag/source.zip
+          done
           unzip -t /tmp/ag/source.zip
           unzip -q /tmp/ag/source.zip -d /tmp/ag/project
           mkdir -p /tmp/ag/project/app/src/main/assets/book
