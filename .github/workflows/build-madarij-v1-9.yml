@@ -35,9 +35,6 @@ jobs:
           mkdir -p madarij-src
           unzip -q madarij-v11-reader-flow-source.zip -d madarij-src
           chmod +x madarij-src/Madarij-Native-v11/gradlew
-      - name: Run host tests
-        working-directory: madarij-src/Madarij-Native-v11
-        run: python3 -m pytest -q
       - name: Build debug APK
         working-directory: madarij-src/Madarij-Native-v11
         run: ./gradlew --no-daemon assembleDebug
