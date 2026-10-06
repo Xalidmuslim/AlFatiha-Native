@@ -3729,17 +3729,27 @@ public class MainActivity extends Activity {
         appTop();
 
         JSONArray data=arr("hadith_qudsi.json");
-        header(
-                "Достоверные хадисы-кудси",
-                "44 хадиса: 32 сахих и 12 хасан. Для каждого хадиса сохранены текст, источник и подтверждённая степень."
-        );
+        JSONObject meta=obj("hadith_qudsi_meta.json");
 
-        LinearLayout note=card(sageSoft());
-        note.addView(kicker("О СБОРНИКЕ",C_SAGE));
-        note.addView(text(
-                "Повторяющиеся передачи объединены. В разделе «Сахих» учтены сахих ли-гайрихи, в разделе «Хасан» — хасан ли-гайрихи.",
-                13.7f,muted(),false
-        ));
+        header("Достоверные хадисы-кудси","Сахих и хасан");
+
+        LinearLayout about=card(sageSoft());
+        about.addView(kicker("О СБОРНИКЕ",C_SAGE));
+        about.addView(text("Хадисов: 44",14.6f,ink(),true));
+        TextView counts=text("Сахих: 32 · Хасан: 12",16.2f,ink(),false);
+        counts.setPadding(0,dp(5),0,dp(6));
+        about.addView(counts);
+
+        JSONArray intro=meta.optJSONArray("intro");
+        if(intro!=null){
+            for(int i=0;i<intro.length();i++){
+                TextView p=text(intro.optString(i),14.6f,ink(),false);
+                p.setLineSpacing(dp(2),1.04f);
+                LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);
+                pp.setMargins(0,i==0?dp(3):dp(8),0,0);
+                about.addView(p,pp);
+            }
+        }
 
         String section="";
         for(int i=0;i<data.length();i++){
@@ -3790,10 +3800,54 @@ public class MainActivity extends Activity {
             lp.setMargins(0,dp(4),0,dp(4));
             page.addView(item,lp);
         }
+
+        LinearLayout sourcesBox=card(panel());
+        Button sourcesToggle=outline("Использованные источники   ↓");
+        sourcesToggle.setTextSize(sz(13.2f));
+        sourcesBox.addView(sourcesToggle,new LinearLayout.LayoutParams(-1,dp(54)));
+
+        LinearLayout sourcesHolder=newSurface(
+                dark?Color.rgb(40,47,43):Color.rgb(248,246,240),
+                18,14,1
+        );
+        sourcesHolder.setVisibility(View.GONE);
+        sourcesHolder.addView(text("Использованные источники",17.0f,ink(),true));
+
+        JSONArray sources=meta.optJSONArray("sources");
+        if(sources!=null){
+            for(int i=0;i<sources.length();i++){
+                TextView line=text("• "+sources.optString(i),14.5f,ink(),false);
+                line.setPadding(0,dp(5),0,0);
+                sourcesHolder.addView(line);
+            }
+        }
+
+        TextView verifyTitle=text("Сверка текстов и оценок",15.2f,ink(),true);
+        verifyTitle.setPadding(0,dp(14),0,0);
+        sourcesHolder.addView(verifyTitle);
+
+        JSONArray verification=meta.optJSONArray("verification");
+        if(verification!=null){
+            for(int i=0;i<verification.length();i++){
+                TextView line=text("• "+verification.optString(i),14.5f,ink(),false);
+                line.setPadding(0,dp(5),0,0);
+                sourcesHolder.addView(line);
+            }
+        }
+
+        sourcesBox.addView(sourcesHolder);
+        sourcesToggle.setOnClickListener(v->toggleInline(
+                sourcesHolder,
+                sourcesToggle,
+                "Использованные источники   ↓",
+                "Скрыть использованные источники   ↑"
+        ));
     }
+
 
     private void renderHadithQudsiDetail(int index,boolean push){
         JSONArray data=arr("hadith_qudsi.json");
+        JSONArray notes=arr("hadith_qudsi_notes.json");
         if(index<0||index>=data.length()){
             renderHadithQudsiHub(push);
             return;
@@ -3803,6 +3857,7 @@ public class MainActivity extends Activity {
             renderHadithQudsiHub(push);
             return;
         }
+        JSONObject note=index<notes.length()?notes.optJSONObject(index):null;
 
         clearActiveFlow();
         clear("hadithQudsiDetail",String.valueOf(index),push);
@@ -3814,7 +3869,10 @@ public class MainActivity extends Activity {
         LinearLayout meta=card(
                 "Сахих".equals(o.optString("section"))?sageSoft():sandSoft()
         );
-        meta.addView(kicker(o.optString("section"),"Сахих".equals(o.optString("section"))?C_SAGE:Color.rgb(145,104,42)));
+        meta.addView(kicker(
+                o.optString("section"),
+                "Сахих".equals(o.optString("section"))?C_SAGE:Color.rgb(145,104,42)
+        ));
         TextView grade=text("Степень: "+o.optString("grade"),13.4f,ink(),true);
         grade.setPadding(0,dp(8),0,0);
         meta.addView(grade);
@@ -3823,9 +3881,44 @@ public class MainActivity extends Activity {
         meta.addView(source);
 
         LinearLayout body=card(panel());
-        TextView hadith=text(o.optString("text"),18.0f,ink(),false);
-        hadith.setLineSpacing(dp(3),1.08f);
+        TextView hadith=text(o.optString("text"),14.8f,ink(),false);
+        hadith.setLineSpacing(dp(2),1.04f);
         body.addView(hadith);
+
+        if(note!=null){
+            addQudsiDisclosure(
+                    "Полный разбор",
+                    sageSoft(),
+                    C_SAGE,
+                    note.optString("analysis"),
+                    null,
+                    ""
+            );
+            addQudsiDisclosure(
+                    "Выводы и пользы",
+                    sandSoft(),
+                    Color.rgb(145,104,42),
+                    "",
+                    note.optJSONArray("benefits"),
+                    ""
+            );
+            addQudsiDisclosure(
+                    "Толкование учёных",
+                    blueSoft(),
+                    C_BLUE,
+                    note.optString("scholars"),
+                    null,
+                    note.optString("scholar_sources")
+            );
+            addQudsiDisclosure(
+                    "Как применять сегодня · примеры",
+                    lavSoft(),
+                    Color.rgb(112,96,134),
+                    "",
+                    note.optJSONArray("modern"),
+                    ""
+            );
+        }
 
         LinearLayout nav=new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
@@ -3849,6 +3942,58 @@ public class MainActivity extends Activity {
         navLp.setMargins(0,dp(6),0,dp(12));
         page.addView(nav,navLp);
     }
+
+    private void addQudsiDisclosure(
+            String label,
+            int tone,
+            int accent,
+            String body,
+            JSONArray bullets,
+            String source
+    ){
+        LinearLayout box=card(tone);
+        Button toggle=outline(label+"   ↓");
+        toggle.setTextSize(sz(13.2f));
+        box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
+
+        LinearLayout holder=newSurface(panel(),18,14,1);
+        holder.setVisibility(View.GONE);
+        holder.addView(kicker(label.toUpperCase(Locale.ROOT),accent));
+
+        if(body!=null&&!body.trim().isEmpty()){
+            TextView p=text(body,14.5f,ink(),false);
+            p.setLineSpacing(dp(2),1.04f);
+            LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);
+            pp.setMargins(0,dp(8),0,0);
+            holder.addView(p,pp);
+        }
+
+        if(bullets!=null){
+            for(int i=0;i<bullets.length();i++){
+                TextView item=text("• "+bullets.optString(i),14.5f,ink(),false);
+                item.setLineSpacing(dp(2),1.04f);
+                LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(-1,-2);
+                ip.setMargins(0,dp(7),0,0);
+                holder.addView(item,ip);
+            }
+        }
+
+        if(source!=null&&!source.trim().isEmpty()){
+            TextView src=text("Опора для комментария: "+source,12.4f,muted(),false);
+            LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);
+            sp.setMargins(0,dp(10),0,0);
+            holder.addView(src,sp);
+        }
+
+        box.addView(holder);
+        toggle.setOnClickListener(v->toggleInline(
+                holder,
+                toggle,
+                label+"   ↓",
+                "Скрыть · "+label+"   ↑"
+        ));
+    }
+
 
     private String progressSummary(){
         KnowledgeAnalytics.Summary s=analytics().summary();
@@ -5110,15 +5255,29 @@ public class MainActivity extends Activity {
         }
 
         JSONArray qudsi=arr("hadith_qudsi.json");
+        JSONArray qudsiNotes=arr("hadith_qudsi_notes.json");
         for(int i=0;i<qudsi.length();i++){
             JSONObject o=qudsi.optJSONObject(i);
             if(o==null)continue;
+            JSONObject n=i<qudsiNotes.length()?qudsiNotes.optJSONObject(i):null;
+            StringBuilder body=new StringBuilder();
+            body.append(o.optString("text")).append(" ")
+                    .append(o.optString("source")).append(" ")
+                    .append(o.optString("grade"));
+            if(n!=null){
+                body.append(" ").append(n.optString("analysis"))
+                        .append(" ").append(n.optString("scholars"))
+                        .append(" ").append(n.optString("scholar_sources"));
+                JSONArray benefits=n.optJSONArray("benefits");
+                if(benefits!=null)for(int k=0;k<benefits.length();k++)body.append(" ").append(benefits.optString(k));
+                JSONArray modern=n.optJSONArray("modern");
+                if(modern!=null)for(int k=0;k<modern.length();k++)body.append(" ").append(modern.optString(k));
+            }
             String title="Хадис № "+o.optInt("number")+" · "+o.optString("title");
-            String body=o.optString("text")+" "+o.optString("source")+" "+o.optString("grade");
             out.add(new ContentSearchEntry(
                     title,
                     "Хадисы-кудси · "+o.optString("section"),
-                    body,
+                    body.toString(),
                     "hadithQudsi",
                     String.valueOf(i)
             ));
@@ -7496,6 +7655,18 @@ public class MainActivity extends Activity {
         try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){
             byte[]buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);JSONArray a=new JSONArray(out.toString("UTF-8"));cache.put(name,a);return a;
         }catch(Exception e){e.printStackTrace();return new JSONArray();}
+    }
+
+    private JSONObject obj(String name){
+        try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){
+            byte[]buf=new byte[8192];
+            int n;
+            while((n=in.read(buf))>0)out.write(buf,0,n);
+            return new JSONObject(out.toString("UTF-8"));
+        }catch(Exception e){
+            e.printStackTrace();
+            return new JSONObject();
+        }
     }
 
     private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_SHORT).show();}
