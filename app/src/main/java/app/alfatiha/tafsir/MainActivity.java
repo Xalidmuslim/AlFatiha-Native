@@ -49,6 +49,37 @@ public class MainActivity extends Activity {
     private int homeTileIconDp=60;
     private float homeTileTitleSp=14.2f;
     private float homeTileSubSp=10.5f;
+    private static final String[] HERO_PHRASES = new String[]{
+            "Не смотри лишь на причину — смотри, к Кому обращено сердце.",
+            "Когда сердце знает своего Господа, причины занимают своё место.",
+            "Причины видит глаз, а сердце должно видеть Того, Кто ими распоряжается.",
+            "Сердце не бывает пустым: если оно не занято Аллахом, его займёт созданное.",
+            "Рабство сердца начинается там, где оно ждёт от творения того, что принадлежит лишь Аллаху.",
+            "Исправность сердца — в том, чтобы причины оставались в руках, а не занимали сердце.",
+            "Кто знает Господа, тот пользуется причинами, но не вручает им своё сердце.",
+            "Чем сильнее сердце знает Аллаха, тем меньше оно боится того, что находится в руках людей.",
+            "Между языком и сердцем может лежать целый путь.",
+            "Сердце узнаётся не в покое, а в том, к кому оно обращается при нужде.",
+            "То, к чему сердце возвращается в тревоге, и есть его настоящая опора.",
+            "Иногда причина остаётся в руке, а иногда незаметно входит в сердце.",
+            "Не всякий, кто произносит слова упования, освободил сердце от причин.",
+            "Испытание сердца — не в наличии причин, а в зависимости от них.",
+            "Сердце может поклоняться тому, чего язык никогда не назовёт господином.",
+            "Сердце идёт за тем, кому оно доверило исход.",
+            "Вера сердца проверяется не словами, а тем, кому оно поручает исход.",
+            "Когда сердце исправляет своё направление, причины возвращаются на своё место.",
+            "Чем слабее знание о Господе, тем сильнее сердце цепляется за созданное.",
+            "Когда сердце понимает то, что произносит язык, поклонение становится живым.",
+            "Осознанность начинается там, где сердце перестаёт проходить мимо смысла.",
+            "Слова ведут к смыслу, смысл — к размышлению, а размышление — к Аллаху.",
+            "Читай не только языком: дай сердцу услышать то, что произносишь.",
+            "Пока язык читает, сердце должно искать Того, к Кому обращены эти слова.",
+            "Осознанность — это когда язык произносит, разум понимает, а сердце обращается к Аллаху.",
+            "Размышляй до тех пор, пока слова не перестанут быть только словами.",
+            "Когда смысл входит в сердце, поклонение перестаёт быть привычкой."
+    };
+    private String sessionHeroPhrase=HERO_PHRASES[0];
+    private boolean heroPhraseAnimationPlayed=false;
     private KnowledgeAnalytics.Catalog knowledgeCatalog;
     private final ArrayList<KnowledgeAnalytics.QuestionRef> activeFlow=new ArrayList<>();
     private final LinkedHashMap<String,Boolean> activeFlowResults=new LinkedHashMap<>();
@@ -77,6 +108,7 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
         prefs=getSharedPreferences("alfatiha_native",MODE_PRIVATE);
+        sessionHeroPhrase=pickHeroPhraseForLaunch();
         fontScale=prefs.getFloat("fontScale",1f);
         dark=prefs.getBoolean("dark",false);
         fontMode=prefs.getString("fontMode","modern");
@@ -1306,6 +1338,258 @@ public class MainActivity extends Activity {
         return out;
     }
 
+
+    private String pickHeroPhraseForLaunch(){
+        final int n=HERO_PHRASES.length;
+        if(prefs==null || n==0)return "";
+        ArrayList<Integer> order=new ArrayList<>();
+        String saved=prefs.getString("home_phrase_order","");
+        int pos=prefs.getInt("home_phrase_pos",0);
+        boolean valid=!saved.isEmpty();
+        HashSet<Integer> seen=new HashSet<>();
+        if(valid){
+            String[] parts=saved.split(",");
+            if(parts.length!=n)valid=false;
+            if(valid){
+                for(String part:parts){
+                    try{
+                        int v=Integer.parseInt(part.trim());
+                        if(v<0 || v>=n || !seen.add(v)){valid=false;break;}
+                        order.add(v);
+                    }catch(Exception e){
+                        valid=false;
+                        break;
+                    }
+                }
+            }
+        }
+        if(!valid || pos<0 || pos>=n){
+            order.clear();
+            for(int i=0;i<n;i++)order.add(i);
+            int last=prefs.getInt("home_phrase_last",-1);
+            Collections.shuffle(order,new Random(System.nanoTime()^System.currentTimeMillis()));
+            if(n>1 && order.get(0)==last)Collections.swap(order,0,1);
+            pos=0;
+        }
+        int index=order.get(pos);
+        StringBuilder encoded=new StringBuilder();
+        for(int i=0;i<order.size();i++){
+            if(i>0)encoded.append(',');
+            encoded.append(order.get(i));
+        }
+        prefs.edit()
+                .putString("home_phrase_order",encoded.toString())
+                .putInt("home_phrase_pos",pos+1)
+                .putInt("home_phrase_last",index)
+                .apply();
+        return HERO_PHRASES[index];
+    }
+
+    private float heroPhraseSizeDp(String phrase,int heroH){
+        int len=phrase==null?0:phrase.length();
+        float size;
+        if(len>=95)size=15.4f;
+        else if(len>=78)size=16.0f;
+        else if(len>=62)size=16.7f;
+        else if(len>=48)size=17.4f;
+        else size=18.3f;
+        if(heroH<=180)size-=1.0f;
+        else if(heroH<=198)size-=0.5f;
+        return Math.max(14.0f,size);
+    }
+
+    private final class SandPhraseView extends View {
+        private final String phrase;
+        private final int phraseColor;
+        private final float preferredSizeDp;
+        private final boolean animateOnAttach;
+        private final android.text.TextPaint textPaint=new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.SUBPIXEL_TEXT_FLAG);
+        private final android.graphics.Paint particlePaint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private android.text.StaticLayout textLayout;
+        private float layoutTop=0f;
+        private float progress=1f;
+        private android.animation.ValueAnimator animator;
+        private float[] targetX,targetY,startX,startY,phase,radius,delay;
+
+        SandPhraseView(Context context,String phrase,float sizeDp,int color,boolean animate){
+            super(context);
+            this.phrase=phrase==null?"":phrase;
+            this.preferredSizeDp=sizeDp;
+            this.phraseColor=color;
+            this.animateOnAttach=animate;
+            textPaint.setColor(color);
+            textPaint.setTypeface(Typeface.create("serif",Typeface.BOLD));
+            particlePaint.setColor(color);
+            particlePaint.setStyle(android.graphics.Paint.Style.FILL);
+            setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            setContentDescription(this.phrase);
+            if(!animate)progress=1f;
+        }
+
+        @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
+            super.onSizeChanged(w,h,oldw,oldh);
+            rebuildPhrase(w,h);
+        }
+
+        private android.text.StaticLayout makeLayout(int width,float textSizePx){
+            textPaint.setTextSize(textSizePx);
+            return android.text.StaticLayout.Builder
+                    .obtain(phrase,0,phrase.length(),textPaint,Math.max(1,width))
+                    .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL)
+                    .setIncludePad(false)
+                    .setLineSpacing(0f,1.03f)
+                    .setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY)
+                    .setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE)
+                    .build();
+        }
+
+        private void rebuildPhrase(int w,int h){
+            if(w<=0 || h<=0)return;
+            float sizePx=dp(preferredSizeDp);
+            textLayout=makeLayout(w,sizePx);
+            float minPx=dp(13.2f);
+            float step=Math.max(1f,dp(.35f));
+            while(textLayout.getHeight()>h && sizePx>minPx){
+                sizePx=Math.max(minPx,sizePx-step);
+                textLayout=makeLayout(w,sizePx);
+            }
+            layoutTop=Math.max(0f,(h-textLayout.getHeight())*.46f);
+            buildSandParticles(w,h);
+        }
+
+        private void buildSandParticles(int w,int h){
+            if(textLayout==null || w<=0 || h<=0)return;
+            android.graphics.Bitmap mask=android.graphics.Bitmap.createBitmap(w,h,android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas mc=new android.graphics.Canvas(mask);
+            int oldColor=textPaint.getColor();
+            int oldAlpha=textPaint.getAlpha();
+            textPaint.setColor(Color.WHITE);
+            textPaint.setAlpha(255);
+            mc.save();
+            mc.translate(0f,layoutTop);
+            textLayout.draw(mc);
+            mc.restore();
+            textPaint.setColor(oldColor);
+            textPaint.setAlpha(oldAlpha);
+
+            int scan=Math.max(3,dp(1.15f));
+            ArrayList<Integer> points=new ArrayList<>();
+            int[] row=new int[w];
+            for(int y=0;y<h;y+=scan){
+                mask.getPixels(row,0,w,0,y,w,1);
+                for(int x=0;x<w;x+=scan){
+                    if(Color.alpha(row[x])>80)points.add((y<<16)|(x&0xffff));
+                }
+            }
+            mask.recycle();
+
+            Random random=new Random(phrase.hashCode()*1103515245L+12345L);
+            Collections.shuffle(points,random);
+            int count=Math.min(760,points.size());
+            targetX=new float[count];
+            targetY=new float[count];
+            startX=new float[count];
+            startY=new float[count];
+            phase=new float[count];
+            radius=new float[count];
+            delay=new float[count];
+
+            for(int i=0;i<count;i++){
+                int packed=points.get(i);
+                float tx=packed&0xffff;
+                float ty=(packed>>>16)&0xffff;
+                targetX[i]=tx;
+                targetY[i]=ty;
+                startX[i]=tx-dp(24f+random.nextFloat()*76f)-random.nextFloat()*dp(28f);
+                startY[i]=ty+dp((random.nextFloat()-.5f)*38f);
+                phase[i]=(float)(random.nextFloat()*Math.PI*2.0);
+                radius[i]=Math.max(.7f,dp(.42f+random.nextFloat()*.48f));
+                float leftToRight=(w<=1?0f:tx/(float)w)*.20f;
+                delay[i]=Math.min(.34f,leftToRight+random.nextFloat()*.10f);
+            }
+        }
+
+        @Override protected void onAttachedToWindow(){
+            super.onAttachedToWindow();
+            if(animateOnAttach){
+                progress=0f;
+                postDelayed(this::startSandAnimation,90);
+            }else{
+                progress=1f;
+            }
+        }
+
+        private void startSandAnimation(){
+            if(!isAttachedToWindow() || getWidth()<=0 || textLayout==null)return;
+            if(animator!=null)animator.cancel();
+            animator=android.animation.ValueAnimator.ofFloat(0f,1f);
+            long duration=Math.min(2350L,1680L+phrase.length()*6L);
+            animator.setDuration(duration);
+            animator.setInterpolator(new android.view.animation.LinearInterpolator());
+            animator.addUpdateListener(a->{
+                progress=(Float)a.getAnimatedValue();
+                invalidate();
+            });
+            animator.addListener(new android.animation.AnimatorListenerAdapter(){
+                @Override public void onAnimationEnd(android.animation.Animator animation){
+                    progress=1f;
+                    invalidate();
+                }
+            });
+            animator.start();
+        }
+
+        private float clamp01(float v){
+            return v<0f?0f:(v>1f?1f:v);
+        }
+
+        private void drawFinalText(android.graphics.Canvas canvas,int alpha){
+            if(textLayout==null)return;
+            int old=textPaint.getAlpha();
+            textPaint.setColor(phraseColor);
+            textPaint.setAlpha(Math.max(0,Math.min(255,alpha)));
+            canvas.save();
+            canvas.translate(0f,layoutTop);
+            textLayout.draw(canvas);
+            canvas.restore();
+            textPaint.setAlpha(old);
+        }
+
+        @Override protected void onDraw(android.graphics.Canvas canvas){
+            super.onDraw(canvas);
+            if(textLayout==null)return;
+            if(!animateOnAttach || progress>=.999f || targetX==null){
+                drawFinalText(canvas,255);
+                return;
+            }
+
+            float textReveal=clamp01((progress-.56f)/.34f);
+            if(textReveal>0f)drawFinalText(canvas,(int)(255f*textReveal));
+
+            particlePaint.setColor(phraseColor);
+            float particleFade=1f-clamp01((progress-.80f)/.20f);
+            for(int i=0;i<targetX.length;i++){
+                float local=clamp01((progress-delay[i])/(1f-delay[i]));
+                if(local<=0f)continue;
+                float ease=1f-(float)Math.pow(1f-local,3.0);
+                float wind=(float)Math.sin(phase[i]+local*7.2f)*dp(3.1f)*(1f-ease);
+                float lift=(float)Math.cos(phase[i]*.73f+local*5.4f)*dp(1.8f)*(1f-ease);
+                float x=startX[i]+(targetX[i]-startX[i])*ease+wind;
+                float y=startY[i]+(targetY[i]-startY[i])*ease+lift;
+                int alpha=(int)(210f*particleFade*clamp01(.18f+local*1.35f));
+                if(alpha<=0)continue;
+                particlePaint.setAlpha(alpha);
+                canvas.drawCircle(x,y,radius[i]*(.72f+.28f*local),particlePaint);
+            }
+        }
+
+        @Override protected void onDetachedFromWindow(){
+            if(animator!=null)animator.cancel();
+            animator=null;
+            super.onDetachedFromWindow();
+        }
+    }
+
     private void renderHome(boolean push){
         clearActiveFlow();
         clear("home","",push);
@@ -1377,49 +1661,19 @@ public class MainActivity extends Activity {
 
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
 
-        TextView reminder=homeText(
-                "▤  Напоминание",
-                10.8f,
-                dark?Color.rgb(205,216,209):Color.rgb(86,104,94),
-                true
-        );
-        reminder.setGravity(Gravity.CENTER);
-        reminder.setBackground(surfaceBg(
-                dark?Color.argb(210,53,64,58):Color.argb(210,235,228,215),
-                dark?Color.argb(210,47,57,52):Color.argb(210,241,235,224),
-                99,
-                0
-        ));
-        reminder.setPadding(dp(10),0,dp(10),0);
-        heroText.addView(reminder,new LinearLayout.LayoutParams(-2,dp(28)));
-
-        float hadithSp=heroH<=180?16.8f:heroH<=198?18.2f:19.6f;
-        TextView hadith=homeText(
-                "«Если сердце\nисправно —\nисправно всё тело».",
-                hadithSp,
+        boolean animatePhrase=!heroPhraseAnimationPlayed;
+        SandPhraseView phraseView=new SandPhraseView(
+                this,
+                sessionHeroPhrase,
+                heroPhraseSizeDp(sessionHeroPhrase,heroH),
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),
-                true
+                animatePhrase
         );
-        hadith.setMaxLines(3);
-        hadith.setEllipsize(null);
-        hadith.setLineSpacing(0,1.00f);
-        LinearLayout.LayoutParams hadithLp=
-                new LinearLayout.LayoutParams(-1,-2);
-        hadithLp.setMargins(0,dp(7),0,0);
-        heroText.addView(hadith,hadithLp);
-
-        TextView hadithSource=homeText(
-                "аль-Бухари, Муслим",
-                heroH<=180?10.2f:11.0f,
-                dark?Color.rgb(198,205,201):Color.rgb(103,101,94),
-                false
-        );
-        LinearLayout.LayoutParams sourceLp=
-                new LinearLayout.LayoutParams(-1,-2);
-        sourceLp.setMargins(0,dp(4),0,0);
-        heroText.addView(hadithSource,sourceLp);
-
-        heroText.addView(new Space(this),new LinearLayout.LayoutParams(1,0,1f));
+        heroPhraseAnimationPlayed=true;
+        LinearLayout.LayoutParams phraseLp=
+                new LinearLayout.LayoutParams(-1,0,1f);
+        phraseLp.setMargins(0,dp(2),0,dp(5));
+        heroText.addView(phraseView,phraseLp);
 
         LinearLayout heroResume=new LinearLayout(this);
         heroResume.setOrientation(LinearLayout.HORIZONTAL);
