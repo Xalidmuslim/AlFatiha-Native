@@ -3694,6 +3694,10 @@ public class MainActivity extends Activity {
 
     private void openAzkar(){
         try{
+            // Keep DataStore/catalog warm and let the target activity paint an
+            // opaque first frame. This avoids the brief black surface that could
+            // appear while Compose was creating its first frame.
+            app.xalidmuslim.azkar.AzkarWarmup.preload(getApplicationContext());
             Intent i=new Intent(this,app.xalidmuslim.azkar.MainActivity.class);
             android.app.ActivityOptions options=
                     android.app.ActivityOptions.makeCustomAnimation(
@@ -3887,7 +3891,7 @@ public class MainActivity extends Activity {
 
         if(note!=null){
             addQudsiDisclosure(
-                    "Полный разбор",
+                    "Разбор",
                     sageSoft(),
                     C_SAGE,
                     note.optString("analysis"),
@@ -3951,12 +3955,20 @@ public class MainActivity extends Activity {
             JSONArray bullets,
             String source
     ){
-        LinearLayout box=card(tone);
-        Button toggle=outline(label+"   ↓");
-        toggle.setTextSize(sz(13.2f));
-        box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(54)));
+        // Qudsi disclosures are intentionally denser than ordinary content cards:
+        // the collapsed state should read as a compact row, not a large empty panel.
+        LinearLayout box=newSurface(tone,20,8,2);
+        LinearLayout.LayoutParams boxLp=new LinearLayout.LayoutParams(-1,-2);
+        boxLp.setMargins(0,dp(4),0,dp(4));
+        page.addView(box,boxLp);
 
-        LinearLayout holder=newSurface(panel(),18,14,1);
+        Button toggle=outline(label+"   ↓");
+        toggle.setTextSize(sz(13.0f));
+        toggle.setMinHeight(0);
+        toggle.setMinimumHeight(0);
+        box.addView(toggle,new LinearLayout.LayoutParams(-1,dp(46)));
+
+        LinearLayout holder=newSurface(panel(),16,11,1);
         holder.setVisibility(View.GONE);
         holder.addView(kicker(label.toUpperCase(Locale.ROOT),accent));
 
@@ -3965,24 +3977,16 @@ public class MainActivity extends Activity {
             textHolder.setOrientation(LinearLayout.VERTICAL);
             addParagraphs(textHolder,body,14.5f);
             LinearLayout.LayoutParams textLp=new LinearLayout.LayoutParams(-1,-2);
-            textLp.setMargins(0,dp(5),0,0);
+            textLp.setMargins(0,dp(4),0,0);
             holder.addView(textHolder,textLp);
         }
 
         if(bullets!=null){
-            boolean examples="Актуальные примеры".equals(label);
             for(int i=0;i<bullets.length();i++){
-                String prefix=examples?("Ситуация "+(i+1)+". "):"• ";
-                TextView item=text(prefix+bullets.optString(i),14.5f,ink(),false);
+                TextView item=text("• "+bullets.optString(i),14.5f,ink(),false);
                 item.setLineSpacing(dp(2),1.04f);
-                if(examples)item.setBackground(solidBg(
-                        dark?Color.rgb(42,48,45):Color.rgb(250,247,241),
-                        13,
-                        line()
-                ));
-                if(examples)item.setPadding(dp(11),dp(9),dp(11),dp(9));
                 LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(-1,-2);
-                ip.setMargins(0,dp(7),0,0);
+                ip.setMargins(0,dp(5),0,0);
                 holder.addView(item,ip);
             }
         }
@@ -3990,11 +3994,14 @@ public class MainActivity extends Activity {
         if(source!=null&&!source.trim().isEmpty()){
             TextView src=text("Опора для комментария: "+source,12.4f,muted(),false);
             LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);
-            sp.setMargins(0,dp(10),0,0);
+            sp.setMargins(0,dp(8),0,0);
             holder.addView(src,sp);
         }
 
-        box.addView(holder);
+        LinearLayout.LayoutParams holderLp=new LinearLayout.LayoutParams(-1,-2);
+        holderLp.setMargins(0,dp(7),0,0);
+        box.addView(holder,holderLp);
+
         toggle.setOnClickListener(v->toggleInline(
                 holder,
                 toggle,
