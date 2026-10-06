@@ -3370,7 +3370,7 @@ public class MainActivity extends Activity {
             opened[0]=true;
             markMinorShirkSeen("minor_shirk_trainer_seen",currentIdx);
 
-            LinearLayout result=card(minorShirkSoft());
+            LinearLayout result=newSurface(minorShirkSoft(),24,18,4);
             result.addView(kicker("ЭТАЛОННЫЙ РАЗБОР",minorShirkAccent()));
             result.addView(text("Итог",14.0f,ink(),true));
             result.addView(text(o.optString("verdict"),13.4f,muted(),false));
@@ -3386,7 +3386,10 @@ public class MainActivity extends Activity {
             correctTitle.setPadding(0,dp(8),0,0);
             result.addView(correctTitle);
             result.addView(text(o.optString("correct"),13.4f,muted(),false));
-            revealHost.addView(result);
+            LinearLayout.LayoutParams resultLp=
+                    new LinearLayout.LayoutParams(-1,-2);
+            resultLp.setMargins(0,dp(7),0,dp(7));
+            revealHost.addView(result,resultLp);
 
             reveal.setText("✓ Разбор открыт");
             reveal.setEnabled(false);
