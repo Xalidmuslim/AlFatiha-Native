@@ -50,6 +50,28 @@ for path in sorted(ASSETS.glob("*.json")):
     except Exception as e:
         fail(f"{path.name}: invalid JSON: {e}")
 
+# 1.5. Embedded Hadith Qudsi collection is fixed to the reviewed corpus.
+qudsi = parsed.get("hadith_qudsi.json", [])
+if len(qudsi) != 44:
+    fail(f"hadith_qudsi.json: expected exactly 44 hadiths, got {len(qudsi)}")
+else:
+    numbers = [item.get("number") for item in qudsi if isinstance(item, dict)]
+    if numbers != list(range(1, 45)):
+        fail("hadith_qudsi.json: numbering must be continuous 1..44")
+    sahih_count = sum(1 for item in qudsi if isinstance(item, dict) and item.get("section") == "Сахих")
+    hasan_count = sum(1 for item in qudsi if isinstance(item, dict) and item.get("section") == "Хасан")
+    if sahih_count != 32:
+        fail(f"hadith_qudsi.json: expected 32 sahih entries, got {sahih_count}")
+    if hasan_count != 12:
+        fail(f"hadith_qudsi.json: expected 12 hasan entries, got {hasan_count}")
+    for i, item in enumerate(qudsi):
+        if not isinstance(item, dict):
+            fail(f"hadith_qudsi.json[{i}]: expected object")
+            continue
+        for key in ["number", "title", "text", "source", "grade", "section"]:
+            if not str(item.get(key, "")).strip():
+                fail(f"hadith_qudsi.json[{i}]: missing {key}")
+
 # 2. Core course contracts.
 mind = parsed.get("mind_data.json", [])
 heart = parsed.get("mind_heart.json", [])
