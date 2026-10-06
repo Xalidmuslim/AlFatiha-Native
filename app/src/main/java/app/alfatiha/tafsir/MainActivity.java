@@ -3903,7 +3903,7 @@ public class MainActivity extends Activity {
                     ""
             );
             addQudsiDisclosure(
-                    "Толкование учёных",
+                    "Слова учёных",
                     blueSoft(),
                     C_BLUE,
                     note.optString("scholars"),
@@ -3911,7 +3911,7 @@ public class MainActivity extends Activity {
                     note.optString("scholar_sources")
             );
             addQudsiDisclosure(
-                    "Как применять сегодня · примеры",
+                    "Актуальные примеры",
                     lavSoft(),
                     Color.rgb(112,96,134),
                     "",
@@ -3961,17 +3961,26 @@ public class MainActivity extends Activity {
         holder.addView(kicker(label.toUpperCase(Locale.ROOT),accent));
 
         if(body!=null&&!body.trim().isEmpty()){
-            TextView p=text(body,14.5f,ink(),false);
-            p.setLineSpacing(dp(2),1.04f);
-            LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);
-            pp.setMargins(0,dp(8),0,0);
-            holder.addView(p,pp);
+            LinearLayout textHolder=new LinearLayout(this);
+            textHolder.setOrientation(LinearLayout.VERTICAL);
+            addParagraphs(textHolder,body,14.5f);
+            LinearLayout.LayoutParams textLp=new LinearLayout.LayoutParams(-1,-2);
+            textLp.setMargins(0,dp(5),0,0);
+            holder.addView(textHolder,textLp);
         }
 
         if(bullets!=null){
+            boolean examples="Актуальные примеры".equals(label);
             for(int i=0;i<bullets.length();i++){
-                TextView item=text("• "+bullets.optString(i),14.5f,ink(),false);
+                String prefix=examples?("Ситуация "+(i+1)+". "):"• ";
+                TextView item=text(prefix+bullets.optString(i),14.5f,ink(),false);
                 item.setLineSpacing(dp(2),1.04f);
+                if(examples)item.setBackground(solidBg(
+                        dark?Color.rgb(42,48,45):Color.rgb(250,247,241),
+                        13,
+                        line()
+                ));
+                if(examples)item.setPadding(dp(11),dp(9),dp(11),dp(9));
                 LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(-1,-2);
                 ip.setMargins(0,dp(7),0,0);
                 holder.addView(item,ip);
@@ -7206,7 +7215,13 @@ public class MainActivity extends Activity {
     }
 
     private void openContents(){
-        if(currentSection.equals("mind")||currentSection.equals("prayerSecrets")||currentSection.equals("minorShirk")||currentSection.equals("quiz")){
+        if(currentSection.equals("hadithQudsi")){
+            if(current!=null && "hadithQudsiHub".equals(current.type)){
+                if(scroll!=null)scroll.smoothScrollTo(0,0);
+            }else{
+                renderHadithQudsiHub(true);
+            }
+        }else if(currentSection.equals("mind")||currentSection.equals("prayerSecrets")||currentSection.equals("minorShirk")||currentSection.equals("quiz")){
             openSection();
         }else{
             showContentsDialog();
