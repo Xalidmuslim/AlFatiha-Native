@@ -83,13 +83,23 @@ else:
             continue
         if item.get("number") != i + 1:
             fail(f"hadith_qudsi_notes.json[{i}]: wrong number {item.get('number')!r}")
-        for key in ["analysis", "scholars", "scholar_sources"]:
-            if len(str(item.get(key, "")).strip()) < 40:
-                fail(f"hadith_qudsi_notes.json[{i}]: {key} is too short")
-        for key in ["benefits", "modern"]:
-            value = item.get(key)
-            if not isinstance(value, list) or len(value) < 2 or any(len(str(x).strip()) < 20 for x in value):
-                fail(f"hadith_qudsi_notes.json[{i}]: invalid {key}")
+        analysis = str(item.get("analysis", "")).strip()
+        scholars = str(item.get("scholars", "")).strip()
+        scholar_sources = str(item.get("scholar_sources", "")).strip()
+        if len(analysis) < 300:
+            fail(f"hadith_qudsi_notes.json[{i}]: analysis is too short")
+        if len(scholars) < 300:
+            fail(f"hadith_qudsi_notes.json[{i}]: scholars is too short")
+        if len(scholar_sources) < 25:
+            fail(f"hadith_qudsi_notes.json[{i}]: scholar_sources is too short")
+
+        benefits = item.get("benefits")
+        if not isinstance(benefits, list) or len(benefits) < 5 or any(len(str(x).strip()) < 20 for x in benefits):
+            fail(f"hadith_qudsi_notes.json[{i}]: expected at least 5 substantial benefits")
+
+        modern = item.get("modern")
+        if not isinstance(modern, list) or len(modern) < 3 or any(len(str(x).strip()) < 30 for x in modern):
+            fail(f"hadith_qudsi_notes.json[{i}]: expected at least 3 substantial current situations")
 
 qudsi_meta = parsed.get("hadith_qudsi_meta.json", {})
 if not isinstance(qudsi_meta, dict):
