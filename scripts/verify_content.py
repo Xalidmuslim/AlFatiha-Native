@@ -100,6 +100,8 @@ else:
         modern = item.get("modern")
         if not isinstance(modern, list) or len(modern) < 4 or any(len(str(x).strip()) < 100 for x in modern):
             fail(f"hadith_qudsi_notes.json[{i}]: expected at least 4 substantial current situations")
+        elif any(str(x).strip().startswith("Ситуация ") for x in modern):
+            fail(f"hadith_qudsi_notes.json[{i}]: current examples must not duplicate situation numbering")
 
 qudsi_meta = parsed.get("hadith_qudsi_meta.json", {})
 if not isinstance(qudsi_meta, dict):
