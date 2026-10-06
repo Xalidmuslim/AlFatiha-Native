@@ -40,6 +40,7 @@ jobs:
           unzip -q madarij-build/source.zip -d /tmp/madarij
           mkdir -p /tmp/madarij/app/src/main/assets
           gunzip -c madarij-build/corpus.json.gz > /tmp/madarij/app/src/main/assets/corpus.json
+          cp madarij-build/Reader.kt /tmp/madarij/app/src/main/java/ru/madarij/nativeapp/Reader.kt
           cd /tmp/madarij
           chmod +x gradlew
           ./gradlew --version
