@@ -40,6 +40,9 @@ jobs:
           echo "e13bf794cd58226b78e206b6f050cad9cd051de0b22ceebb45ed04075cf4bce5  /tmp/ag/project/app/src/main/assets/book/book.db" | sha256sum -c -
           grep -F 'versionName = "1.3.9-native"' /tmp/ag/project/app/build.gradle.kts
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install Android SDK 35
         shell: bash
         run: |
