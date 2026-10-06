@@ -1438,8 +1438,6 @@ public class MainActivity extends Activity {
                     .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL)
                     .setIncludePad(false)
                     .setLineSpacing(0f,1.03f)
-                    .setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY)
-                    .setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE)
                     .build();
         }
 
