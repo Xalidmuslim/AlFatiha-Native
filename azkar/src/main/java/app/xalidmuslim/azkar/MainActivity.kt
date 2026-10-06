@@ -15,6 +15,23 @@ import kotlin.concurrent.thread
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Paint the same solid background as the reader before Compose creates
+        // its first frame. Without this, some devices briefly exposed the
+        // default black window surface between the host and Azkar activities.
+        val sharedDark = getSharedPreferences("alfatiha_native", MODE_PRIVATE)
+            .getBoolean("dark", false)
+        val launchBackgroundRes = if (sharedDark) {
+            R.color.azkar_window_background_dark
+        } else {
+            R.color.azkar_window_background
+        }
+        window.setBackgroundDrawableResource(launchBackgroundRes)
+        val launchBackgroundColor = resources.getColor(launchBackgroundRes, theme)
+        window.statusBarColor = launchBackgroundColor
+        window.navigationBarColor = launchBackgroundColor
+        window.decorView.setBackgroundColor(launchBackgroundColor)
+
         configureActivityTransitions()
         setContent {
             AzkarAppRoot()
