@@ -94,12 +94,12 @@ else:
             fail(f"hadith_qudsi_notes.json[{i}]: scholar_sources is too short")
 
         benefits = item.get("benefits")
-        if not isinstance(benefits, list) or len(benefits) < 5 or any(len(str(x).strip()) < 20 for x in benefits):
+        if not isinstance(benefits, list) or len(benefits) < 5 or any(len(str(x).strip()) < 80 for x in benefits):
             fail(f"hadith_qudsi_notes.json[{i}]: expected at least 5 substantial benefits")
 
         modern = item.get("modern")
-        if not isinstance(modern, list) or len(modern) < 3 or any(len(str(x).strip()) < 30 for x in modern):
-            fail(f"hadith_qudsi_notes.json[{i}]: expected at least 3 substantial current situations")
+        if not isinstance(modern, list) or len(modern) < 4 or any(len(str(x).strip()) < 100 for x in modern):
+            fail(f"hadith_qudsi_notes.json[{i}]: expected at least 4 substantial current situations")
 
 qudsi_meta = parsed.get("hadith_qudsi_meta.json", {})
 if not isinstance(qudsi_meta, dict):

@@ -1609,10 +1609,10 @@ public class MainActivity extends Activity {
                 "Защита единобожия",
                 dashboardCard,()->renderMinorShirkHub(true));
         LinearLayout f4=homeFeature(
-                R.drawable.home_azkar_mockup,
-                "Азкары",
-                "Утро и вечер · ат-Тарифи",
-                dashboardCard,this::openAzkar);
+                R.drawable.home_resume_mockup,
+                "Хадисы-кудси",
+                "44 достоверных · сахих и хасан",
+                dashboardCard,()->renderHadithQudsiHub(true));
         LinearLayout.LayoutParams r2a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r2b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         r2b.setMargins(dp(7),0,0,0);
@@ -1630,10 +1630,10 @@ public class MainActivity extends Activity {
                 "Проверка понимания",
                 dashboardCard,()->renderQuizCenter(true));
         LinearLayout f6=homeFeature(
-                R.drawable.home_resume_mockup,
-                "Хадисы-кудси",
-                "44 достоверных · сахих и хасан",
-                dashboardCard,()->renderHadithQudsiHub(true));
+                R.drawable.home_azkar_mockup,
+                "Азкары",
+                "Утро и вечер · ат-Тарифи",
+                dashboardCard,this::openAzkar);
         LinearLayout.LayoutParams r3a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r3b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         r3b.setMargins(dp(7),0,0,0);
