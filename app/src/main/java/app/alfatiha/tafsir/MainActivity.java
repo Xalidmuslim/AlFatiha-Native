@@ -938,13 +938,14 @@ public class MainActivity extends Activity {
             case "mind": return "Аль-Фатиха";
             case "prayerSecrets": return "Тайны молитвы";
             case "minorShirk": return "Малый ширк";
+            case "hadithQudsi": return "Хадисы-кудси";
             case "quiz": return "Викторины";
             case "review": return "Повторение";
             case "exam": return "Экзамен";
             case "profile": return "Прогресс";
             case "settings": return "Настройки";
             case "search": return "Поиск";
-            default: return "Путь сердца";
+            default: return "Куда обращено сердце";
         }
     }
 
@@ -953,13 +954,14 @@ public class MainActivity extends Activity {
             case "mind": return "Слова и глубокий смысл";
             case "prayerSecrets": return "Действия, слова и сердце";
             case "minorShirk": return "Защита единобожия";
+            case "hadithQudsi": return "Достоверные · сахих и хасан";
             case "quiz": return "Проверка понимания";
             case "review": return "Работа над ошибками";
             case "exam": return "Итоговая проверка";
             case "profile": return "Ваш путь и результаты";
             case "settings": return "Текст, тема и чтение";
             case "search": return "Поиск по материалам";
-            default: return "Поклонение без присутствия сердца — как тело без души.";
+            default: return "Осмысливать слова и направлять сердце к Тому, Кто распоряжается причинами.";
         }
     }
 
@@ -968,6 +970,7 @@ public class MainActivity extends Activity {
             case "mind": return R.drawable.home_book_mockup;
             case "prayerSecrets": return R.drawable.home_mihrab_mockup;
             case "minorShirk": return R.drawable.home_minor_shirk_exact;
+            case "hadithQudsi": return R.drawable.home_resume_mockup;
             case "quiz":
             case "review":
             case "exam": return R.drawable.home_quiz_mockup;
@@ -983,6 +986,7 @@ public class MainActivity extends Activity {
                 || "mind".equals(currentSection)
                 || "prayerSecrets".equals(currentSection)
                 || "minorShirk".equals(currentSection)
+                || "hadithQudsi".equals(currentSection)
                 || "quiz".equals(currentSection)
                 || "review".equals(currentSection)
                 || "exam".equals(currentSection)
@@ -1066,7 +1070,7 @@ public class MainActivity extends Activity {
 
         TextView title=chromeText(
                 chromeSectionTitle(),
-                homeTop?16.5f:16.2f,
+                homeTop?15.4f:16.2f,
                 ink(),
                 true
         );
@@ -1077,7 +1081,7 @@ public class MainActivity extends Activity {
                         ?Typeface.create("serif",Typeface.BOLD)
                         :Typeface.create("sans-serif-medium",Typeface.NORMAL)
         );
-        title.setTextScaleX(homeTop?.96f:1f);
+        title.setTextScaleX(homeTop?.93f:1f);
 
         titles.addView(
                 title,
@@ -1626,10 +1630,10 @@ public class MainActivity extends Activity {
                 "Проверка понимания",
                 dashboardCard,()->renderQuizCenter(true));
         LinearLayout f6=homeFeature(
-                R.drawable.home_medicine_exact,
-                "Медицина\nПророка ﷺ",
-                "Книга Ибн аль-Каййима",
-                dashboardCard,this::openMedicine);
+                R.drawable.home_resume_mockup,
+                "Хадисы-кудси",
+                "44 достоверных · сахих и хасан",
+                dashboardCard,()->renderHadithQudsiHub(true));
         LinearLayout.LayoutParams r3a=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         LinearLayout.LayoutParams r3b=new LinearLayout.LayoutParams(0,dp(homeTileHeightDp),1);
         r3b.setMargins(dp(7),0,0,0);
@@ -1705,7 +1709,8 @@ public class MainActivity extends Activity {
         final boolean liftSingleLineTile=
                 "Малый ширк".equals(title)
                 || "Азкары".equals(title)
-                || "Викторины".equals(title);
+                || "Викторины".equals(title)
+                || "Хадисы-кудси".equals(title);
         if(liftSingleLineTile)textBlock.setTranslationY(-dp(8));
 
         float titleSp=medicineTile
@@ -3717,6 +3722,134 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void renderHadithQudsiHub(boolean push){
+        clearActiveFlow();
+        clear("hadithQudsiHub","",push);
+        currentSection="hadithQudsi";
+        appTop();
+
+        JSONArray data=arr("hadith_qudsi.json");
+        header(
+                "Достоверные хадисы-кудси",
+                "44 хадиса: 32 сахих и 12 хасан. Для каждого хадиса сохранены текст, источник и подтверждённая степень."
+        );
+
+        LinearLayout note=card(sageSoft());
+        note.addView(kicker("О СБОРНИКЕ",C_SAGE));
+        note.addView(text(
+                "Повторяющиеся передачи объединены. В разделе «Сахих» учтены сахих ли-гайрихи, в разделе «Хасан» — хасан ли-гайрихи.",
+                13.7f,muted(),false
+        ));
+
+        String section="";
+        for(int i=0;i<data.length();i++){
+            JSONObject o=data.optJSONObject(i);
+            if(o==null)continue;
+            String nextSection=o.optString("section");
+            if(!nextSection.equals(section)){
+                section=nextSection;
+                TextView label=text(
+                        section+" · "+("Сахих".equals(section)?"32":"12"),
+                        18.2f,ink(),true
+                );
+                LinearLayout.LayoutParams labelLp=new LinearLayout.LayoutParams(-1,-2);
+                labelLp.setMargins(0,dp(14),0,dp(3));
+                page.addView(label,labelLp);
+            }
+
+            final int index=i;
+            LinearLayout item=newSurface(panel(),18,13,1);
+            item.setOnClickListener(v->renderHadithQudsiDetail(index,true));
+
+            LinearLayout top=new LinearLayout(this);
+            top.setOrientation(LinearLayout.HORIZONTAL);
+            top.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView n=text(
+                    "№ "+o.optInt("number"),
+                    12.0f,
+                    "Сахих".equals(o.optString("section"))?C_SAGE:Color.rgb(145,104,42),
+                    true
+            );
+            top.addView(n,new LinearLayout.LayoutParams(0,-2,1));
+
+            TextView grade=text(o.optString("grade"),11.4f,muted(),false);
+            grade.setGravity(Gravity.RIGHT);
+            top.addView(grade,new LinearLayout.LayoutParams(-2,-2));
+            item.addView(top);
+
+            TextView title=text(o.optString("title"),17.2f,ink(),true);
+            title.setPadding(0,dp(6),0,0);
+            item.addView(title);
+
+            TextView source=text(o.optString("source"),12.1f,muted(),false);
+            source.setPadding(0,dp(5),0,0);
+            item.addView(source);
+
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(0,dp(4),0,dp(4));
+            page.addView(item,lp);
+        }
+    }
+
+    private void renderHadithQudsiDetail(int index,boolean push){
+        JSONArray data=arr("hadith_qudsi.json");
+        if(index<0||index>=data.length()){
+            renderHadithQudsiHub(push);
+            return;
+        }
+        JSONObject o=data.optJSONObject(index);
+        if(o==null){
+            renderHadithQudsiHub(push);
+            return;
+        }
+
+        clearActiveFlow();
+        clear("hadithQudsiDetail",String.valueOf(index),push);
+        currentSection="hadithQudsi";
+        appTop();
+
+        header("Хадис № "+o.optInt("number"),o.optString("title"));
+
+        LinearLayout meta=card(
+                "Сахих".equals(o.optString("section"))?sageSoft():sandSoft()
+        );
+        meta.addView(kicker(o.optString("section"),"Сахих".equals(o.optString("section"))?C_SAGE:Color.rgb(145,104,42)));
+        TextView grade=text("Степень: "+o.optString("grade"),13.4f,ink(),true);
+        grade.setPadding(0,dp(8),0,0);
+        meta.addView(grade);
+        TextView source=text("Источник: "+o.optString("source"),13.2f,muted(),false);
+        source.setPadding(0,dp(5),0,0);
+        meta.addView(source);
+
+        LinearLayout body=card(panel());
+        TextView hadith=text(o.optString("text"),18.0f,ink(),false);
+        hadith.setLineSpacing(dp(3),1.08f);
+        body.addView(hadith);
+
+        LinearLayout nav=new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+
+        if(index>0){
+            Button prev=outline("← Предыдущий");
+            prev.setOnClickListener(v->renderHadithQudsiDetail(index-1,true));
+            nav.addView(prev,new LinearLayout.LayoutParams(0,dp(54),1));
+        }
+
+        Button next=outline(index<data.length()-1?"Следующий →":"К содержанию");
+        next.setOnClickListener(v->{
+            if(index<data.length()-1)renderHadithQudsiDetail(index+1,true);
+            else renderHadithQudsiHub(true);
+        });
+        LinearLayout.LayoutParams nextLp=new LinearLayout.LayoutParams(0,dp(54),1);
+        if(index>0)nextLp.setMargins(dp(8),0,0,0);
+        nav.addView(next,nextLp);
+
+        LinearLayout.LayoutParams navLp=new LinearLayout.LayoutParams(-1,-2);
+        navLp.setMargins(0,dp(6),0,dp(12));
+        page.addView(nav,navLp);
+    }
+
     private String progressSummary(){
         KnowledgeAnalytics.Summary s=analytics().summary();
         return "Проверено: "+s.answered+" из "+s.total+"   •   Точность: "+s.accuracy+"%";
@@ -4976,6 +5109,21 @@ public class MainActivity extends Activity {
             out.add(new ContentSearchEntry(o.optString("title"),"Малый ширк · жизненная ситуация",body,"minorShirkDaily",String.valueOf(i)));
         }
 
+        JSONArray qudsi=arr("hadith_qudsi.json");
+        for(int i=0;i<qudsi.length();i++){
+            JSONObject o=qudsi.optJSONObject(i);
+            if(o==null)continue;
+            String title="Хадис № "+o.optInt("number")+" · "+o.optString("title");
+            String body=o.optString("text")+" "+o.optString("source")+" "+o.optString("grade");
+            out.add(new ContentSearchEntry(
+                    title,
+                    "Хадисы-кудси · "+o.optString("section"),
+                    body,
+                    "hadithQudsi",
+                    String.valueOf(i)
+            ));
+        }
+
         return out;
     }
 
@@ -4989,6 +5137,7 @@ public class MainActivity extends Activity {
             case"prayerError":renderPrayerError(parseInt(e.arg),true);break;
             case"minorShirkCourse":renderMinorShirkCourse(parseInt(e.arg),true);break;
             case"minorShirkDaily":renderMinorShirkDaily(parseInt(e.arg),true);break;
+            case"hadithQudsi":renderHadithQudsiDetail(parseInt(e.arg),true);break;
             case"medicineChapter":openMedicine();break;
             default:renderHome(true);
         }
@@ -4996,7 +5145,7 @@ public class MainActivity extends Activity {
 
     private void renderSearch(boolean push){
         clearActiveFlow();clear("search","",push);currentSection="search";appTop();
-        header("Поиск по приложению","Единый поиск по Аль-Фатихе, «Тайнам молитвы», малому ширку и «Медицине Пророка ﷺ».");
+        header("Поиск по приложению","Единый поиск по Аль-Фатихе, «Тайнам молитвы», малому ширку, хадисам-кудси и «Медицине Пророка ﷺ».");
         final ArrayList<ContentSearchEntry> index=buildSearchIndex();
 
         EditText input=new EditText(this);
@@ -7140,14 +7289,14 @@ public class MainActivity extends Activity {
         row3.addView(q,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout m=sectionDialogCard(
-                R.drawable.home_medicine_exact,
+                R.drawable.home_resume_mockup,
                 true,
-                "Медицина Пророка ﷺ",
-                "Книга Ибн аль-Каййима",
-                "Открыть книгу",
+                "Хадисы-кудси",
+                "44 достоверных хадиса",
+                "Сахих и хасан",
                 dark?Color.rgb(144,165,177):Color.rgb(102,128,143)
         );
-        m.setOnClickListener(v->{d.dismiss();openMedicine();});
+        m.setOnClickListener(v->{d.dismiss();renderHadithQudsiHub(true);});
         LinearLayout.LayoutParams mLp=
                 new LinearLayout.LayoutParams(0,dp(132),1);
         mLp.setMargins(dp(7),0,0,0);
@@ -7295,6 +7444,14 @@ public class MainActivity extends Activity {
         r3p.setMargins(0,dp(7),0,0);
         shell.addView(row3,r3p);
 
+
+        Button medicineEntry=outline("Медицина Пророка ﷺ  ·  Книга Ибн аль-Каййима");
+        medicineEntry.setOnClickListener(v->{d.dismiss();openMedicine();});
+        LinearLayout.LayoutParams medicineEntryLp=
+                new LinearLayout.LayoutParams(-1,dp(54));
+        medicineEntryLp.setMargins(0,dp(8),0,0);
+        shell.addView(medicineEntry,medicineEntryLp);
+
         close.setOnClickListener(v->d.dismiss());
         d.setContentView(shell);
         d.show();
@@ -7329,7 +7486,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"minorShirkIntro":renderMinorShirkIntro(false);break;case"minorShirkGlossary":renderMinorShirkGlossary(false);break;case"minorShirkTrainer":renderMinorShirkTrainer(Integer.parseInt(s.arg),false);break;case"minorShirkSearch":renderMinorShirkSearch(false);break;case"minorShirkSaved":renderMinorShirkSaved(false);break;case"minorShirkCollection":renderMinorShirkCollection(s.arg,false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"hadithQudsiHub":renderHadithQudsiHub(false);break;case"hadithQudsiDetail":renderHadithQudsiDetail(Integer.parseInt(s.arg),false);break;case"minorShirkIntro":renderMinorShirkIntro(false);break;case"minorShirkGlossary":renderMinorShirkGlossary(false);break;case"minorShirkTrainer":renderMinorShirkTrainer(Integer.parseInt(s.arg),false);break;case"minorShirkSearch":renderMinorShirkSearch(false);break;case"minorShirkSaved":renderMinorShirkSaved(false);break;case"minorShirkCollection":renderMinorShirkCollection(s.arg,false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
