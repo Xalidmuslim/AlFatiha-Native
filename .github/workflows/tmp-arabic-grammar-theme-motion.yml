@@ -1,0 +1,64 @@
+name: Temp Arabic Grammar Build
+
+on:
+  push:
+    branches:
+      - tmp-arabic-grammar-theme-motion
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Reconstruct project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ag
+          cat tmp-arabic-build/part_*.b64 | base64 -d > /tmp/ag/source.zip
+          unzip -t /tmp/ag/source.zip
+          unzip -q /tmp/ag/source.zip -d /tmp/ag/project
+          mkdir -p /tmp/ag/project/app/src/main/assets/book
+          : > /tmp/ag/project/app/src/main/assets/book/book.db
+          mkdir -p /tmp/ag/project/app/src/main/res/font
+          cp /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf /tmp/ag/project/app/src/main/res/font/noto_naskh_arabic_regular.ttf
+          mkdir -p /tmp/ag/project/app/src/main/res/drawable-nodpi
+          printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZpP8AAAAASUVORK5CYII=' | base64 -d > /tmp/ag/project/app/src/main/res/drawable-nodpi/app_icon_selected.png
+
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build debug APK
+        working-directory: /tmp/ag/project
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Collect signing tools
+        shell: bash
+        run: |
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" /tmp/ag/apksigner.jar
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" /tmp/ag/zipalign
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ArabicGrammar-contrast-motion-build
+          path: |
+            /tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
+            /tmp/ag/apksigner.jar
+            /tmp/ag/zipalign
+          if-no-files-found: error
