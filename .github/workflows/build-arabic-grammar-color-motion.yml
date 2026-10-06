@@ -40,6 +40,30 @@ jobs:
           echo "e13bf794cd58226b78e206b6f050cad9cd051de0b22ceebb45ed04075cf4bce5  /tmp/ag/project/app/src/main/assets/book/book.db" | sha256sum -c -
           grep -F 'versionName = "1.3.9-native"' /tmp/ag/project/app/build.gradle.kts
 
+      - name: Apply fast motion patch and verify scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          UI=/tmp/ag/project/app/src/main/java/com/xalidmuslim/arabicgrammar/ui
+          mkdir -p /tmp/ag/before-ui
+          for f in Navigation.kt Components.kt ReaderScreen.kt FlashcardsScreen.kt; do cp "$UI/$f" "/tmp/ag/before-ui/$f"; done
+          python3 ag-fast-motion.py /tmp/ag/project
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          before=Path('/tmp/ag/before-ui')
+          after=Path('/tmp/ag/project/app/src/main/java/com/xalidmuslim/arabicgrammar/ui')
+          files=['Navigation.kt','Components.kt','ReaderScreen.kt','FlashcardsScreen.kt']
+          strings=re.compile(r'"(?:\\.|[^"\\])*"',re.S)
+          dims=re.compile(r'(?<![A-Za-z0-9_])\d+(?:\.\d+)?\.(?:dp|sp)\b')
+          for name in files:
+              a=(before/name).read_text(encoding='utf-8')
+              b=(after/name).read_text(encoding='utf-8')
+              assert strings.findall(a)==strings.findall(b), f'text string changed: {name}'
+              assert dims.findall(a)==dims.findall(b), f'dp/sp changed: {name}'
+          print('Scope check PASS: strings and dp/sp unchanged')
+          PY
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -51,26 +75,35 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
-      - name: Build APK
+      - name: Build APKs
         working-directory: /tmp/ag/project
-        run: gradle :app:assembleDebug --stacktrace
+        run: gradle :app:assembleDebug :app:assembleRelease --stacktrace
 
-      - name: Verify APK package
+      - name: Verify build and prepare stable-signing input
         shell: bash
         run: |
           set -euo pipefail
-          APK=/tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/ag/apk-verification.txt
-          sha256sum "$APK" | tee -a /tmp/ag/apk-verification.txt
+          DEBUG=/tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
+          UNSIGNED=/tmp/ag/project/app/build/outputs/apk/release/app-release-unsigned.apk
+          ALIGNED=/tmp/ag/ArabicGrammar-Haibullin-1.3.9-fast-motion-aligned-unsigned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$DEBUG"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$DEBUG" | tee /tmp/ag/apk-verification.txt
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -P 16 -f -v 4 "$UNSIGNED" "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$ALIGNED"
+          sha256sum "$DEBUG" "$ALIGNED" | tee -a /tmp/ag/apk-verification.txt
           sha256sum /tmp/ag/project/app/src/main/assets/book/book.db | tee -a /tmp/ag/apk-verification.txt
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" /tmp/ag/apksigner.jar
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" /tmp/ag/zipalign
 
-      - name: Upload verified APK
+      - name: Upload fast motion build
         uses: actions/upload-artifact@v4
         with:
-          name: ArabicGrammar-Haibullin-1.3.9-color-motion
+          name: ArabicGrammar-Haibullin-1.3.9-fast-motion
           path: |
+            /tmp/ag/ArabicGrammar-Haibullin-1.3.9-fast-motion-aligned-unsigned.apk
             /tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
             /tmp/ag/apk-verification.txt
+            /tmp/ag/apksigner.jar
+            /tmp/ag/zipalign
           if-no-files-found: error
           retention-days: 7
