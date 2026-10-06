@@ -1,0 +1,41 @@
+name: Build Madarij v1.9 APK
+on:
+  push:
+    branches: [ chatgpt-madarij-v1-9-reader-flow ]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout build carrier branch
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Ensure Android 36 SDK
+        run: yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" >/dev/null
+      - name: Unpack Madarij source
+        run: |
+          rm -rf madarij-src
+          mkdir -p madarij-src
+          unzip -q madarij-v11-reader-flow-source.zip -d madarij-src
+          chmod +x madarij-src/Madarij-Native-v11/gradlew
+      - name: Run host tests
+        working-directory: madarij-src/Madarij-Native-v11
+        run: python3 -m pytest -q
+      - name: Build debug APK
+        working-directory: madarij-src/Madarij-Native-v11
+        run: ./gradlew --no-daemon assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Madarij-v1.9-reader-flow-APK
+          path: madarij-src/Madarij-Native-v11/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
