@@ -72,6 +72,36 @@ else:
             if not str(item.get(key, "")).strip():
                 fail(f"hadith_qudsi.json[{i}]: missing {key}")
 
+# 1.6. Hadith Qudsi commentary and source metadata contracts.
+qudsi_notes = parsed.get("hadith_qudsi_notes.json", [])
+if len(qudsi_notes) != 44:
+    fail(f"hadith_qudsi_notes.json: expected exactly 44 entries, got {len(qudsi_notes)}")
+else:
+    for i, item in enumerate(qudsi_notes):
+        if not isinstance(item, dict):
+            fail(f"hadith_qudsi_notes.json[{i}]: expected object")
+            continue
+        if item.get("number") != i + 1:
+            fail(f"hadith_qudsi_notes.json[{i}]: wrong number {item.get('number')!r}")
+        for key in ["analysis", "scholars", "scholar_sources"]:
+            if len(str(item.get(key, "")).strip()) < 40:
+                fail(f"hadith_qudsi_notes.json[{i}]: {key} is too short")
+        for key in ["benefits", "modern"]:
+            value = item.get(key)
+            if not isinstance(value, list) or len(value) < 2 or any(len(str(x).strip()) < 20 for x in value):
+                fail(f"hadith_qudsi_notes.json[{i}]: invalid {key}")
+
+qudsi_meta = parsed.get("hadith_qudsi_meta.json", {})
+if not isinstance(qudsi_meta, dict):
+    fail("hadith_qudsi_meta.json: expected object")
+else:
+    if len(qudsi_meta.get("intro", [])) != 5:
+        fail("hadith_qudsi_meta.json: expected 5 exact preface paragraphs")
+    if len(qudsi_meta.get("sources", [])) != 9:
+        fail("hadith_qudsi_meta.json: expected 9 used-source lines")
+    if len(qudsi_meta.get("verification", [])) != 5:
+        fail("hadith_qudsi_meta.json: expected 5 verification-source lines")
+
 # 2. Core course contracts.
 mind = parsed.get("mind_data.json", [])
 heart = parsed.get("mind_heart.json", [])
