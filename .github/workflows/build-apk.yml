@@ -2,7 +2,7 @@ name: Build Android APK + AAB
 
 on:
   push:
-    branches: [ main, heart-prayer-azkar-integration-2026-10-02 ]
+    branches: [ main, heart-prayer-azkar-integration-2026-10-02, feature/hadith-qudsi-home-2026-10-06 ]
   workflow_dispatch:
 
 permissions:
