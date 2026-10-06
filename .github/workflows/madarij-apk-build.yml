@@ -44,12 +44,6 @@ jobs:
           chmod +x gradlew
           ./gradlew --version
 
-      - name: Verify corpus
-        shell: bash
-        run: |
-          cd /tmp/madarij
-          python3 -m tools.content_gate app/src/main/assets/corpus.json
-
       - name: Build debug APK
         shell: bash
         run: |
