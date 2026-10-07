@@ -30,6 +30,12 @@ jobs:
           test -f source/settings.gradle.kts
           test -f source/app/build.gradle.kts
 
+      - name: Create debug signing key
+        shell: bash
+        run: |
+          mkdir -p source/development-signing
+          keytool -genkeypair -noprompt             -keystore source/development-signing/debug.keystore             -storepass android             -alias androiddebugkey             -keypass android             -dname "CN=Android Debug,O=Android,C=US"             -keyalg RSA -keysize 2048 -validity 10000
+
       - name: Build debug APK
         working-directory: source
         run: ./gradlew assembleDebug --stacktrace --no-daemon
