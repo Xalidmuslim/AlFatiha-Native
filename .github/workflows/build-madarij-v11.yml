@@ -1,0 +1,41 @@
+name: Build Madarij v11 APK
+
+on:
+  push:
+    branches: [ madarij-v11-build-20261007 ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout payload
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Restore Madarij source
+        shell: bash
+        run: |
+          mkdir -p source
+          cat payload/part-*.b64 | tr -d '\n\r' | base64 -d > /tmp/madarij.tar.xz
+          tar -xJf /tmp/madarij.tar.xz -C source
+          chmod +x source/gradlew
+
+      - name: Build debug APK
+        working-directory: source
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Madarij-v11-reader-flow-APK
+          path: source/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
