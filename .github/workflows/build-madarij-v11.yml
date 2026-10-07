@@ -19,7 +19,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
       - name: Restore Madarij source
         shell: bash
@@ -28,6 +27,8 @@ jobs:
           cat payload/part-*.b64 | tr -d '\n\r' | base64 -d > /tmp/madarij.tar.xz
           tar -xJf /tmp/madarij.tar.xz -C source
           chmod +x source/gradlew
+          test -f source/settings.gradle.kts
+          test -f source/app/build.gradle.kts
 
       - name: Build debug APK
         working-directory: source
