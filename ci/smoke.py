@@ -48,4 +48,13 @@ if len(buttons)>1:
  v=list(map(int,re.findall(r'\d+',buttons[1].attrib['bounds'])));adb('shell','input','tap',str((v[0]+v[2])//2),str((v[1]+v[3])//2));time.sleep(2);shot('16-second-chapter')
 adb('shell','settings','put','system','font_scale','1.3');time.sleep(2);shot('17-large-font')
 adb('shell','settings','put','system','font_scale','1.0')
-(out/'result.txt').write_text('PASS: launch, reader, same-reader chapter panel, bookmark create/list, search screen, contents, settings, warm theme, reader scroll and Back. Text selection, exact bookmark offset, Exact anchor offset, text selection and physical device performance not exhaustively verified. Confirmed two existing chapters, process restart bookmark persistence and font scale 1.3.')
+# Check light and dark reader palettes with the same saved chapter.
+click('Ещё');click('Настройки',True);click('Тёмная',True)
+adb('shell','input','keyevent','4');time.sleep(1);click('Главная');click('Продолжить чтение',True);shot('18-dark-reader')
+click('Ещё');click('Настройки',True);click('Светлая',True)
+adb('shell','input','keyevent','4');time.sleep(1);click('Главная');click('Продолжить чтение',True);shot('19-light-reader')
+click('Ещё');click('Настройки',True);click('Тёплая',True)
+adb('shell','input','keyevent','4');time.sleep(1);click('Главная');shot('20-final-home')
+logs=adb('logcat','-d','-s','AndroidRuntime:E').decode(errors='replace');(out/'runtime-log.txt').write_text(logs)
+assert 'FATAL EXCEPTION' not in logs, 'Android runtime crash'
+(out/'result.txt').write_text('PASS: launch, reader, chapter panel, bookmark create/list and persistence after process restart, search screen, contents, settings, warm/dark/light themes, reader scroll and Back, two existing chapters and font scale 1.3. Exact anchor pixel offset, text selection and physical device performance not exhaustively verified.')
