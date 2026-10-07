@@ -6,12 +6,12 @@ p=root/'app/src/main/java/com/xalidmuslim/arabicgrammar/data/BookRepository.kt'
 s=p.read_text(encoding='utf-8')
 
 old='''        val dbFile = File(appContext.filesDir, "arabic_grammar_book_v4.db")'''
-new='''        // v6 forces one clean refresh of the packaged book database.
+new='''        // v7 forces one clean refresh of the packaged book database.
         // User progress/settings live in SharedPreferences and are not affected.
-        val dbFile = File(appContext.filesDir, "arabic_grammar_book_v6.db")'''
+        val dbFile = File(appContext.filesDir, "arabic_grammar_book_v7.db")'''
 if old not in s:
     raise SystemExit('old database filename not found')
 s=s.replace(old,new,1)
 
 p.write_text(s,encoding='utf-8')
-print('Book DB refresh migration applied: v5 -> v6')
+print('Book DB refresh migration applied: v6 -> v7')
