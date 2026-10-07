@@ -1,4 +1,4 @@
-name: Build Madarij 1.11 Reader Polish APK
+name: Build Madarij 1.12 Transition Fix APK
 
 on:
   push:
@@ -30,11 +30,11 @@ jobs:
           test -f source/settings.gradle.kts
           test -f source/app/build.gradle.kts
 
-      - name: Apply reader polish
+      - name: Apply transition fix
         shell: bash
         run: |
           cd source
-          patch -p2 --forward < ../patches/madarij-v111-reader-polish.patch
+          patch -p2 --forward < ../patches/madarij-v112-transition-fix.patch
 
       - name: Create test signing key
         shell: bash
@@ -51,6 +51,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Madarij-v1.11-reader-polish-APK
+          name: Madarij-v1.12-transition-fix-APK
           path: source/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
