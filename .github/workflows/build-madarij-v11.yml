@@ -35,6 +35,7 @@ jobs:
         run: |
           cd source
           patch -p2 --forward < ../patches/madarij-v112-transition-fix.patch
+          find . -name '*.orig' -delete
 
       - name: Create test signing key
         shell: bash
