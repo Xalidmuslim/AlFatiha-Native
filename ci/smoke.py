@@ -20,7 +20,7 @@ def click(label,scroll=False):
 def shot(name):
  (out/(name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
  (out/(name+'.xml')).write_bytes(ET.tostring(state(),encoding='utf-8'))
-adb('shell','am','start','-n','ru.madarij.nativeapp.premiumpreview/ru.madarij.nativeapp.MainActivity');time.sleep(5)
+adb('shell','am','start','-n','ru.madarij.nativeapp.referencepreview/ru.madarij.nativeapp.MainActivity');time.sleep(5)
 shot('01-home');click('Продолжить чтение',True);time.sleep(3);shot('02-reader')
 click('⋯');click('Содержание раздела');shot('03-chapter-contents');click('Начало раздела');shot('04-reader-back-at-start')
 click('⋯');click('Закладка главы');click('Сохранить');shot('05-bookmark-saved')
@@ -34,8 +34,8 @@ adb('shell','input','keyevent','4');time.sleep(1);shot('13-back')
 logs=adb('logcat','-d','-s','AndroidRuntime:E').decode(errors='replace');(out/'runtime-log.txt').write_text(logs)
 if 'FATAL EXCEPTION' in logs:raise RuntimeError('Android runtime crash')
 # Confirm saved bookmarks survive killing the app process.
-adb('shell','am','force-stop','ru.madarij.nativeapp.premiumpreview')
-adb('shell','am','start','-n','ru.madarij.nativeapp.premiumpreview/ru.madarij.nativeapp.MainActivity');time.sleep(3)
+adb('shell','am','force-stop','ru.madarij.nativeapp.referencepreview')
+adb('shell','am','start','-n','ru.madarij.nativeapp.referencepreview/ru.madarij.nativeapp.MainActivity');time.sleep(3)
 click('Закладки');shot('14-bookmarks-after-restart')
 texts='\n'.join(n.attrib.get('text','') for n in state().iter('node'))
 assert 'Предисловие' in texts, 'Saved bookmark missing after restart'
@@ -43,9 +43,9 @@ click('Оглавление');click('Читать',True);shot('15-reader-from-co
 adb('shell','input','keyevent','4');time.sleep(1)
 # A second existing chapter from the authoritative corpus; this is not reference text.
 click('Оглавление')
-root=state();buttons=[n for n in root.iter('node') if n.attrib.get('text')=='Читать']
+root=state();buttons=[n for n in root.iter('node') if n.attrib.get('text')=='Читать' or n.attrib.get('content-desc')=='Читать']
 if len(buttons)>1:
  v=list(map(int,re.findall(r'\d+',buttons[1].attrib['bounds'])));adb('shell','input','tap',str((v[0]+v[2])//2),str((v[1]+v[3])//2));time.sleep(2);shot('16-second-chapter')
 adb('shell','settings','put','system','font_scale','1.3');time.sleep(2);shot('17-large-font')
 adb('shell','settings','put','system','font_scale','1.0')
-(out/'result.txt').write_text('PASS: launch, reader, same-reader chapter panel, bookmark create/list, search screen, contents, settings, warm theme, reader scroll and Back. Text selection, exact bookmark offset, multiple chapters, process-death and performance not fully verified.')
+(out/'result.txt').write_text('PASS: launch, reader, same-reader chapter panel, bookmark create/list, search screen, contents, settings, warm theme, reader scroll and Back. Text selection, exact bookmark offset, Exact anchor offset, text selection and physical device performance not exhaustively verified. Confirmed two existing chapters, process restart bookmark persistence and font scale 1.3.')

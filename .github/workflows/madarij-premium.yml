@@ -20,7 +20,7 @@ jobs:
           mkdir -p source /tmp/signing-source
           cat premium-payload/part-*.b64 | base64 -d > /tmp/premium.tar.xz
           tar -xJf /tmp/premium.tar.xz -C source
-          base64 -d premium-payload/ui-overlay.b64 > /tmp/ui-overlay.tar.xz
+          cat premium-payload/ui-overlay-*.b64 | base64 -d > /tmp/ui-overlay.tar.xz
           tar -xJf /tmp/ui-overlay.tar.xz -C source
           mkdir -p source/development-signing
           keytool -genkeypair -noprompt -keystore source/development-signing/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
@@ -30,7 +30,7 @@ jobs:
         run: ./gradlew testDebugUnitTest assembleRelease -PpremiumPreview=true --stacktrace --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: Madarij-v1.18-premium-native-APK
+          name: Madarij-v1.19-reference-native-APK
           path: source/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
       - name: Enable emulator acceleration
