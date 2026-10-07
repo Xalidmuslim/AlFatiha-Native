@@ -1,4 +1,4 @@
-name: Build Madarij v11 APK
+name: Build Madarij 1.10 Performance APK
 
 on:
   push:
@@ -30,19 +30,31 @@ jobs:
           test -f source/settings.gradle.kts
           test -f source/app/build.gradle.kts
 
-      - name: Create debug signing key
+      - name: Apply performance patch
+        shell: bash
+        run: |
+          cd source
+          patch -p1 --forward < ../patches/madarij-v110-performance.patch
+
+      - name: Create test signing key
         shell: bash
         run: |
           mkdir -p source/development-signing
-          keytool -genkeypair -noprompt             -keystore source/development-signing/debug.keystore             -storepass android             -alias androiddebugkey             -keypass android             -dname "CN=Android Debug,O=Android,C=US"             -keyalg RSA -keysize 2048 -validity 10000
+          if [ ! -f source/development-signing/debug.keystore ]; then
+            keytool -genkeypair -noprompt               -keystore source/development-signing/debug.keystore               -storepass android               -alias androiddebugkey               -keypass android               -dname "CN=Android Debug,O=Android,C=US"               -keyalg RSA -keysize 2048 -validity 10000
+          fi
 
-      - name: Build debug APK
+      - name: Run host tests
         working-directory: source
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: python3 -m pytest -q
+
+      - name: Build optimized release APK
+        working-directory: source
+        run: ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Madarij-v11-reader-flow-APK
-          path: source/app/build/outputs/apk/debug/app-debug.apk
+          name: Madarij-v1.10-performance-APK
+          path: source/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
