@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           cd source
-          patch -p1 --forward < ../patches/madarij-v110-performance.patch
+          patch -p2 --forward < ../patches/madarij-v110-performance.patch
 
       - name: Create test signing key
         shell: bash
