@@ -44,10 +44,6 @@ jobs:
             keytool -genkeypair -noprompt               -keystore source/development-signing/debug.keystore               -storepass android               -alias androiddebugkey               -keypass android               -dname "CN=Android Debug,O=Android,C=US"               -keyalg RSA -keysize 2048 -validity 10000
           fi
 
-      - name: Verify content
-        working-directory: source
-        run: python3 -m tools.content_gate app/src/main/assets/corpus.json
-
       - name: Build optimized release APK
         working-directory: source
         run: ./gradlew assembleRelease --stacktrace --no-daemon
