@@ -1098,7 +1098,7 @@ public class MainActivity extends Activity {
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setGravity(Gravity.CENTER_VERTICAL);
         titles.setPadding(dp(homeTop?7:10),0,dp(4),0);
-        if(!homeTop)titles.setTranslationY(dp(2));
+        titles.setTranslationY(dp(homeTop?4:2));
 
         TextView title=chromeText(
                 chromeSectionTitle(),
@@ -1656,8 +1656,8 @@ public class MainActivity extends Activity {
         GradientDrawable washBg=new GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
                 new int[]{
-                        dark?Color.argb(220,31,37,34):Color.argb(242,248,243,234),
-                        dark?Color.argb(112,31,37,34):Color.argb(120,248,243,234),
+                        dark?Color.argb(220,31,37,34):Color.argb(230,248,243,234),
+                        dark?Color.argb(112,31,37,34):Color.argb(108,248,243,234),
                         Color.TRANSPARENT
                 });
         wash.setBackground(washBg);
@@ -1689,7 +1689,7 @@ public class MainActivity extends Activity {
         LinearLayout heroResume=new LinearLayout(this);
         heroResume.setOrientation(LinearLayout.HORIZONTAL);
         heroResume.setGravity(Gravity.CENTER_VERTICAL);
-        heroResume.setPadding(dp(8),dp(5),dp(7),dp(5));
+        heroResume.setPadding(dp(8),dp(4),dp(7),dp(4));
         heroResume.setBackground(surfaceBg(
                 dark?Color.rgb(43,51,47):Color.rgb(250,246,238),
                 dark?Color.rgb(39,47,43):Color.rgb(247,241,231),
@@ -1769,12 +1769,12 @@ public class MainActivity extends Activity {
         ));
         continueBtn.setOnClickListener(v->continuePrimaryLearning());
         LinearLayout.LayoutParams continueLp=
-                new LinearLayout.LayoutParams(dp(78),dp(32));
+                new LinearLayout.LayoutParams(dp(78),dp(30));
         continueLp.setMargins(dp(6),0,0,0);
         heroResume.addView(continueBtn,continueLp);
 
         LinearLayout.LayoutParams hap=
-                new LinearLayout.LayoutParams(dp(214),dp(48));
+                new LinearLayout.LayoutParams(dp(214),dp(44));
         heroText.addView(heroResume,hap);
 
         FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(248),-1);
