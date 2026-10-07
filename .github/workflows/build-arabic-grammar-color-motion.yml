@@ -94,6 +94,28 @@ jobs:
           print('Scope check PASS: strings and dp/sp unchanged')
           PY
 
+      - name: Compact settings screen and verify text is unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          UI=/tmp/ag/project/app/src/main/java/com/xalidmuslim/arabicgrammar/ui
+          mkdir -p /tmp/ag/before-settings
+          cp "$UI/SearchSettingsScreens.kt" /tmp/ag/before-settings/SearchSettingsScreens.kt
+          cp "$UI/Components.kt" /tmp/ag/before-settings/Components.kt
+          python3 ag-compact-settings.py /tmp/ag/project
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          before=Path('/tmp/ag/before-settings')
+          after=Path('/tmp/ag/project/app/src/main/java/com/xalidmuslim/arabicgrammar/ui')
+          strings=re.compile(r'"(?:\\.|[^"\\])*"',re.S)
+          for name in ['SearchSettingsScreens.kt','Components.kt']:
+              a=(before/name).read_text(encoding='utf-8')
+              b=(after/name).read_text(encoding='utf-8')
+              assert strings.findall(a)==strings.findall(b), f'text string changed: {name}'
+          print('Compact settings scope PASS: all string literals unchanged')
+          PY
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -128,7 +150,7 @@ jobs:
       - name: Upload fast motion build
         uses: actions/upload-artifact@v4
         with:
-          name: ArabicGrammar-Haibullin-1.3.9-clean-ultrafast
+          name: ArabicGrammar-Haibullin-1.3.9-clean-ultrafast-compact
           path: |
             /tmp/ag/ArabicGrammar-Haibullin-1.3.9-fast-motion-aligned-unsigned.apk
             /tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
