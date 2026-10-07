@@ -1,1 +1,0 @@
-# AlFatiha-NativeAPPLY_UPDATE.sh
