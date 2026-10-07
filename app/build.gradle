@@ -7,7 +7,7 @@ def uploadKeyPassword = System.getenv('ANDROID_UPLOAD_KEY_PASSWORD')
 def hasUploadSigning = uploadStoreFile && uploadStorePassword && uploadKeyAlias && uploadKeyPassword
 
 def heartGeneratedRes = layout.buildDirectory.dir('generated/heart-design/res').get().asFile
-def heartHeroFile = file('src/main/icon/heart_prayer_hero_matte.webp')
+def heartHeroParts = (0..4).collect { file(String.format('src/main/icon/hero_1342_part%02d.b64', it)) }
 def heartDesignAssets = [
     [src: file('src/main/icon/heart_prayer_logo.b64'), out: 'heart_prayer_logo_exact.webp'],
     [src: file('src/main/icon/icon_quran.b64'), out: 'icon_quran_3d.webp'],
@@ -25,13 +25,14 @@ def heartDesignAssets = [
 
 tasks.register('prepareHeartDesignAssets') {
     def outputDir = new File(heartGeneratedRes, 'drawable-nodpi')
-    inputs.files(heartDesignAssets.collect { it.src } + [heartHeroFile])
+    inputs.files(heartDesignAssets.collect { it.src } + heartHeroParts)
     outputs.dir(outputDir)
     doLast {
         outputDir.mkdirs()
 
-        byte[] heroBytes = heartHeroFile.bytes
-        if (heroBytes.length < 5000) throw new GradleException('Invalid Heart Prayer hero asset')
+        String heroEncoded = heartHeroParts.collect { it.getText('UTF-8').replaceAll('\\s+','') }.join('')
+        byte[] heroBytes = java.util.Base64.decoder.decode(heroEncoded)
+        if (heroBytes.length < 20000) throw new GradleException('Invalid Heart Prayer hero asset')
         new File(outputDir, 'heart_prayer_hero_exact.webp').bytes = heroBytes
 
         heartDesignAssets.each { spec ->
@@ -52,8 +53,8 @@ android {
         applicationId 'app.alfatiha.tafsir'
         minSdk 24
         targetSdk 36
-        versionCode 55
-        versionName '1.3.41'
+        versionCode 56
+        versionName '1.3.42'
     }
 
     signingConfigs {
