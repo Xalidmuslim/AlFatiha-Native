@@ -1,4 +1,4 @@
-name: Build Madarij 1.12 Transition Fix APK
+name: Build Madarij 1.13 No Frame APK
 
 on:
   push:
@@ -27,14 +27,12 @@ jobs:
           cat payload/part-*.b64 | tr -d '\n\r' | base64 -d > /tmp/madarij.tar.xz
           tar -xJf /tmp/madarij.tar.xz -C source
           chmod +x source/gradlew
-          test -f source/settings.gradle.kts
-          test -f source/app/build.gradle.kts
 
-      - name: Apply transition fix
+      - name: Apply no-frame reader patch
         shell: bash
         run: |
           cd source
-          patch -p2 --forward < ../patches/madarij-v112-transition-fix.patch
+          patch -p2 --forward < ../patches/madarij-v113-no-frame.patch
           find . -name '*.orig' -delete
 
       - name: Create test signing key
@@ -52,6 +50,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Madarij-v1.12-transition-fix-APK
+          name: Madarij-v1.13-no-frame-APK
           path: source/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
