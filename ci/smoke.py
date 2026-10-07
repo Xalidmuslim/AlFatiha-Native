@@ -15,7 +15,7 @@ def click(label,scroll=False):
 def shot(name):
  (out/(name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
  (out/(name+'.xml')).write_bytes(ET.tostring(state(),encoding='utf-8'))
-adb('shell','am','start','-n','ru.madarij.nativeapp.readerpolish/ru.madarij.nativeapp.MainActivity');time.sleep(5)
+adb('shell','am','start','-n','ru.madarij.nativeapp.premiumpreview/ru.madarij.nativeapp.MainActivity');time.sleep(5)
 shot('01-home');click('Продолжить чтение',True);time.sleep(3);shot('02-reader')
 click('⋯');click('Содержание раздела');shot('03-chapter-contents');click('Начало раздела');shot('04-reader-back-at-start')
 click('⋯');click('Закладка главы');click('Сохранить');shot('05-bookmark-saved')

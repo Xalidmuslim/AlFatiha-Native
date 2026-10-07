@@ -20,14 +20,14 @@ jobs:
           mkdir -p source /tmp/signing-source
           cat premium-payload/part-*.b64 | base64 -d > /tmp/premium.tar.xz
           tar -xJf /tmp/premium.tar.xz -C source
-          cat payload/part-*.b64 | tr -d '\n\r' | base64 -d > /tmp/baseline.tar.xz
-          tar -xJf /tmp/baseline.tar.xz -C /tmp/signing-source
+          base64 -d premium-payload/ui-overlay.b64 > /tmp/ui-overlay.tar.xz
+          tar -xJf /tmp/ui-overlay.tar.xz -C source
           mkdir -p source/development-signing
-          cp /tmp/signing-source/development-signing/debug.keystore source/development-signing/debug.keystore
+          keytool -genkeypair -noprompt -keystore source/development-signing/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
           chmod +x source/gradlew
       - name: Native compile and existing unit tests
         working-directory: source
-        run: ./gradlew testDebugUnitTest assembleRelease --stacktrace --no-daemon
+        run: ./gradlew testDebugUnitTest assembleRelease -PpremiumPreview=true --stacktrace --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: Madarij-v1.18-premium-native-APK
