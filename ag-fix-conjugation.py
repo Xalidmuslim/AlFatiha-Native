@@ -137,14 +137,8 @@ if old_func not in s:
     raise SystemExit('old conjugationQuestions function not found')
 s=s.replace(old_func,new_func,1)
 
-# Background parsing makes the trainer open without a first-use pause.
-old='''        Thread({ runCatching { sections(); sections("syntax"); sections("morphology"); sections("extras"); proverbs(); sections().asSequence().filter{it.found}.forEach{readerGroups(it.id)} } }, "book-prewarm").apply { priority=Thread.MIN_PRIORITY; start() }
-'''
-new='''        Thread({ runCatching { sections(); sections("syntax"); sections("morphology"); sections("extras"); proverbs(); sections().asSequence().filter{it.found}.forEach{readerGroups(it.id)}; conjugationQuestions(240) } }, "book-prewarm").apply { priority=Thread.MIN_PRIORITY; start() }
-'''
-if old not in s:
-    raise SystemExit('prewarm insertion point not found')
-s=s.replace(old,new,1)
+# Do not prewarm the whole morphology database at app startup.
+# The parsed conjugation list is cached after first use; avoiding startup parsing keeps taps responsive.
 p.write_text(s,encoding='utf-8')
 
 # Review mode must not randomly lose previously marked wrong forms.
