@@ -977,7 +977,7 @@ public class MainActivity extends Activity {
             case "profile": return "Прогресс";
             case "settings": return "Настройки";
             case "search": return "Поиск";
-            default: return "Куда обращено сердце";
+            default: return "Компас сердца";
         }
     }
 
@@ -993,7 +993,7 @@ public class MainActivity extends Activity {
             case "profile": return "Ваш путь и результаты";
             case "settings": return "Текст, тема и чтение";
             case "search": return "Поиск по материалам";
-            default: return "Осмысливать слова и направлять сердце к Тому, Кто распоряжается причинами.";
+            default: return "Следи, к Кому обращено сердце.";
         }
     }
 
@@ -1388,14 +1388,14 @@ public class MainActivity extends Activity {
     private float heroPhraseSizeDp(String phrase,int heroH){
         int len=phrase==null?0:phrase.length();
         float size;
-        if(len>=95)size=15.4f;
-        else if(len>=78)size=16.0f;
-        else if(len>=62)size=16.7f;
-        else if(len>=48)size=17.4f;
-        else size=18.3f;
+        if(len>=95)size=14.8f;
+        else if(len>=78)size=15.4f;
+        else if(len>=62)size=16.0f;
+        else if(len>=48)size=16.7f;
+        else size=17.6f;
         if(heroH<=180)size-=1.0f;
         else if(heroH<=198)size-=0.5f;
-        return Math.max(14.0f,size);
+        return Math.max(13.6f,size);
     }
 
     private final class SandPhraseView extends View {
@@ -1637,6 +1637,19 @@ public class MainActivity extends Activity {
         heroArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
         heroArt.setContentDescription(null);
         hero.addView(heroArt,new FrameLayout.LayoutParams(-1,-1));
+
+        // Gently calm the detailed right side so the reflection stays dominant.
+        View rightTone=new View(this);
+        GradientDrawable rightToneBg=new GradientDrawable(
+                GradientDrawable.Orientation.RIGHT_LEFT,
+                new int[]{
+                        dark?Color.argb(24,18,25,22):Color.argb(18,48,65,57),
+                        Color.TRANSPARENT
+                });
+        rightTone.setBackground(rightToneBg);
+        FrameLayout.LayoutParams rtlp=new FrameLayout.LayoutParams(dp(210),-1);
+        rtlp.gravity=Gravity.RIGHT;
+        hero.addView(rightTone,rtlp);
 
         // A very light wash keeps text readable without hiding the photograph.
         View wash=new View(this);
