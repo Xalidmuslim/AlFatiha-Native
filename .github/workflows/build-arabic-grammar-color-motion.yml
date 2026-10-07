@@ -94,6 +94,43 @@ jobs:
           print('Scope check PASS: strings and dp/sp unchanged')
           PY
 
+      - name: Fix conjugation trainer table detection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ag-fix-conjugation.py /tmp/ag/project
+          python3 - <<'PY'
+          import sqlite3,re
+          db='/tmp/ag/project/app/src/main/assets/book/book.db'
+          con=sqlite3.connect(db)
+          con.row_factory=sqlite3.Row
+          ar=re.compile(r'[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]')
+          tables=0
+          forms=0
+          for sec in con.execute("select id from sections where chapter='morphology' and found=1"):
+              rows=con.execute("select text from blocks where section_id=? order by block_index",(sec['id'],)).fetchall()
+              for i,r in enumerate(rows):
+                  lines=[x.strip() for x in (r['text'] or '').splitlines() if x.strip()]
+                  h=' '.join(lines).lower()
+                  if not ('1 лицо' in h and '2 лицо' in h and '3 лицо' in h):
+                      continue
+                  local=0
+                  for rr in rows[i+1:i+5]:
+                      ls=[x.strip() for x in (rr['text'] or '').splitlines() if x.strip()]
+                      low=' '.join(ls).lower()
+                      if not any(k in low for k in ('единств','двойств','множеств')):
+                          break
+                      if len(ls) < 5:
+                          continue
+                      local += sum(1 for x in ls[:5] if ar.search(x) and x.lower()!='нет' and '_' not in x)
+                  if local:
+                      tables += 1
+                      forms += local
+          assert tables >= 100, tables
+          assert forms >= 1500, forms
+          print(f'Conjugation detection PASS: {tables} tables, {forms} usable forms')
+          PY
+
       - name: Compact settings screen and verify text is unchanged
         shell: bash
         run: |
@@ -150,7 +187,7 @@ jobs:
       - name: Upload fast motion build
         uses: actions/upload-artifact@v4
         with:
-          name: ArabicGrammar-Haibullin-1.3.9-clean-ultrafast-compact
+          name: ArabicGrammar-Haibullin-1.3.9-clean-ultrafast-compact-conjugationfix
           path: |
             /tmp/ag/ArabicGrammar-Haibullin-1.3.9-fast-motion-aligned-unsigned.apk
             /tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
