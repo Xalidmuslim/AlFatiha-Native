@@ -104,8 +104,8 @@ jobs:
           repo=Path('/tmp/ag/project/app/src/main/java/com/xalidmuslim/arabicgrammar')
           book=(repo/'data/BookRepository.kt').read_text(encoding='utf-8')
           progress=(repo/'data/ProgressStore.kt').read_text(encoding='utf-8')
-          assert 'arabic_grammar_book_v7.db' in book
-          assert 'arabic_grammar_book_v6.db' not in book and 'arabic_grammar_book_v5.db' not in book and 'arabic_grammar_book_v4.db' not in book
+          assert 'arabic_grammar_book_v9.db' in book
+          assert 'arabic_grammar_book_v8.db' not in book and 'arabic_grammar_book_v7.db' not in book and 'arabic_grammar_book_v6.db' not in book and 'arabic_grammar_book_v5.db' not in book and 'arabic_grammar_book_v4.db' not in book
           assert 'arabic_grammar_progress_v4' in progress
           print('DB refresh migration PASS: book DB bumped, progress store preserved')
           PY
@@ -135,11 +135,11 @@ jobs:
           db='/tmp/ag/project/app/src/main/assets/book/book.db'
           con=sqlite3.connect(db)
           checks={
-            467:"ضَرَبَ\n(и) бить",
-            1778:"كَبُرَ\n(у) быть большим",
-            7403:"ضَرَبَ\n(и) бить\nضَارِبٌ\nбьющий",
-            7404:"جَلَسَ\n(и) сидеть\nجَالِسٌ\nсидящий",
-            7405:"قَرَأَ\n(а) читать\nقَارِئٌ\nчитающий",
+            467:"ضَرَبَ\nи бить",
+            1778:"كَبُرَ\nу быть большим",
+            7403:"ضَرَبَ\nи бить\nضَارِبٌ\nбьющий",
+            7404:"جَلَسَ\nи сидеть\nجَالِسٌ\nсидящий",
+            7405:"قَرَأَ\nа читать\nقَارِئٌ\nчитающий",
           }
           for idx,expected in checks.items():
               got=con.execute("select text from blocks where block_index=?",(idx,)).fetchone()[0]
@@ -240,7 +240,7 @@ jobs:
       - name: Upload fast motion build
         uses: actions/upload-artifact@v4
         with:
-          name: ArabicGrammar-Haibullin-1.3.9-clean-ultrafast-compact-conjugationfix-bracketfix-v6
+          name: ArabicGrammar-Haibullin-1.3.9-responsive-smooth-v9
           path: |
             /tmp/ag/ArabicGrammar-Haibullin-1.3.9-fast-motion-aligned-unsigned.apk
             /tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
