@@ -40,6 +40,36 @@ jobs:
           echo "e13bf794cd58226b78e206b6f050cad9cd051de0b22ceebb45ed04075cf4bce5  /tmp/ag/project/app/src/main/assets/book/book.db" | sha256sum -c -
           grep -F 'versionName = "1.3.9-native"' /tmp/ag/project/app/build.gradle.kts
 
+      - name: Clean book content and verify cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB=/tmp/ag/project/app/src/main/assets/book/book.db
+          python3 ag-clean-content.py "$DB" /tmp/ag/book-cleanup-audit.json
+          python3 - <<'PY'
+          import sqlite3, json, re
+          db='/tmp/ag/project/app/src/main/assets/book/book.db'
+          con=sqlite3.connect(db)
+          n=con.execute('select count(*) from blocks').fetchone()[0]
+          assert n == 7986, n
+          bad=[]
+          needles=[
+            'исполнительной власти в РФ',
+            'супругов, родителей и детей',
+            'Проверочный расчет прочности и устойчивости',
+            'Понятие и признаки полезной модели',
+            'Эластичность спроса и предложения',
+            'Эффекторные нервные окончания',
+            'или читать все',
+            'Nbsp;',
+          ]
+          for idx,text in con.execute('select block_index,text from blocks'):
+              t=text or ''
+              if any(x in t for x in needles): bad.append((idx,t[:100]))
+          assert not bad, bad[:10]
+          print('Book cleanup PASS:', n, 'blocks')
+          PY
+
       - name: Apply fast motion patch and verify scope
         shell: bash
         run: |
@@ -98,11 +128,12 @@ jobs:
       - name: Upload fast motion build
         uses: actions/upload-artifact@v4
         with:
-          name: ArabicGrammar-Haibullin-1.3.9-fast-motion
+          name: ArabicGrammar-Haibullin-1.3.9-clean-ultrafast
           path: |
             /tmp/ag/ArabicGrammar-Haibullin-1.3.9-fast-motion-aligned-unsigned.apk
             /tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
             /tmp/ag/apk-verification.txt
+            /tmp/ag/book-cleanup-audit.json
             /tmp/ag/apksigner.jar
             /tmp/ag/zipalign
           if-no-files-found: error
