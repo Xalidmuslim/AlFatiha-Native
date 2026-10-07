@@ -1,4 +1,4 @@
-name: Build Madarij 1.10 Performance APK
+name: Build Madarij 1.11 Reader Polish APK
 
 on:
   push:
@@ -30,11 +30,11 @@ jobs:
           test -f source/settings.gradle.kts
           test -f source/app/build.gradle.kts
 
-      - name: Apply performance patch
+      - name: Apply reader polish
         shell: bash
         run: |
           cd source
-          patch -p2 --forward < ../patches/madarij-v110-performance.patch
+          patch -p2 --forward < ../patches/madarij-v111-reader-polish.patch
 
       - name: Create test signing key
         shell: bash
@@ -44,13 +44,13 @@ jobs:
             keytool -genkeypair -noprompt               -keystore source/development-signing/debug.keystore               -storepass android               -alias androiddebugkey               -keypass android               -dname "CN=Android Debug,O=Android,C=US"               -keyalg RSA -keysize 2048 -validity 10000
           fi
 
-      - name: Build optimized release APK
+      - name: Build release APK
         working-directory: source
         run: ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Madarij-v1.10-performance-APK
+          name: Madarij-v1.11-reader-polish-APK
           path: source/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error

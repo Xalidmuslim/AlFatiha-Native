@@ -1,0 +1,667 @@
+diff -ruN '--exclude=.gradle' '--exclude=build' '--exclude=.pytest_cache' '--exclude=__pycache__' madarij_v11_orig/Madarij-Native-v11/app/build.gradle.kts madarij_v11/Madarij-Native-v11/app/build.gradle.kts
+--- madarij_v11_orig/Madarij-Native-v11/app/build.gradle.kts	2026-10-06 21:52:05.000000000 +0000
++++ madarij_v11/Madarij-Native-v11/app/build.gradle.kts	2026-10-07 08:46:54.531150576 +0000
+@@ -16,8 +16,8 @@
+         applicationId = "ru.madarij.nativeapp"
+         minSdk = 26
+         targetSdk = 36
+-        versionCode = 10
+-        versionName = "1.9-reader-flow"
++        versionCode = 12
++        versionName = "1.11-reader-polish"
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+     }
+     if (releaseKey != null) signingConfigs.create("owner") {
+@@ -28,9 +28,11 @@
+     }
+     buildTypes {
+         release {
++            applicationIdSuffix = ".readerpolish"
+             isMinifyEnabled = true
++            isShrinkResources = true
+             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+-            if (releaseKey != null) signingConfig = signingConfigs.getByName("owner")
++            signingConfig = if (releaseKey != null) signingConfigs.getByName("owner") else signingConfigs.getByName("debug")
+         }
+     }
+     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+@@ -61,7 +63,10 @@
+     doLast {
+         check(file("src/main/res/font/naskh.ttf").isFile) { "Embedded Naskh missing" }
+         check(file("src/main/assets/fonts/OFL.txt").isFile) { "Font license missing" }
+-        check(releaseKey != null) { "Owner release signing configuration missing" }
++        if (releaseKey == null) logger.lifecycle("Owner signing not configured; using development signing for test APK")
+     }
+ }
+-tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(verifyCorpus, verifyReleaseAssets) }
++tasks.matching { it.name == "preReleaseBuild" }.configureEach {
++    dependsOn(verifyReleaseAssets)
++    if (rootProject.file("tools/content_gate.py").isFile) dependsOn(verifyCorpus)
++}
+diff -ruN '--exclude=.gradle' '--exclude=build' '--exclude=.pytest_cache' '--exclude=__pycache__' madarij_v11_orig/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/HomeContents.kt madarij_v11/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/HomeContents.kt
+--- madarij_v11_orig/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/HomeContents.kt	2026-10-05 21:01:33.000000000 +0000
++++ madarij_v11/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/HomeContents.kt	2026-10-07 08:46:54.531346435 +0000
+@@ -140,7 +140,7 @@
+ 
+         item {
+             Text(
+-                "Рабочий перевод первого тома · редакционная сверка продолжается",
++                "Литературная сверка первого тома завершена · проверка источников отдельно",
+                 style = MaterialTheme.typography.bodySmall,
+                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                 modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)
+diff -ruN '--exclude=.gradle' '--exclude=build' '--exclude=.pytest_cache' '--exclude=__pycache__' madarij_v11_orig/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/MainActivity.kt madarij_v11/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/MainActivity.kt
+--- madarij_v11_orig/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/MainActivity.kt	2026-10-06 21:52:05.000000000 +0000
++++ madarij_v11/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/MainActivity.kt	2026-10-07 08:33:40.428876972 +0000
+@@ -202,8 +202,7 @@
+                     else {
+                         val readerToReader = initialState.destination.route?.startsWith("read/") == true && targetState.destination.route?.startsWith("read/") == true
+                         if (readerToReader) {
+-                            fadeIn(tween(100, easing = FastOutSlowInEasing)) +
+-                                slideInHorizontally(tween(155, easing = FastOutSlowInEasing)) { if (readerForward) it / 5 else -it / 5 }
++                            slideInHorizontally(tween(210, easing = FastOutSlowInEasing)) { if (readerForward) it / 3 else -it / 3 }
+                         } else {
+                             fadeIn(tween(230, easing = FastOutSlowInEasing)) +
+                                 slideInHorizontally(tween(280, easing = FastOutSlowInEasing)) { it / 12 } +
+@@ -216,8 +215,7 @@
+                     else {
+                         val readerToReader = initialState.destination.route?.startsWith("read/") == true && targetState.destination.route?.startsWith("read/") == true
+                         if (readerToReader) {
+-                            fadeOut(tween(85, easing = FastOutSlowInEasing)) +
+-                                slideOutHorizontally(tween(135, easing = FastOutSlowInEasing)) { if (readerForward) -it / 6 else it / 6 }
++                            slideOutHorizontally(tween(210, easing = FastOutSlowInEasing)) { if (readerForward) -it / 3 else it / 3 }
+                         } else {
+                             fadeOut(tween(190, easing = FastOutSlowInEasing)) +
+                                 slideOutHorizontally(tween(230, easing = FastOutSlowInEasing)) { -it / 18 } +
+diff -ruN '--exclude=.gradle' '--exclude=build' '--exclude=.pytest_cache' '--exclude=__pycache__' madarij_v11_orig/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/Reader.kt madarij_v11/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/Reader.kt
+--- madarij_v11_orig/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/Reader.kt	2026-10-06 21:52:05.000000000 +0000
++++ madarij_v11/Madarij-Native-v11/app/src/main/java/ru/madarij/nativeapp/Reader.kt	2026-10-07 08:46:46.024820848 +0000
+@@ -5,11 +5,8 @@
+ import android.content.Context
+ import android.content.Intent
+ import android.os.SystemClock
+-import androidx.compose.animation.core.animate
+-import androidx.compose.animation.core.FastOutSlowInEasing
+-import androidx.compose.animation.core.spring
+-import androidx.compose.animation.core.tween
+ import androidx.compose.foundation.ExperimentalFoundationApi
++import androidx.compose.foundation.background
+ import androidx.compose.foundation.gestures.awaitEachGesture
+ import androidx.compose.foundation.gestures.awaitFirstDown
+ import androidx.compose.foundation.combinedClickable
+@@ -26,7 +23,6 @@
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.input.pointer.pointerInput
+ import androidx.compose.ui.geometry.Rect
+-import androidx.compose.ui.graphics.graphicsLayer
+ import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.text.*
+ import androidx.compose.ui.text.font.FontWeight
+@@ -39,13 +35,12 @@
+ import androidx.lifecycle.compose.collectAsStateWithLifecycle
+ import kotlinx.coroutines.delay
+ import kotlinx.coroutines.launch
+-import kotlinx.coroutines.flow.debounce
+ import kotlinx.coroutines.flow.distinctUntilChanged
+ import ru.madarij.nativeapp.data.*
+ import ru.madarij.nativeapp.data.Paragraph
+ import kotlin.math.abs
+ 
+-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, kotlinx.coroutines.FlowPreview::class)
++@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+ @Composable
+ fun Reader(
+     vm: BookViewModel, chapter: Chapter, settings: ReadingSettings, anchor: String? = null, query: String = "", forceTop: Boolean = false,
+@@ -63,7 +58,9 @@
+     val chapterGroup = groups.find { g -> g.items.any { it.chapterId == chapter.id } }
+     val chapterStructure = chapterGroup?.items?.find { it.chapterId == chapter.id }
+     val topicsByParagraph = remember(chapterStructure) { chapterStructure?.topics?.associateBy { it.paragraphId }.orEmpty() }
++    val notesByParagraph = remember(notes) { notes.groupBy { it.paragraphId } }
+     val learning = remember { LearningRepository(context.applicationContext) }
++    val termsByParagraph = remember(learning) { learning.terms.groupBy { it.sourceParagraphId } }
+     var paragraphs by remember(chapter.id) { mutableStateOf<List<Paragraph>>(emptyList()) }
+     var loaded by remember(chapter.id) { mutableStateOf(false) }
+     var ready by remember(chapter.id) { mutableStateOf(false) }
+@@ -86,18 +83,20 @@
+     var termDialog by remember { mutableStateOf<StudyTerm?>(null) }
+     val snackbar = remember { SnackbarHostState() }
+     var message by remember { mutableStateOf("") }
+-    var activeSince by remember(chapter.id) { mutableLongStateOf(0L) }
++    val activeSince = remember(chapter.id) { longArrayOf(0L) }
+     val visible = remember(paragraphs, settings.showNotes, anchor) { paragraphs.filter { settings.showNotes || it.id == anchor || it.role !in listOf("editor_note", "edition_note") } }
++    val normalizedQuery = remember(query) { normalizedText(query).text }
++    val displayRussian = remember(paragraphs, query) { if (query.isBlank()) buildReaderDisplayRussian(paragraphs) else paragraphs.associate { it.id to it.ru } }
+     val currentParagraph by remember(visible) { derivedStateOf { if (visible.isEmpty()) null else visible[(listState.firstVisibleItemIndex - 1).coerceIn(0, visible.lastIndex)] } }
+     fun savePosition() {
+         if (ready) currentParagraph?.let { vm.savePosition(chapter.id, it.id, if (listState.firstVisibleItemIndex !in 1..visible.size) 0 else listState.firstVisibleItemScrollOffset) }
+     }
+     fun recordTime() {
+-        if (activeSince > 0) {
++        if (activeSince[0] > 0L) {
+             val now = SystemClock.elapsedRealtime()
+-            val seconds = ((now - activeSince) / 1000).toInt()
++            val seconds = ((now - activeSince[0]) / 1000).toInt()
+             if (seconds > 0 && ready) currentParagraph?.let { vm.recordReading(chapter.id, it.id, seconds) }
+-            activeSince = now
++            activeSince[0] = now
+         }
+     }
+     LaunchedEffect(chapter.id, retry) {
+@@ -122,21 +121,22 @@
+         }
+     }
+     LaunchedEffect(ready, visible) {
+-        if (ready) snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+-            .distinctUntilChanged().debounce(400).collect { savePosition() }
++        if (ready) snapshotFlow { listState.isScrollInProgress }
++            .distinctUntilChanged()
++            .collect { scrolling -> if (!scrolling) savePosition() }
+     }
+     val lifecycle = LocalLifecycleOwner.current.lifecycle
+     DisposableEffect(chapter.id, ready, visible, lifecycle) {
+-        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) activeSince = SystemClock.elapsedRealtime()
++        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) activeSince[0] = SystemClock.elapsedRealtime()
+         val observer = LifecycleEventObserver { _, event ->
+             when (event) {
+-                Lifecycle.Event.ON_RESUME -> activeSince = SystemClock.elapsedRealtime()
+-                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> { savePosition(); recordTime(); activeSince = 0L }
++                Lifecycle.Event.ON_RESUME -> activeSince[0] = SystemClock.elapsedRealtime()
++                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> { savePosition(); recordTime(); activeSince[0] = 0L }
+                 else -> Unit
+             }
+         }
+         lifecycle.addObserver(observer)
+-        onDispose { savePosition(); recordTime(); activeSince = 0L; lifecycle.removeObserver(observer) }
++        onDispose { savePosition(); recordTime(); activeSince[0] = 0L; lifecycle.removeObserver(observer) }
+     }
+     LaunchedEffect(chapter.id, ready) { if (ready) while (true) { delay(30_000); recordTime() } }
+     LaunchedEffect(message) { if (message.isNotEmpty()) { snackbar.showSnackbar(message); message = "" } }
+@@ -152,84 +152,54 @@
+     val backGestureInset = with(density) { 48.dp.toPx() }
+     val swipeThreshold = with(density) { 56.dp.toPx() }
+     val swipeLockDistance = with(density) { 9.dp.toPx() }
+-    var swipeOffset by remember(chapter.id) { mutableFloatStateOf(0f) }
+-    val reduceMotion = settings.reducedMotion || !android.animation.ValueAnimator.areAnimatorsEnabled()
+-    val swipeModifier = Modifier
+-        .graphicsLayer { translationX = swipeOffset }
+-        .pointerInput(chapter.id, chapters, backGestureInset, swipeThreshold, swipeLockDistance, reduceMotion) {
+-            awaitEachGesture {
+-                val down = awaitFirstDown(requireUnconsumed = false)
+-                var totalX = 0f
+-                var totalY = 0f
+-                var horizontalLocked = false
+-                var verticalLocked = false
+-                while (true) {
+-                    val event = awaitPointerEvent()
+-                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+-                    if (!change.pressed) break
+-                    val delta = change.position - change.previousPosition
+-                    totalX += delta.x
+-                    totalY += delta.y
+-
+-                    if (!horizontalLocked && !verticalLocked && (abs(totalX) > swipeLockDistance || abs(totalY) > swipeLockDistance)) {
+-                        val systemBackEdge = down.position.x <= backGestureInset && totalX > 0f
+-                        verticalLocked = abs(totalY) > abs(totalX) * 1.15f || systemBackEdge
+-                        horizontalLocked = !verticalLocked && abs(totalX) > abs(totalY) * 1.15f
+-                    }
+-
+-                    if (horizontalLocked) {
+-                        change.consume()
+-                        val maxOffset = size.width * 0.28f
+-                        swipeOffset = totalX.coerceIn(-maxOffset, maxOffset)
+-                    }
++    val swipeModifier = Modifier.pointerInput(chapter.id, chapters, backGestureInset, swipeThreshold, swipeLockDistance) {
++        awaitEachGesture {
++            val down = awaitFirstDown(requireUnconsumed = false)
++            var totalX = 0f
++            var totalY = 0f
++            var horizontalLocked = false
++            var verticalLocked = false
++            while (true) {
++                val event = awaitPointerEvent()
++                val change = event.changes.firstOrNull { it.id == down.id } ?: break
++                if (!change.pressed) break
++                val delta = change.position - change.previousPosition
++                totalX += delta.x
++                totalY += delta.y
++
++                if (!horizontalLocked && !verticalLocked && (abs(totalX) > swipeLockDistance || abs(totalY) > swipeLockDistance)) {
++                    val systemBackEdge = down.position.x <= backGestureInset && totalX > 0f
++                    verticalLocked = abs(totalY) > abs(totalX) * 1.15f || systemBackEdge
++                    horizontalLocked = !verticalLocked && abs(totalX) > abs(totalY) * 1.15f
+                 }
++                if (horizontalLocked) change.consume()
++            }
+ 
+-                if (horizontalLocked) {
+-                    val direction = classifyReaderSwipe(
+-                        down.position.x, size.width.toFloat(), totalX, totalY,
+-                        backGestureInset, swipeThreshold
+-                    )
+-                    val targetIndex = when (direction) {
+-                        ReaderPageSwipe.NEXT -> chapterIndex + 1
+-                        ReaderPageSwipe.PREVIOUS -> chapterIndex - 1
+-                        null -> -1
+-                    }
+-                    val target = chapters.getOrNull(targetIndex)
+-                    if (direction != null && target != null) {
+-                        savePosition()
+-                        recordTime()
+-                        // Navigate immediately from the finger position. The previous implementation
+-                        // first animated the old page for ~190 ms and only then opened the next one,
+-                        // which produced the visible pause and second "jump" reported on-device.
+-                        // Leaving swipeOffset untouched lets the outgoing NavHost transition continue
+-                        // naturally from the dragged position until this Reader is disposed.
+-                        navigate(target.id)
+-                    } else if (!reduceMotion) {
+-                        val startOffset = swipeOffset
+-                        actionScope.launch {
+-                            animate(
+-                                initialValue = startOffset,
+-                                targetValue = 0f,
+-                                animationSpec = spring(dampingRatio = 0.9f, stiffness = 900f)
+-                            ) { value, _ -> swipeOffset = value }
+-                        }
+-                    } else {
+-                        swipeOffset = 0f
+-                    }
+-                } else if (swipeOffset != 0f) {
+-                    swipeOffset = 0f
++            if (horizontalLocked) {
++                val direction = classifyReaderSwipe(
++                    down.position.x, size.width.toFloat(), totalX, totalY,
++                    backGestureInset, swipeThreshold
++                )
++                val targetIndex = when (direction) {
++                    ReaderPageSwipe.NEXT -> chapterIndex + 1
++                    ReaderPageSwipe.PREVIOUS -> chapterIndex - 1
++                    null -> -1
++                }
++                chapters.getOrNull(targetIndex)?.let { target ->
++                    savePosition()
++                    recordTime()
++                    navigate(target.id)
+                 }
+             }
+         }
+-    Column(Modifier.fillMaxSize()) {
++    }
++    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+         Row(
+             Modifier.fillMaxWidth().statusBarsPadding().heightIn(min = 58.dp).padding(horizontal = 10.dp, vertical = 5.dp),
+             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+             horizontalArrangement = Arrangement.spacedBy(6.dp)
+         ) {
+-            TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)) {
+-                Text("Назад", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+-            }
++            ReaderControl("‹") { onBack() }
+             Text(
+                 "Степени идущих",
+                 modifier = Modifier.weight(1f),
+@@ -267,16 +237,28 @@
+         if (actionsMode) Text("Режим абзацев: закладки, заметки и копирование", Modifier.padding(horizontal = 20.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+         LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth().height(2.dp), color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primary.copy(alpha = .14f))
+         if (loadingError.isNotEmpty()) { InfoCard("Текст недоступен", loadingError); TextButton(onClick = { retry++ }) { Text("Повторить") } }
+-        LazyColumn(state = listState, modifier = Modifier.weight(1f).then(swipeModifier), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
++        LazyColumn(state = listState, modifier = Modifier.weight(1f).then(swipeModifier), contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+             item(key = "heading") {
+                 Column(
+-                    Modifier.fillMaxWidth(settings.textWidth).padding(top = 4.dp, bottom = 2.dp),
+-                    verticalArrangement = Arrangement.spacedBy(9.dp)
++                    Modifier.fillMaxWidth(settings.textWidth).padding(top = 6.dp, bottom = 6.dp),
++                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                 ) {
+-                    if (chapterGroup != null) Text(chapterGroup.title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
++                    if (chapterGroup != null) {
++                        Surface(
++                            shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
++                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .42f)
++                        ) {
++                            Text(
++                                chapterGroup.title,
++                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
++                                style = MaterialTheme.typography.labelLarge,
++                                color = MaterialTheme.colorScheme.primary
++                            )
++                        }
++                    }
+                     Text(
+                         chapterStructure?.title ?: chapter.title,
+-                        style = MaterialTheme.typography.headlineSmall.copy(fontSize = 26.sp, lineHeight = 32.sp),
++                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp, lineHeight = 36.sp),
+                         fontFamily = russianFamily(settings),
+                         color = MaterialTheme.colorScheme.onBackground
+                     )
+@@ -285,12 +267,24 @@
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                     )
+-                    if (query.isNotBlank()) Text("Найденный текст: «$query»", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = .5f))
++                    if (query.isNotBlank()) {
++                        Surface(
++                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
++                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .28f)
++                        ) {
++                            Text(
++                                "Найденный текст: «$query»",
++                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
++                                style = MaterialTheme.typography.labelMedium,
++                                color = MaterialTheme.colorScheme.primary
++                            )
++                        }
++                    }
++                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = .32f))
+                 }
+             }
+             items(visible, key = { it.id }) { p ->
+-                val terms = learning.terms.filter { it.sourceParagraphId == p.id }
++                val terms = termsByParagraph[p.id].orEmpty()
+                 val isNote = p.role in listOf("editor_note", "edition_note")
+                 var expanded by rememberSaveable(p.id) { mutableStateOf(anchor == p.id && isNote) }
+                 Column(Modifier.fillMaxWidth(settings.textWidth).combinedClickable(onClick = {}, onLongClick = { selected = p }), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+@@ -313,19 +307,28 @@
+                         }
+                     }
+                     if (isNote) {
+-                        OutlinedCard(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
++                        Surface(
++                            modifier = Modifier.fillMaxWidth(),
++                            shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
++                            color = MaterialTheme.colorScheme.surface,
++                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .34f)),
++                            onClick = { expanded = !expanded }
++                        ) {
+                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                 Text((if (p.role == "editor_note") "Пояснение редакции" else "Примечание издания") + (if (expanded) " · Скрыть" else " · Открыть"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                 if (expanded) {
+                                     if (settings.showArabic && p.ar.isNotBlank()) SelectionContainer { ArabicText(p.ar, settings) }
+                                     SelectionContainer { SearchAnchorText(highlight(p.ru, query, MaterialTheme.colorScheme.primary),p.ru,query,readerStyle(settings),ready && p.id==anchor && !matchRevealed) {matchRevealed=true} }
++                                } else {
++                                    Text("Развёрнутое объяснение и дополнительные детали", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                 }
+                             }
+                         }
+                     } else {
+-                        val arabicMatch = p.id == anchor && query.isNotBlank() && normalizedText(p.ar).text.contains(normalizedText(query).text) && !normalizedText(p.ru).text.contains(normalizedText(query).text)
++                        val displayRu = displayRussian[p.id].orEmpty()
++                        val arabicMatch = p.id == anchor && normalizedQuery.isNotBlank() && normalizedText(p.ar).text.contains(normalizedQuery) && !normalizedText(displayRu).text.contains(normalizedQuery)
+                         val arabicBlocks = remember(p.id, p.ar) { splitReaderText(p.ar, "فصل", "فصل") }
+-                        val russianBlocks = remember(p.id, p.ru) { splitReaderText(p.ru, "Раздел", "Раздел") }
++                        val russianBlocks = remember(p.id, displayRu) { splitReaderText(displayRu, "Раздел", "Раздел") }
+                         if ((settings.showArabic || arabicMatch) && p.ar.isNotBlank()) SelectionContainer {
+                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                 arabicBlocks.forEach { block ->
+@@ -342,20 +345,25 @@
+                             }
+                         }
+                         SelectionContainer {
+-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
++                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                 russianBlocks.forEach { block ->
+                                     when (block) {
+                                         is ReaderTextBlock.Section -> ReaderSectionCard(block, settings, arabic = false)
+-                                        is ReaderTextBlock.Body -> readerParagraphs(block.text).forEach { paragraph ->
+-                                            val annotated = annotatedReaderText(paragraph, query, MaterialTheme.colorScheme.primary, terms) { termDialog = it }
+-                                            SearchAnchorText(annotated, paragraph, query, readerStyle(settings), ready && p.id == anchor && !matchRevealed && !arabicMatch) { matchRevealed = true }
+-                                        }
++                                        is ReaderTextBlock.Body -> ReaderRichTextBlock(
++                                            text = block.text,
++                                            query = query,
++                                            settings = settings,
++                                            terms = terms,
++                                            reveal = ready && p.id == anchor && !matchRevealed && !arabicMatch,
++                                            onRevealed = { matchRevealed = true },
++                                            onOpenTerm = { termDialog = it }
++                                        )
+                                     }
+                                 }
+                             }
+                         }
+                     }
+-                    notes.filter { it.paragraphId == p.id }.forEach { note ->
++                    notesByParagraph[p.id].orEmpty().forEach { note ->
+                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) { Text("Моя заметка", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary); Text(note.text, style = MaterialTheme.typography.bodyMedium) } }
+                     }
+                     if (actionsMode) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+@@ -467,6 +475,239 @@
+     }
+ }
+ 
++private sealed interface ReaderRichSegment {
++    data class Paragraph(val text: String) : ReaderRichSegment
++    data class Quote(val label: String, val quote: String, val reference: String?) : ReaderRichSegment
++    data class Numbered(val label: String, val body: String) : ReaderRichSegment
++    data class Heading(val text: String) : ReaderRichSegment
++    data class Poetry(val text: String) : ReaderRichSegment
++}
++
++@Composable
++private fun ReaderRichTextBlock(
++    text: String,
++    query: String,
++    settings: ReadingSettings,
++    terms: List<StudyTerm>,
++    reveal: Boolean,
++    onRevealed: () -> Unit,
++    onOpenTerm: (StudyTerm) -> Unit
++) {
++    val segments = remember(text) { parseReaderRichSegments(text) }
++    val requester = remember { BringIntoViewRequester() }
++    Column(
++        modifier = Modifier.fillMaxWidth().bringIntoViewRequester(requester),
++        verticalArrangement = Arrangement.spacedBy(10.dp)
++    ) {
++        segments.forEach { segment ->
++            when (segment) {
++                is ReaderRichSegment.Paragraph -> Text(
++                    annotatedReaderText(segment.text, query, MaterialTheme.colorScheme.primary, terms, onOpenTerm),
++                    style = readerStyle(settings),
++                    modifier = Modifier.fillMaxWidth()
++                )
++                is ReaderRichSegment.Quote -> ReaderQuoteCard(segment, settings, query)
++                is ReaderRichSegment.Numbered -> ReaderNumberedBlock(segment, settings, query)
++                is ReaderRichSegment.Heading -> Text(
++                    segment.text,
++                    style = MaterialTheme.typography.titleMedium,
++                    fontFamily = russianFamily(settings),
++                    color = MaterialTheme.colorScheme.primary,
++                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
++                )
++                is ReaderRichSegment.Poetry -> Surface(
++                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
++                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .46f),
++                    modifier = Modifier.fillMaxWidth()
++                ) {
++                    Text(
++                        segment.text,
++                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
++                        style = readerStyle(settings).copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
++                    )
++                }
++            }
++        }
++    }
++    LaunchedEffect(reveal) {
++        if (reveal) {
++            withFrameNanos { }
++            requester.bringIntoView()
++            onRevealed()
++        }
++    }
++}
++
++@Composable
++private fun ReaderQuoteCard(segment: ReaderRichSegment.Quote, settings: ReadingSettings, query: String) {
++    Row(
++        modifier = Modifier.fillMaxWidth(),
++        horizontalArrangement = Arrangement.spacedBy(10.dp)
++    ) {
++        Box(
++            Modifier.width(4.dp).fillMaxHeight().defaultMinSize(minHeight = 64.dp)
++                .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
++        )
++        Surface(
++            modifier = Modifier.weight(1f),
++            shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
++            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .22f)
++        ) {
++            Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
++                Text(segment.label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
++                Text(
++                    highlight(segment.quote, query, MaterialTheme.colorScheme.primary),
++                    style = readerStyle(settings).copy(fontWeight = FontWeight.SemiBold),
++                    modifier = Modifier.fillMaxWidth()
++                )
++                if (!segment.reference.isNullOrBlank()) {
++                    Text(segment.reference, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
++                }
++            }
++        }
++    }
++}
++
++@Composable
++private fun ReaderNumberedBlock(segment: ReaderRichSegment.Numbered, settings: ReadingSettings, query: String) {
++    Row(
++        modifier = Modifier.fillMaxWidth(),
++        horizontalArrangement = Arrangement.spacedBy(12.dp)
++    ) {
++        Surface(
++            shape = androidx.compose.foundation.shape.CircleShape,
++            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .34f)
++        ) {
++            Text(
++                segment.label,
++                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
++                style = MaterialTheme.typography.titleMedium,
++                color = MaterialTheme.colorScheme.primary
++            )
++        }
++        Text(
++            highlight(segment.body, query, MaterialTheme.colorScheme.primary),
++            style = readerStyle(settings),
++            modifier = Modifier.weight(1f)
++        )
++    }
++}
++
++private val quoteLeadRegex = Regex(
++    """^(?<label>(?:Всевышний|Аллах|Пророк|Посланник Аллаха|Было сказано|Сказано|[А-ЯЁA-Z][^.!?]{0,120}?) сказал:)\s*[«"](?<quote>.+)[»"]\s*(?<ref>\[[^\]]+\])?[.!?…]*$"""
++)
++private val quranRefRegex = Regex("""\[[^\]]*\d{1,3}:\d{1,3}(?:[–-]\d{1,3})?[^\]]*]""")
++private val numberedSentenceRegex = Regex(
++    """^(?<lead>Первое|Второе|Третье|Четвёртое|Четвертое|Пятое|Шестое|Седьмое|Восьмое|Девятое|Десятое|Одиннадцатое|Двенадцатое):\s*(?<body>.+)$""",
++    RegexOption.IGNORE_CASE
++)
++
++private fun parseReaderRichSegments(text: String): List<ReaderRichSegment> {
++    val rawParagraphs = text.replace("\r", "")
++        .split(Regex("""\n[ \t]*\n+"""))
++        .map { it.trim() }
++        .filter { it.isNotBlank() }
++    if (rawParagraphs.isEmpty()) return emptyList()
++
++    val result = mutableListOf<ReaderRichSegment>()
++    rawParagraphs.forEach { raw ->
++        if (raw.startsWith("«") && raw.contains('\n')) {
++            result += ReaderRichSegment.Poetry(raw)
++            return@forEach
++        }
++        if (raw.length <= 110 && standaloneHeadingRegex.matches(raw)) {
++            result += ReaderRichSegment.Heading(raw)
++            return@forEach
++        }
++
++        val flat = raw.replace(Regex("""[ \t]*\n[ \t]*"""), " ").replace(Regex("""[ \t]+"""), " ").trim()
++        val sentences = Regex("""(?<=[.!?…»] |[.!?…»]\s)(?=[А-ЯЁ«])""")
++            .split(flat)
++            .flatMap { chunk -> Regex("""(?<=[.!?…»])\s+(?=[А-ЯЁ«])""").split(chunk) }
++            .map { it.trim() }
++            .filter { it.isNotBlank() }
++
++        var index = 0
++        while (index < sentences.size) {
++            val sentence = sentences[index]
++            val quoteMatch = quoteLeadRegex.matchEntire(sentence)
++            if (quoteMatch != null) {
++                result += ReaderRichSegment.Quote(
++                    label = quoteMatch.groups["label"]!!.value.trim(),
++                    quote = quoteMatch.groups["quote"]!!.value.trim(),
++                    reference = quoteMatch.groups["ref"]?.value?.trim()
++                )
++                index++
++                continue
++            }
++
++            if (quranRefRegex.containsMatchIn(sentence) && sentence.contains('«') && sentence.contains('»')) {
++                val first = sentence.indexOf('«')
++                val last = sentence.lastIndexOf('»')
++                val reference = quranRefRegex.find(sentence)?.value
++                if (first >= 0 && last > first) {
++                    val prefix = sentence.substring(0, first).trim().trimEnd(':')
++                    result += ReaderRichSegment.Quote(
++                        label = prefix.takeIf { it.isNotBlank() } ?: "Аят",
++                        quote = sentence.substring(first + 1, last).trim(),
++                        reference = reference
++                    )
++                    index++
++                    continue
++                }
++            }
++
++            val numberMatch = numberedSentenceRegex.matchEntire(sentence)
++            if (numberMatch != null) {
++                result += ReaderRichSegment.Numbered(
++                    numberMatch.groups["lead"]!!.value.trim(),
++                    numberMatch.groups["body"]!!.value.trim()
++                )
++                index++
++                continue
++            }
++
++            val paragraphParts = mutableListOf(sentence)
++            var cursor = index + 1
++            while (cursor < sentences.size) {
++                val candidate = sentences[cursor]
++                if (quoteLeadRegex.matchEntire(candidate) != null || numberedSentenceRegex.matchEntire(candidate) != null || (quranRefRegex.containsMatchIn(candidate) && candidate.contains('«') && candidate.contains('»'))) break
++                paragraphParts += candidate
++                cursor++
++            }
++            result += ReaderRichSegment.Paragraph(paragraphParts.joinToString(" "))
++            index = cursor
++        }
++    }
++    return result
++}
++
++private fun buildReaderDisplayRussian(paragraphs: List<Paragraph>): Map<String, String> {
++    val adjusted = paragraphs.associate { it.id to it.ru }.toMutableMap()
++    val authorIndexes = paragraphs.indices.filter { paragraphs[it].role !in listOf("editor_note", "edition_note") }
++    for (position in 0 until authorIndexes.lastIndex) {
++        val current = paragraphs[authorIndexes[position]]
++        val next = paragraphs[authorIndexes[position + 1]]
++        var left = adjusted[current.id].orEmpty().trimEnd()
++        var right = adjusted[next.id].orEmpty().trimStart()
++        if (!needsContinuation(left, right)) continue
++        val match = Regex("""^(.+?[.!?…](?:[»”"])?)(?=\s|$)""", setOf(RegexOption.DOT_MATCHES_ALL)).find(right) ?: continue
++        val prefix = match.groupValues[1].trim()
++        left = (left + " " + prefix).replace(Regex("""[ \t]+"""), " ")
++        right = right.substring(match.range.last + 1).trimStart()
++        adjusted[current.id] = left
++        adjusted[next.id] = right
++    }
++    return adjusted
++}
++
++private fun needsContinuation(left: String, right: String): Boolean {
++    if (left.isBlank() || right.isBlank()) return false
++    if (Regex("""[.!?…][»”"]?$""").containsMatchIn(left)) return false
++    val first = right.firstOrNull { it.isLetter() } ?: return false
++    return first.isLowerCase()
++}
++
+ @OptIn(ExperimentalFoundationApi::class)
+ @Composable
+ private fun SearchAnchorText(text:AnnotatedString,raw:String,query:String,style:TextStyle,reveal:Boolean,onRevealed:()->Unit) {
