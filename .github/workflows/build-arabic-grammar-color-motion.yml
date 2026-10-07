@@ -94,6 +94,27 @@ jobs:
           print('Scope check PASS: strings and dp/sp unchanged')
           PY
 
+      - name: Fix RTL/LTR bracket artifacts in Arabic examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB=/tmp/ag/project/app/src/main/assets/book/book.db
+          python3 ag-fix-bidi.py "$DB" /tmp/ag/bidi-fix-audit.json
+          python3 - <<'PY'
+          import sqlite3
+          db='/tmp/ag/project/app/src/main/assets/book/book.db'
+          con=sqlite3.connect(db)
+          checks={
+            1778:"كَبُرَ\n(у) быть большим",
+            1780:"صَغُرَ\n(у) быть маленьким",
+            1786:"كَرُمَ\n(у) быть благородным",
+          }
+          for idx,expected in checks.items():
+              got=con.execute("select text from blocks where block_index=?",(idx,)).fetchone()[0]
+              assert got==expected,(idx,got)
+          print("Bidi example verification PASS")
+          PY
+
       - name: Fix conjugation trainer table detection
         shell: bash
         run: |
@@ -187,12 +208,13 @@ jobs:
       - name: Upload fast motion build
         uses: actions/upload-artifact@v4
         with:
-          name: ArabicGrammar-Haibullin-1.3.9-clean-ultrafast-compact-conjugationfix
+          name: ArabicGrammar-Haibullin-1.3.9-clean-ultrafast-compact-conjugationfix-bidifix
           path: |
             /tmp/ag/ArabicGrammar-Haibullin-1.3.9-fast-motion-aligned-unsigned.apk
             /tmp/ag/project/app/build/outputs/apk/debug/app-debug.apk
             /tmp/ag/apk-verification.txt
             /tmp/ag/book-cleanup-audit.json
+            /tmp/ag/bidi-fix-audit.json
             /tmp/ag/apksigner.jar
             /tmp/ag/zipalign
           if-no-files-found: error
