@@ -104,8 +104,8 @@ jobs:
           repo=Path('/tmp/ag/project/app/src/main/java/com/xalidmuslim/arabicgrammar')
           book=(repo/'data/BookRepository.kt').read_text(encoding='utf-8')
           progress=(repo/'data/ProgressStore.kt').read_text(encoding='utf-8')
-          assert 'arabic_grammar_book_v6.db' in book
-          assert 'arabic_grammar_book_v5.db' not in book and 'arabic_grammar_book_v4.db' not in book
+          assert 'arabic_grammar_book_v7.db' in book
+          assert 'arabic_grammar_book_v6.db' not in book and 'arabic_grammar_book_v5.db' not in book and 'arabic_grammar_book_v4.db' not in book
           assert 'arabic_grammar_progress_v4' in progress
           print('DB refresh migration PASS: book DB bumped, progress store preserved')
           PY
