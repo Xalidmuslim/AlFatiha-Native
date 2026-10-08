@@ -2,7 +2,9 @@ name: Build Android APK + AAB
 
 on:
   push:
-    branches: [ main, heart-prayer-azkar-integration-2026-10-02 ]
+    branches: [ main, heart-prayer-azkar-integration-2026-10-02, 'codex/**' ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
