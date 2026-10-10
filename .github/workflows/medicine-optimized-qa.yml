@@ -1,0 +1,60 @@
+name: Compass Heart with Smooth Medicine - optimized APK
+
+on:
+  push:
+    branches: [codex/compass-medicine-smooth-integration-20261010]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  optimized-native-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android API 36
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Verify updated Medicine is the only module
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s medicine/src/main/assets/book.json
+          test -s medicine/src/main/res/drawable-nodpi/reader_parchment_source.png
+          test -s medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/MedicineHomeArtwork.kt
+          grep -q 'StandaloneBottomNav' medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/App.kt
+          ! grep -q 'HeartPrayerBottomNav' medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/App.kt
+          grep -q 'MedicineHomeArtwork.isReady()' medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/MainActivity.kt
+          grep -q 'android:exported="false"' medicine/src/main/AndroidManifest.xml
+          grep -q 'implementation project.*:medicine' app/build.gradle
+          test -s app/src/main/java/app/alfatiha/tafsir/MainActivity.java
+      - name: Build native APK with R8
+        run: ./gradlew :app:assembleSmoothPreview --no-daemon --stacktrace
+      - name: Verify APK signature and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/smoothPreview/app-smoothPreview.apk
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F 'app.alfatiha.tafsir.medicinepreview'
+          unzip -l "$APK" | grep -F 'assets/book.json'
+      - name: Upload separately installable Compass Heart preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: Compass-Heart-New-Medicine-Smooth-APK
+          path: app/build/outputs/apk/smoothPreview/app-smoothPreview.apk
+          retention-days: 30
+          if-no-files-found: error
