@@ -2,7 +2,7 @@ name: Compass Heart with Smooth Medicine - optimized APK
 
 on:
   push:
-    branches: [codex/compass-medicine-smooth-integration-20261010]
+    branches: [codex/compass-medicine-smooth-integration-20261010, codex/compass-medicine-home-fade-20261010]
   workflow_dispatch:
 
 permissions:
@@ -34,6 +34,12 @@ jobs:
           test -s medicine/src/main/res/drawable-nodpi/reader_parchment_source.png
           test -s medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/MedicineHomeArtwork.kt
           grep -q 'StandaloneBottomNav' medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/App.kt
+          grep -q 'onHome = { returnToCompassHome(context, activity) }' medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/App.kt
+          grep -q 'FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP' medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/App.kt
+          ! grep -q '<translate' medicine/src/main/res/anim/section_enter.xml
+          ! grep -q '<translate' medicine/src/main/res/anim/section_exit.xml
+          ! grep -q '<translate' medicine/src/main/res/anim/section_return_enter.xml
+          ! grep -q '<translate' medicine/src/main/res/anim/section_return_exit.xml
           ! grep -q 'HeartPrayerBottomNav' medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/App.kt
           grep -q 'MedicineHomeArtwork.isReady()' medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/MainActivity.kt
           grep -q 'android:exported="false"' medicine/src/main/AndroidManifest.xml
@@ -54,7 +60,7 @@ jobs:
       - name: Upload separately installable Compass Heart preview
         uses: actions/upload-artifact@v4
         with:
-          name: Compass-Heart-New-Medicine-Smooth-APK
+          name: Compass-Heart-Medicine-Home-Fade-R8-APK
           path: app/build/outputs/apk/smoothPreview/app-smoothPreview.apk
           retention-days: 30
           if-no-files-found: error

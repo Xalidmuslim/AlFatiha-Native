@@ -250,7 +250,9 @@ fun MedicinaApp(book: BookData, store: AppStore) {
         }
             StandaloneBottomNav(
                 current = current,
-                onHome = { root(Route.Home) },
+                // "Главная" is the main Compass Heart dashboard, not
+                // Medicine's own book landing screen.
+                onHome = { returnToCompassHome(context, activity) },
                 onTopics = {
                     if (current is Route.Reader) lastReaderChapterId = (current as Route.Reader).chapterId
                     contentsRequest += 1
@@ -265,6 +267,26 @@ fun MedicinaApp(book: BookData, store: AppStore) {
     }
 }
 
+
+/**
+ * Explicitly reopen the existing host Activity and request its dashboard.
+ * CLEAR_TOP|SINGLE_TOP reuses the Compass instance (bookmarks/settings stay
+ * intact) instead of creating a second root activity in the back stack.
+ */
+private fun returnToCompassHome(context: android.content.Context, activity: Activity?) {
+    val intent = Intent()
+        .setClassName(context.packageName, "app.alfatiha.tafsir.MainActivity")
+        .putExtra("heart_nav", "home")
+        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    context.startActivity(intent)
+    activity?.finish()
+    if (Build.VERSION.SDK_INT < 34 && activity != null) {
+        @Suppress("DEPRECATION")
+        activity.overridePendingTransition(
+            R.anim.section_return_enter, R.anim.section_return_exit,
+        )
+    }
+}
 
 private fun routeStateKey(route: Route): String = when (route) {
     Route.Home -> "home"
