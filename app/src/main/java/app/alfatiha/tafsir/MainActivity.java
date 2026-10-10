@@ -79,6 +79,43 @@ public class MainActivity extends Activity {
             "Размышляй до тех пор, пока слова не перестанут быть только словами.",
             "Когда смысл входит в сердце, поклонение перестаёт быть привычкой."
     };
+    private static final String[] HERO_PHRASES_AR = new String[]{
+            "لا تنظر إلى الأسباب وحدها، بل انظر إلى مَن يتوجّه إليه قلبك.",
+            "حين يعرف القلب ربَّه، تأخذ الأسباب مكانها الصحيح.",
+            "ترى العين الأسباب، وأما القلب فعليه أن يستحضر مَن يدبّرها.",
+            "لا يبقى القلب فارغًا؛ فإن لم يشغله ذكر الله شغلته المخلوقات.",
+            "تبدأ عبودية القلب لغير الله حين ينتظر من المخلوق ما لا يملكه إلا الله.",
+            "صلاح القلب أن تبقى الأسباب في اليد، وألا تستولي على القلب.",
+            "مَن عرف ربَّه أخذ بالأسباب، لكنه لم يسلّم قلبه إليها.",
+            "كلما ازدادت معرفة القلب بالله، قلّ خوفه مما في أيدي الناس.",
+            "قد تكون بين اللسان والقلب مسافة طويلة.",
+            "يُعرف اتجاه القلب عند الحاجة والاضطرار أكثر مما يُعرف عند السكون.",
+            "ما يعود إليه القلب في قلقه يكشف حقيقة اعتماده.",
+            "قد يبقى السبب في اليد، وقد يتسلّل من غير شعور إلى القلب.",
+            "ليس كل من نطق بكلمات التوكل قد تحرّر قلبه من التعلّق بالأسباب.",
+            "امتحان القلب ليس في وجود الأسباب، بل في تعلّقه بها.",
+            "قد يتعلّق القلب بما لم يسمّه اللسان يومًا ربًّا.",
+            "يسير القلب نحو مَن فوّض إليه أمره.",
+            "يُختبر إيمان القلب لا بالكلمات وحدها، بل بمن يفوّض إليه العواقب.",
+            "حين يصحّح القلب وجهته، تعود الأسباب إلى موضعها الصحيح.",
+            "كلما ضعفت معرفة العبد بربه، اشتدّ تعلّق قلبه بالمخلوقات.",
+            "إذا فهم القلب ما ينطق به اللسان، دبت الحياة في العبادة.",
+            "يبدأ التدبّر حين يكفّ القلب عن المرور على المعاني دون التفات.",
+            "تقود الكلمات إلى المعنى، ويقود المعنى إلى التفكر، ويقود التفكر إلى الله.",
+            "لا تقرأ بلسانك وحده؛ دع قلبك يسمع ما تنطق به.",
+            "حين يقرأ اللسان، فليبحث القلب عمّن تتوجّه إليه الكلمات.",
+            "حضور القلب أن ينطق اللسان، ويفهم العقل، ويتوجّه القلب إلى الله.",
+            "تدبّر حتى لا تبقى الكلمات مجرد ألفاظ.",
+            "حين يدخل المعنى إلى القلب، تتحول العبادة من عادة إلى حياة."
+    };
+    // Keep the original Russian phrase and its shuffle/no-repeat identity.
+    private String currentHeroPhrase() {
+        if (!arabicUi()) return sessionHeroPhrase;
+        for (int i = 0; i < HERO_PHRASES.length; i++) {
+            if (HERO_PHRASES[i].equals(sessionHeroPhrase)) return HERO_PHRASES_AR[i];
+        }
+        return sessionHeroPhrase;
+    }
     private String sessionHeroPhrase=HERO_PHRASES[0];
     private boolean heroPhraseAnimationPlayed=false;
     private KnowledgeAnalytics.Catalog knowledgeCatalog;
@@ -1696,10 +1733,11 @@ public class MainActivity extends Activity {
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
 
         boolean animatePhrase=!heroPhraseAnimationPlayed;
+        String visibleHeroPhrase=currentHeroPhrase();
         SandPhraseView phraseView=new SandPhraseView(
                 this,
-                sessionHeroPhrase,
-                heroPhraseSizeDp(sessionHeroPhrase,heroH),
+                visibleHeroPhrase,
+                heroPhraseSizeDp(visibleHeroPhrase,heroH),
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),
                 animatePhrase
         );
