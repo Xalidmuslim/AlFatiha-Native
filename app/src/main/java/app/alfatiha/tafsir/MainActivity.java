@@ -8015,21 +8015,39 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
 
+    /**
+     * Arabic editorial bundles live under assets/ar/<original-name>.
+     * Never mutate Russian files, IDs or correctness fields. If a complete
+     * verified bundle has not been supplied, the original file is retained.
+     */
+    private String localizedAssetPath(String name) {
+        if (!arabicUi()) return name;
+        String candidate="ar/"+name;
+        try (InputStream ignored=getAssets().open(candidate)) {
+            return candidate;
+        } catch (IOException missing) {
+            return name;
+        }
+    }
+
     private JSONArray arr(String name){
-        if(cache.containsKey(name))return cache.get(name);
-        try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){
-            byte[]buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);JSONArray a=new JSONArray(out.toString("UTF-8"));cache.put(name,a);return a;
-        }catch(Exception e){e.printStackTrace();return new JSONArray();}
+        String path=localizedAssetPath(name);
+        if(cache.containsKey(path))return cache.get(path);
+        try(InputStream in=getAssets().open(path);ByteArrayOutputStream out=new ByteArrayOutputStream()){
+            byte[]buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);
+            JSONArray a=new JSONArray(out.toString("UTF-8"));cache.put(path,a);return a;
+        }catch(Exception e){android.util.Log.e("CompassLanguage","Cannot load content bundle "+path,e);return new JSONArray();}
     }
 
     private JSONObject obj(String name){
-        try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){
+        String path=localizedAssetPath(name);
+        try(InputStream in=getAssets().open(path);ByteArrayOutputStream out=new ByteArrayOutputStream()){
             byte[]buf=new byte[8192];
             int n;
             while((n=in.read(buf))>0)out.write(buf,0,n);
             return new JSONObject(out.toString("UTF-8"));
         }catch(Exception e){
-            e.printStackTrace();
+            android.util.Log.e("CompassLanguage","Cannot load object bundle "+path,e);
             return new JSONObject();
         }
     }
