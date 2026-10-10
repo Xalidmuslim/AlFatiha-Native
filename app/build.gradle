@@ -93,7 +93,7 @@ android {
             // modifying the real Compass Heart release signing configuration.
             initWith release
             matchingFallbacks = ['release']
-            applicationIdSuffix '.medicinepreview'
+            applicationIdSuffix '.medicinepreview146'
             versionNameSuffix '-medicine-preview'
             signingConfig signingConfigs.debug
             minifyEnabled true

@@ -2,7 +2,7 @@ name: Compass Heart with Smooth Medicine - optimized APK
 
 on:
   push:
-    branches: [codex/compass-medicine-smooth-integration-20261010, codex/compass-medicine-home-fade-20261010]
+    branches: [codex/compass-medicine-smooth-integration-20261010, codex/compass-medicine-home-fade-20261010, codex/compass-medicine-fade-safe-install-20261010]
   workflow_dispatch:
 
 permissions:
@@ -55,12 +55,12 @@ jobs:
           test -s "$APK"
           unzip -t "$APK" >/dev/null
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F 'app.alfatiha.tafsir.medicinepreview'
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F 'app.alfatiha.tafsir.medicinepreview146'
           unzip -l "$APK" | grep -F 'assets/book.json'
       - name: Upload separately installable Compass Heart preview
         uses: actions/upload-artifact@v4
         with:
-          name: Compass-Heart-Medicine-Home-Fade-R8-APK
+          name: Compass-Heart-v1.3.46-Home-Fade-Safe-Install
           path: app/build/outputs/apk/smoothPreview/app-smoothPreview.apk
           retention-days: 30
           if-no-files-found: error
