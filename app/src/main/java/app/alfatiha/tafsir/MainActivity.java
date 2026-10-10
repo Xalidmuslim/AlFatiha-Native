@@ -962,7 +962,7 @@ public class MainActivity extends Activity {
 
     private TextView chromeText(String value,float size,int color,boolean bold){
         TextView t=new TextView(this);
-        t.setText(value==null?"":value);
+        t.setText(value==null?"":ui(value));
         // App chrome is intentionally independent from reading font scale and font mode.
         t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(size));
         t.setTextColor(color);
@@ -976,7 +976,7 @@ public class MainActivity extends Activity {
 
     private TextView homeText(String value,float size,int color,boolean bold){
         TextView t=new TextView(this);
-        t.setText(value==null?"":value);
+        t.setText(value==null?"":ui(value));
         // Home/dashboard typography is layout chrome, not reading content:
         // changing the reader font size must never reflow the dashboard.
         t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(size));
@@ -990,7 +990,7 @@ public class MainActivity extends Activity {
 
     private Button homeAction(String label,int color){
         Button b=new Button(this);
-        b.setText(label);
+        b.setText(ui(label));
         b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(14.2f));
         b.setTextColor(Color.WHITE);
         b.setAllCaps(false);
