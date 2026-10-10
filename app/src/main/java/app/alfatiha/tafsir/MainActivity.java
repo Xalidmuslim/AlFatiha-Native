@@ -43,6 +43,7 @@ public class MainActivity extends Activity {
     private float fontScale = 1f;
     private boolean dark = false;
     private String fontMode = "modern";
+    private String appLanguage = CompassLanguage.RU;
     private final HashMap<String, JSONArray> cache = new HashMap<>();
     private String currentSection = "home";
     private int homeTileHeightDp=150;
@@ -78,6 +79,43 @@ public class MainActivity extends Activity {
             "Размышляй до тех пор, пока слова не перестанут быть только словами.",
             "Когда смысл входит в сердце, поклонение перестаёт быть привычкой."
     };
+    private static final String[] HERO_PHRASES_AR = new String[]{
+            "لا تنظر إلى الأسباب وحدها، بل انظر إلى مَن يتوجّه إليه قلبك.",
+            "حين يعرف القلب ربَّه، تأخذ الأسباب مكانها الصحيح.",
+            "ترى العين الأسباب، وأما القلب فعليه أن يستحضر مَن يدبّرها.",
+            "لا يبقى القلب فارغًا؛ فإن لم يشغله ذكر الله شغلته المخلوقات.",
+            "تبدأ عبودية القلب لغير الله حين ينتظر من المخلوق ما لا يملكه إلا الله.",
+            "صلاح القلب أن تبقى الأسباب في اليد، وألا تستولي على القلب.",
+            "مَن عرف ربَّه أخذ بالأسباب، لكنه لم يسلّم قلبه إليها.",
+            "كلما ازدادت معرفة القلب بالله، قلّ خوفه مما في أيدي الناس.",
+            "قد تكون بين اللسان والقلب مسافة طويلة.",
+            "يُعرف اتجاه القلب عند الحاجة والاضطرار أكثر مما يُعرف عند السكون.",
+            "ما يعود إليه القلب في قلقه يكشف حقيقة اعتماده.",
+            "قد يبقى السبب في اليد، وقد يتسلّل من غير شعور إلى القلب.",
+            "ليس كل من نطق بكلمات التوكل قد تحرّر قلبه من التعلّق بالأسباب.",
+            "امتحان القلب ليس في وجود الأسباب، بل في تعلّقه بها.",
+            "قد يتعلّق القلب بما لم يسمّه اللسان يومًا ربًّا.",
+            "يسير القلب نحو مَن فوّض إليه أمره.",
+            "يُختبر إيمان القلب لا بالكلمات وحدها، بل بمن يفوّض إليه العواقب.",
+            "حين يصحّح القلب وجهته، تعود الأسباب إلى موضعها الصحيح.",
+            "كلما ضعفت معرفة العبد بربه، اشتدّ تعلّق قلبه بالمخلوقات.",
+            "إذا فهم القلب ما ينطق به اللسان، دبت الحياة في العبادة.",
+            "يبدأ التدبّر حين يكفّ القلب عن المرور على المعاني دون التفات.",
+            "تقود الكلمات إلى المعنى، ويقود المعنى إلى التفكر، ويقود التفكر إلى الله.",
+            "لا تقرأ بلسانك وحده؛ دع قلبك يسمع ما تنطق به.",
+            "حين يقرأ اللسان، فليبحث القلب عمّن تتوجّه إليه الكلمات.",
+            "حضور القلب أن ينطق اللسان، ويفهم العقل، ويتوجّه القلب إلى الله.",
+            "تدبّر حتى لا تبقى الكلمات مجرد ألفاظ.",
+            "حين يدخل المعنى إلى القلب، تتحول العبادة من عادة إلى حياة."
+    };
+    // Keep the original Russian phrase and its shuffle/no-repeat identity.
+    private String currentHeroPhrase() {
+        if (!arabicUi()) return sessionHeroPhrase;
+        for (int i = 0; i < HERO_PHRASES.length; i++) {
+            if (HERO_PHRASES[i].equals(sessionHeroPhrase)) return HERO_PHRASES_AR[i];
+        }
+        return sessionHeroPhrase;
+    }
     private String sessionHeroPhrase=HERO_PHRASES[0];
     private boolean heroPhraseAnimationPlayed=false;
     private KnowledgeAnalytics.Catalog knowledgeCatalog;
@@ -108,6 +146,7 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
         prefs=getSharedPreferences("alfatiha_native",MODE_PRIVATE);
+        appLanguage=CompassLanguage.get(this);
         sessionHeroPhrase=pickHeroPhraseForLaunch();
         fontScale=prefs.getFloat("fontScale",1f);
         dark=prefs.getBoolean("dark",false);
@@ -202,9 +241,28 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(flags);
     }
 
+    private boolean arabicUi() { return CompassLanguage.AR.equals(appLanguage); }
+
+    private String ui(String original) {
+        return arabicUi() ? CompassLanguage.translatedUi(original) : original;
+    }
+
+    private void changeAppLanguage(String next) {
+        String selected=CompassLanguage.AR.equals(next)?CompassLanguage.AR:CompassLanguage.RU;
+        if(selected.equals(appLanguage))return;
+        CompassLanguage.set(this,selected);
+        appLanguage=selected;
+        // Recreate the host View hierarchy, without altering progress, reader
+        // state, font size, the shared dark theme, or the installed package.
+        buildShell();
+        renderSettings(false);
+    }
+
     private void buildShell(){
         applyWindowChrome();
+        getWindow().getDecorView().setLayoutDirection(arabicUi()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);
         LinearLayout root=new LinearLayout(this);
+        root.setLayoutDirection(arabicUi()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(bg());
 
@@ -277,7 +335,7 @@ public class MainActivity extends Activity {
         icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         box.addView(icon,new LinearLayout.LayoutParams(dp(24),dp(24)));
 
-        TextView l=chromeText(label,11.2f,color,false);
+        TextView l=chromeText(ui(label),11.2f,color,false);
         l.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams llp=new LinearLayout.LayoutParams(-1,dp(22));
         llp.setMargins(0,dp(2),0,0);
@@ -303,7 +361,9 @@ public class MainActivity extends Activity {
 
     private TextView text(String s,float size,int color,boolean bold){
         TextView t=new TextView(this);
-        t.setText(s==null?"":s);
+        String localized=ui(s);
+        t.setText(localized==null?"":localized);
+        t.setTextDirection(View.TEXT_DIRECTION_FIRST_STRONG);
         t.setTextSize(sz(size));
         t.setTextColor(color);
         t.setLineSpacing(dp(2),1.09f);
@@ -354,7 +414,7 @@ public class MainActivity extends Activity {
 
     private Button action(String label,int color){
         Button b=new Button(this);
-        b.setText(label); b.setTextSize(sz(16)); b.setTextColor(Color.WHITE); b.setAllCaps(false);
+        b.setText(ui(label)); b.setTextSize(sz(16)); b.setTextColor(Color.WHITE); b.setAllCaps(false);
         b.setTypeface(tf(false)); b.setGravity(Gravity.CENTER);
         b.setPadding(dp(14),0,dp(14),0);
         b.setBackground(surfaceBg(color,blend(color,Color.BLACK,.08f),18,0));
@@ -366,7 +426,7 @@ public class MainActivity extends Activity {
 
     private Button outline(String label){
         Button b=new Button(this);
-        b.setText(label); b.setTextSize(sz(15)); b.setTextColor(ink()); b.setAllCaps(false);
+        b.setText(ui(label)); b.setTextSize(sz(15)); b.setTextColor(ink()); b.setAllCaps(false);
         b.setTypeface(tf(false)); b.setGravity(Gravity.CENTER_VERTICAL|Gravity.CENTER_HORIZONTAL);
         b.setPadding(dp(12),0,dp(12),0);
         b.setBackground(surfaceBg(dark?Color.rgb(43,50,46):Color.rgb(251,249,244),dark?Color.rgb(39,46,42):Color.rgb(247,244,237),16,line()));
@@ -902,7 +962,7 @@ public class MainActivity extends Activity {
 
     private TextView chromeText(String value,float size,int color,boolean bold){
         TextView t=new TextView(this);
-        t.setText(value==null?"":value);
+        t.setText(value==null?"":ui(value));
         // App chrome is intentionally independent from reading font scale and font mode.
         t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(size));
         t.setTextColor(color);
@@ -916,21 +976,22 @@ public class MainActivity extends Activity {
 
     private TextView homeText(String value,float size,int color,boolean bold){
         TextView t=new TextView(this);
-        t.setText(value==null?"":value);
+        t.setText(value==null?"":ui(value));
         // Home/dashboard typography is layout chrome, not reading content:
         // changing the reader font size must never reflow the dashboard.
         t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(size));
         t.setTextColor(color);
-        t.setTypeface(Typeface.create(bold?"serif":"sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));
-        t.setIncludeFontPadding(false);
-        t.setLineSpacing(dp(1),1.03f);
+        t.setTypeface(Typeface.create(arabicUi()?"sans-serif":(bold?"serif":"sans-serif"),bold?Typeface.BOLD:Typeface.NORMAL));
+        t.setIncludeFontPadding(arabicUi());
+        t.setTextDirection(arabicUi()?View.TEXT_DIRECTION_RTL:View.TEXT_DIRECTION_FIRST_STRONG);
+        t.setLineSpacing(dp(1),arabicUi()?1.10f:1.03f);
         t.setPadding(0,0,0,0);
         return t;
     }
 
     private Button homeAction(String label,int color){
         Button b=new Button(this);
-        b.setText(label);
+        b.setText(ui(label));
         b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(14.2f));
         b.setTextColor(Color.WHITE);
         b.setAllCaps(false);
@@ -1258,6 +1319,21 @@ public class MainActivity extends Activity {
     }
 
     private String primaryLearningResumeText(){
+        // Don't translate Russian fragments assembled from dynamic progress.
+        // Build a short, native Arabic line that fits the hero mini-card.
+        if(arabicUi()){
+            if("prayer".equals(primaryLearningTrack())){
+                int last=prefs.getInt("prayer_secrets_last_idx",-1);
+                int total=Math.max(0,arr("prayer_secrets.json").length()-1);
+                return last>=1 && last<=total
+                        ? "أسرار الصلاة\nالدرس "+displayNumber(last)+" من "+displayNumber(total)
+                        : "أسرار الصلاة\nابدأ التعلّم";
+            }
+            int last=prefs.getInt("mind_last_idx",-1);
+            return last>=0
+                    ? "الفاتحة\nالجزء "+displayNumber(last+1)+" من ٨"
+                    : "الفاتحة\nابدأ التعلّم";
+        }
         if("prayer".equals(primaryLearningTrack())){
             String line=prayerSecretResumeLine().replace("Продолжить · ","");
             return "Тайны молитвы · "+line;
@@ -1302,6 +1378,15 @@ public class MainActivity extends Activity {
         if("minor_shirk".equals(key))return minorShirkSeenCount("minor_shirk_quiz_answered");
         if("prayer_basic".equals(key))return prayerCheckAnsweredCount();
         return quizAnsweredCount(key);
+    }
+
+    private String displayNumber(int value) {
+        if(!arabicUi())return String.valueOf(value);
+        return String.valueOf(value)
+                .replace('0','٠').replace('1','١').replace('2','٢')
+                .replace('3','٣').replace('4','٤').replace('5','٥')
+                .replace('6','٦').replace('7','٧').replace('8','٨')
+                .replace('9','٩');
     }
 
     private String lastQuizTitle(){
@@ -1597,7 +1682,9 @@ public class MainActivity extends Activity {
         // Home is intentionally a one-screen dashboard. Scale only its chrome
         // to the available phone height; course/reader typography is untouched.
         page.setPadding(dp(8),dp(1),dp(8),dp(4));
-        scroll.setVerticalScrollBarEnabled(false);
+        // Arabic glyphs require extra vertical space; enable natural
+        // dashboard scroll instead of cropping two-line card descriptions.
+        scroll.setVerticalScrollBarEnabled(arabicUi());
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         int screenH=getResources().getConfiguration().screenHeightDp;
         final int heroH;
@@ -1613,6 +1700,12 @@ public class MainActivity extends Activity {
             // shrink just to force the dashboard into a single viewport.
             heroH=222; resumeH=0; homeTileHeightDp=128; homeTileIconDp=52;
             homeTileTitleSp=13.4f; homeTileSubSp=10.9f;
+        }
+
+        if(arabicUi()) {
+            homeTileHeightDp += 18;
+            homeTileTitleSp += .3f;
+            homeTileSubSp += .1f;
         }
 
         int pct=primaryLearningProgress();
@@ -1673,10 +1766,11 @@ public class MainActivity extends Activity {
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
 
         boolean animatePhrase=!heroPhraseAnimationPlayed;
+        String visibleHeroPhrase=currentHeroPhrase();
         SandPhraseView phraseView=new SandPhraseView(
                 this,
-                sessionHeroPhrase,
-                heroPhraseSizeDp(sessionHeroPhrase,heroH),
+                visibleHeroPhrase,
+                heroPhraseSizeDp(visibleHeroPhrase,heroH),
                 dark?Color.rgb(239,241,238):Color.rgb(27,50,42),
                 animatePhrase
         );
@@ -1711,7 +1805,11 @@ public class MainActivity extends Activity {
         );
         heroResumeLabel.setMaxLines(2);
         heroResumeLabel.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        heroResumeLabel.setLineSpacing(0,1.00f);
+        heroResumeLabel.setLineSpacing(0,arabicUi()?1.08f:1.00f);
+        if(arabicUi()){
+            heroResumeLabel.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+            heroResumeLabel.setTextDirection(View.TEXT_DIRECTION_RTL);
+        }
 
         LinearLayout.LayoutParams heroLabelLp=
                 new LinearLayout.LayoutParams(-1,-2);
@@ -1732,7 +1830,7 @@ public class MainActivity extends Activity {
                 heroBarLp
         );
         TextView heroPct=homeText(
-                pct+"%",
+                displayNumber(pct)+"%",
                 9.4f,
                 dark?Color.rgb(184,193,188):Color.rgb(108,105,99),
                 false
@@ -1774,7 +1872,7 @@ public class MainActivity extends Activity {
         heroResume.addView(continueBtn,continueLp);
 
         LinearLayout.LayoutParams hap=
-                new LinearLayout.LayoutParams(dp(214),dp(44));
+                new LinearLayout.LayoutParams(dp(arabicUi()?224:214),dp(arabicUi()?62:44));
         heroText.addView(heroResume,hap);
 
         FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(248),-1);
@@ -1814,7 +1912,18 @@ public class MainActivity extends Activity {
         LinearLayout qrText=new LinearLayout(this);
         qrText.setOrientation(LinearLayout.VERTICAL);
         qrText.addView(homeText("Продолжить викторину",13.5f,ink(),true));
-        qrText.addView(homeText(lastQuizTitle()+" · "+quizDone+" из "+quizTotal,11.0f,muted(),false));
+        String quizResumeLine=arabicUi()
+                ? ui(lastQuizTitle())+" · "+displayNumber(quizDone)+" من "+displayNumber(quizTotal)
+                : lastQuizTitle()+" · "+quizDone+" из "+quizTotal;
+        TextView qrSubtitle=homeText(quizResumeLine,11.0f,muted(),false);
+        qrSubtitle.setMaxLines(2);
+        qrSubtitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        if(arabicUi()){
+            qrText.setGravity(Gravity.RIGHT);
+            qrSubtitle.setGravity(Gravity.RIGHT);
+            qrSubtitle.setTextDirection(View.TEXT_DIRECTION_RTL);
+        }
+        qrText.addView(qrSubtitle);
         qrTop.addView(qrText,new LinearLayout.LayoutParams(0,-2,1));
         TextView qrArrow=homeText("›",20,ink(),false);
         qrArrow.setGravity(Gravity.CENTER);
@@ -1828,7 +1937,7 @@ public class MainActivity extends Activity {
         LinearLayout qrProgress=new LinearLayout(this);
         qrProgress.setOrientation(LinearLayout.VERTICAL);
         qrProgress.setGravity(Gravity.CENTER_VERTICAL);
-        TextView qrPct=homeText(quizPct+"%",10.0f,muted(),false);
+        TextView qrPct=homeText(displayNumber(quizPct)+"%",10.0f,muted(),false);
         qrPct.setGravity(Gravity.CENTER);
         qrProgress.addView(qrPct,new LinearLayout.LayoutParams(dp(38),dp(17)));
         LinearLayout.LayoutParams qrBarLp=new LinearLayout.LayoutParams(dp(38),dp(4));
@@ -1838,7 +1947,7 @@ public class MainActivity extends Activity {
         qrpLp.setMargins(dp(6),0,0,0);
         quizResume.addView(qrProgress,qrpLp);
 
-        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(54));
+        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(arabicUi()?65:54));
         qrLp.setMargins(0,0,0,dp(2));
         page.addView(quizResume,qrLp);
 
@@ -1970,7 +2079,7 @@ public class MainActivity extends Activity {
 
         LinearLayout textBlock=new LinearLayout(this);
         textBlock.setOrientation(LinearLayout.VERTICAL);
-        textBlock.setGravity(Gravity.BOTTOM|Gravity.LEFT);
+        textBlock.setGravity(Gravity.BOTTOM|(arabicUi()?Gravity.RIGHT:Gravity.LEFT));
         final boolean liftSingleLineTile=
                 "Малый ширк".equals(title)
                 || "Азкары".equals(title)
@@ -2005,8 +2114,9 @@ public class MainActivity extends Activity {
         t.setMinLines(1);
         t.setMaxLines(2);
         t.setEllipsize(null);
-        t.setGravity(Gravity.LEFT);
-        t.setLineSpacing(0,1.00f);
+        t.setGravity(arabicUi()?Gravity.RIGHT:Gravity.LEFT);
+        t.setTextDirection(arabicUi()?View.TEXT_DIRECTION_RTL:View.TEXT_DIRECTION_FIRST_STRONG);
+        t.setLineSpacing(0,arabicUi()?1.12f:1.00f);
         t.setPadding(0,0,0,0);
         textBlock.addView(t,new LinearLayout.LayoutParams(-1,-2));
 
@@ -2014,8 +2124,9 @@ public class MainActivity extends Activity {
         st.setMinLines(1);
         st.setMaxLines(2);
         st.setEllipsize(null);
-        st.setGravity(Gravity.LEFT);
-        st.setLineSpacing(0,1.00f);
+        st.setGravity(arabicUi()?Gravity.RIGHT:Gravity.LEFT);
+        st.setTextDirection(arabicUi()?View.TEXT_DIRECTION_RTL:View.TEXT_DIRECTION_FIRST_STRONG);
+        st.setLineSpacing(0,arabicUi()?1.10f:1.00f);
         st.setPadding(0,0,0,0);
 
         LinearLayout.LayoutParams subLp=
@@ -7474,7 +7585,22 @@ public class MainActivity extends Activity {
     }
 
     private void renderSettings(boolean push){
-        clear("settings","",push);currentSection="settings";appTop();header("Настройки","Изменения применяются сразу в этом окне.");
+        clear("settings","",push);currentSection="settings";appTop();
+        header("Настройки",arabicUi()?"تُطبّق إعدادات الواجهة فورًا.":"Изменения применяются сразу в этом окне.");
+        LinearLayout language=card(panel());
+        language.addView(text("Язык приложения",18,ink(),true));
+        language.addView(text(arabicUi()?"اختر لغة الواجهة.":"Выберите язык интерфейса",14,muted(),false));
+        Button ru=outline((arabicUi()?"":"✓  ")+"Русский");
+        Button ar=outline((arabicUi()?"✓  ":"")+"العربية");
+        ru.setOnClickListener(v->changeAppLanguage(CompassLanguage.RU));
+        ar.setOnClickListener(v->changeAppLanguage(CompassLanguage.AR));
+        language.addView(ru,new LinearLayout.LayoutParams(-1,dp(48)));
+        language.addView(ar,new LinearLayout.LayoutParams(-1,dp(48)));
+        if(arabicUi()) {
+            language.addView(text("المحتوى العلمي والاختبارات والكتب التي لم تُراجع ترجمتها بعد ستبقى بلغتها الأصلية، حفاظًا على أمانة النصوص.",13,muted(),false));
+        } else {
+            language.addView(text("Переводы учебных материалов, хадисов и книг публикуются отдельно после сверки с источниками.",12,muted(),false));
+        }
         LinearLayout f=card(panel());f.addView(text("Размер текста",18,ink(),true));LinearLayout row=new LinearLayout(this);
         float[] zs={.9f,1f,1.15f,1.28f};String[] zn={"S","M","L","XL"};for(int i=0;i<zs.length;i++){float z=zs[i];Button b=outline(zn[i]);if(Math.abs(fontScale-z)<.02f)b.setBackground(surfaceBg(sageSoft(),sageSoft(),16,C_SAGE));b.setOnClickListener(v->{fontScale=z;prefs.edit().putFloat("fontScale",z).apply();renderSettings(false);});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(52),1);if(i>0)lp.setMargins(dp(6),0,0,0);row.addView(b,lp);}f.addView(row);
         LinearLayout font=card(blueSoft());font.addView(text("Стиль шрифта",18,ink(),true));String[][] modes={{"modern","Современный"},{"classic","Классический"},{"compact","Компактный"}};for(String[] m:modes){Button b=outline((fontMode.equals(m[0])?"✓  ":"")+m[1]);b.setOnClickListener(v->{fontMode=m[0];prefs.edit().putString("fontMode",fontMode).apply();renderSettings(false);});font.addView(b,new LinearLayout.LayoutParams(-1,dp(50)));}
@@ -7977,21 +8103,39 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
 
+    /**
+     * Arabic editorial bundles live under assets/ar/<original-name>.
+     * Never mutate Russian files, IDs or correctness fields. If a complete
+     * verified bundle has not been supplied, the original file is retained.
+     */
+    private String localizedAssetPath(String name) {
+        if (!arabicUi()) return name;
+        String candidate="ar/"+name;
+        try (InputStream ignored=getAssets().open(candidate)) {
+            return candidate;
+        } catch (IOException missing) {
+            return name;
+        }
+    }
+
     private JSONArray arr(String name){
-        if(cache.containsKey(name))return cache.get(name);
-        try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){
-            byte[]buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);JSONArray a=new JSONArray(out.toString("UTF-8"));cache.put(name,a);return a;
-        }catch(Exception e){e.printStackTrace();return new JSONArray();}
+        String path=localizedAssetPath(name);
+        if(cache.containsKey(path))return cache.get(path);
+        try(InputStream in=getAssets().open(path);ByteArrayOutputStream out=new ByteArrayOutputStream()){
+            byte[]buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);
+            JSONArray a=new JSONArray(out.toString("UTF-8"));cache.put(path,a);return a;
+        }catch(Exception e){android.util.Log.e("CompassLanguage","Cannot load content bundle "+path,e);return new JSONArray();}
     }
 
     private JSONObject obj(String name){
-        try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){
+        String path=localizedAssetPath(name);
+        try(InputStream in=getAssets().open(path);ByteArrayOutputStream out=new ByteArrayOutputStream()){
             byte[]buf=new byte[8192];
             int n;
             while((n=in.read(buf))>0)out.write(buf,0,n);
             return new JSONObject(out.toString("UTF-8"));
         }catch(Exception e){
-            e.printStackTrace();
+            android.util.Log.e("CompassLanguage","Cannot load object bundle "+path,e);
             return new JSONObject();
         }
     }
