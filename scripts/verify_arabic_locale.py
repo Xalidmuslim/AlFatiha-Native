@@ -44,6 +44,7 @@ for target in sorted(arabic.glob('*.json')):
 
 # Track partial content coverage explicitly; do not market this as a full
 # translation until every content bundle has an Arabic counterpart and review.
-print(f'Arabic UI vocabulary: {len(re.findall(r"UI\\.put\\(",language))} entries')
+ui_count=language.count("UI.put(")
+print(f'Arabic UI vocabulary: {ui_count} entries')
 print(f'Arabic lesson bundles: {validated}/{len(names)} main content JSON files')
 print('Original Russian source bundles preserved; religious source verification is still required.')
