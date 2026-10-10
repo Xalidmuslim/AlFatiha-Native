@@ -176,8 +176,12 @@ public final class CompassLanguage {
         return AR.equals(get(context));
     }
 
-    public static String ui(Context context, String original) {
-        if (!isArabic(context) || original == null) return original;
+    /**
+     * Lookup in the in-memory vocabulary only. The Activity caches the
+     * language setting so hot UI rendering never reads SharedPreferences.
+     */
+    public static String translatedUi(String original) {
+        if (original == null) return null;
         String mapped = UI.get(original);
         return mapped != null ? mapped : original;
     }
