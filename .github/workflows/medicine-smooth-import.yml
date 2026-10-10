@@ -1,0 +1,93 @@
+name: One-time Medicine Smooth Module Import
+
+on:
+  push:
+    branches: [codex/compass-medicine-smooth-integration-20261010]
+    paths: ['.github/workflows/medicine-smooth-import.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-module:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Compass with existing native Medicine module
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get exact verified Medicine source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch codex/medicine-clean-app-name-20261010 \
+            https://github.com/Xalidmuslim/Prophetic-Medicine-Native.git /tmp/medicine-source
+          ACTUAL=$(git -C /tmp/medicine-source rev-parse HEAD)
+          EXPECTED=5a6347e1ca9650c93685d0be08c9074f6c897486
+          echo "Source Medicine commit: $ACTUAL"
+          test "$ACTUAL" = "$EXPECTED"
+
+      - name: Replace old Medicine module sources and preserve host entry point
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          source=Path('/tmp/medicine-source/app/src/main')
+          target=Path('medicine/src/main')
+          # Do not import a second LAUNCHER activity from the standalone APK.
+          # The existing non-exported module Activity remains the ONLY entry.
+          original_manifest=(target/'AndroidManifest.xml').read_bytes()
+          shutil.rmtree(target)
+          shutil.copytree(source, target)
+          (target/'AndroidManifest.xml').write_bytes(original_manifest)
+
+          base=target/'java/com/xalid/meditsinaproroka/nativeapp'
+          art=base/'MedicineHomeArtwork.kt'
+          data=art.read_text()
+          old='    fun preload(context: Context) {'
+          assert data.count(old)==1
+          data=data.replace(old,'    fun isReady(): Boolean = initialized\n\n'+old)
+          art.write_text(data)
+
+          activity=base/'MainActivity.kt'
+          data=activity.read_text()
+          old='if (warmedStore != null && warmedBook != null) {'
+          assert data.count(old)==1
+          data=data.replace(old,
+              'if (warmedStore != null && warmedBook != null && MedicineHomeArtwork.isReady()) {')
+          # Compass warmup already loads BookData/AppStore in background.
+          # If its image warmup is incomplete, enter through the existing
+          # Dispatchers.IO path and decode the full artwork before showing UI.
+          activity.write_text(data)
+          print('Replaced old Kotlin/resources with user-approved smooth Medicine')
+          PY
+          cmp /tmp/medicine-source/app/src/main/assets/book.json medicine/src/main/assets/book.json
+          cmp /tmp/medicine-source/app/src/main/res/drawable-nodpi/reader_parchment_source.png \
+            medicine/src/main/res/drawable-nodpi/reader_parchment_source.png
+          cmp /tmp/medicine-source/app/src/main/res/drawable-nodpi/antique_hero_refined.webp \
+            medicine/src/main/res/drawable-nodpi/antique_hero_refined.webp
+          grep -q 'MedicineHomeArtwork.isReady()' \
+            medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/MainActivity.kt
+          grep -q 'android:exported="false"' medicine/src/main/AndroidManifest.xml
+          test -s medicine/src/main/res/drawable-nodpi/antique_card_frame.9.png
+          test ! -e medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/HeartPrayerBottomNav.kt
+          echo 'Source, paper and Compass-only Activity verified.'
+
+      - name: Commit the single replaced module to the review branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A medicine/src/main
+          if git diff --cached --quiet; then
+            echo 'Already synchronized.'
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m 'feat(medicine): replace old host module with verified Distinct Paper smooth native version'
+          git push origin HEAD:codex/compass-medicine-smooth-integration-20261010
