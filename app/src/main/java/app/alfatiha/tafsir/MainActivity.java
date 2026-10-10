@@ -981,9 +981,10 @@ public class MainActivity extends Activity {
         // changing the reader font size must never reflow the dashboard.
         t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(size));
         t.setTextColor(color);
-        t.setTypeface(Typeface.create(bold?"serif":"sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));
-        t.setIncludeFontPadding(false);
-        t.setLineSpacing(dp(1),1.03f);
+        t.setTypeface(Typeface.create(arabicUi()?"sans-serif":(bold?"serif":"sans-serif"),bold?Typeface.BOLD:Typeface.NORMAL));
+        t.setIncludeFontPadding(arabicUi());
+        t.setTextDirection(arabicUi()?View.TEXT_DIRECTION_RTL:View.TEXT_DIRECTION_FIRST_STRONG);
+        t.setLineSpacing(dp(1),arabicUi()?1.10f:1.03f);
         t.setPadding(0,0,0,0);
         return t;
     }
@@ -1318,6 +1319,21 @@ public class MainActivity extends Activity {
     }
 
     private String primaryLearningResumeText(){
+        // Don't translate Russian fragments assembled from dynamic progress.
+        // Build a short, native Arabic line that fits the hero mini-card.
+        if(arabicUi()){
+            if("prayer".equals(primaryLearningTrack())){
+                int last=prefs.getInt("prayer_secrets_last_idx",-1);
+                int total=Math.max(0,arr("prayer_secrets.json").length()-1);
+                return last>=1 && last<=total
+                        ? "أسرار الصلاة\nالدرس "+displayNumber(last)+" من "+displayNumber(total)
+                        : "أسرار الصلاة\nابدأ التعلّم";
+            }
+            int last=prefs.getInt("mind_last_idx",-1);
+            return last>=0
+                    ? "الفاتحة\nالجزء "+displayNumber(last+1)+" من ٨"
+                    : "الفاتحة\nابدأ التعلّم";
+        }
         if("prayer".equals(primaryLearningTrack())){
             String line=prayerSecretResumeLine().replace("Продолжить · ","");
             return "Тайны молитвы · "+line;
@@ -1362,6 +1378,15 @@ public class MainActivity extends Activity {
         if("minor_shirk".equals(key))return minorShirkSeenCount("minor_shirk_quiz_answered");
         if("prayer_basic".equals(key))return prayerCheckAnsweredCount();
         return quizAnsweredCount(key);
+    }
+
+    private String displayNumber(int value) {
+        if(!arabicUi())return String.valueOf(value);
+        return String.valueOf(value)
+                .replace('0','٠').replace('1','١').replace('2','٢')
+                .replace('3','٣').replace('4','٤').replace('5','٥')
+                .replace('6','٦').replace('7','٧').replace('8','٨')
+                .replace('9','٩');
     }
 
     private String lastQuizTitle(){
@@ -1657,7 +1682,9 @@ public class MainActivity extends Activity {
         // Home is intentionally a one-screen dashboard. Scale only its chrome
         // to the available phone height; course/reader typography is untouched.
         page.setPadding(dp(8),dp(1),dp(8),dp(4));
-        scroll.setVerticalScrollBarEnabled(false);
+        // Arabic glyphs require extra vertical space; enable natural
+        // dashboard scroll instead of cropping two-line card descriptions.
+        scroll.setVerticalScrollBarEnabled(arabicUi());
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         int screenH=getResources().getConfiguration().screenHeightDp;
         final int heroH;
@@ -1673,6 +1700,12 @@ public class MainActivity extends Activity {
             // shrink just to force the dashboard into a single viewport.
             heroH=222; resumeH=0; homeTileHeightDp=128; homeTileIconDp=52;
             homeTileTitleSp=13.4f; homeTileSubSp=10.9f;
+        }
+
+        if(arabicUi()) {
+            homeTileHeightDp += 18;
+            homeTileTitleSp += .3f;
+            homeTileSubSp += .1f;
         }
 
         int pct=primaryLearningProgress();
@@ -1772,7 +1805,11 @@ public class MainActivity extends Activity {
         );
         heroResumeLabel.setMaxLines(2);
         heroResumeLabel.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        heroResumeLabel.setLineSpacing(0,1.00f);
+        heroResumeLabel.setLineSpacing(0,arabicUi()?1.08f:1.00f);
+        if(arabicUi()){
+            heroResumeLabel.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+            heroResumeLabel.setTextDirection(View.TEXT_DIRECTION_RTL);
+        }
 
         LinearLayout.LayoutParams heroLabelLp=
                 new LinearLayout.LayoutParams(-1,-2);
@@ -1793,7 +1830,7 @@ public class MainActivity extends Activity {
                 heroBarLp
         );
         TextView heroPct=homeText(
-                pct+"%",
+                displayNumber(pct)+"%",
                 9.4f,
                 dark?Color.rgb(184,193,188):Color.rgb(108,105,99),
                 false
@@ -1835,7 +1872,7 @@ public class MainActivity extends Activity {
         heroResume.addView(continueBtn,continueLp);
 
         LinearLayout.LayoutParams hap=
-                new LinearLayout.LayoutParams(dp(214),dp(44));
+                new LinearLayout.LayoutParams(dp(arabicUi()?224:214),dp(arabicUi()?62:44));
         heroText.addView(heroResume,hap);
 
         FrameLayout.LayoutParams htlp=new FrameLayout.LayoutParams(dp(248),-1);
@@ -1875,7 +1912,18 @@ public class MainActivity extends Activity {
         LinearLayout qrText=new LinearLayout(this);
         qrText.setOrientation(LinearLayout.VERTICAL);
         qrText.addView(homeText("Продолжить викторину",13.5f,ink(),true));
-        qrText.addView(homeText(lastQuizTitle()+" · "+quizDone+" из "+quizTotal,11.0f,muted(),false));
+        String quizResumeLine=arabicUi()
+                ? ui(lastQuizTitle())+" · "+displayNumber(quizDone)+" من "+displayNumber(quizTotal)
+                : lastQuizTitle()+" · "+quizDone+" из "+quizTotal;
+        TextView qrSubtitle=homeText(quizResumeLine,11.0f,muted(),false);
+        qrSubtitle.setMaxLines(2);
+        qrSubtitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        if(arabicUi()){
+            qrText.setGravity(Gravity.RIGHT);
+            qrSubtitle.setGravity(Gravity.RIGHT);
+            qrSubtitle.setTextDirection(View.TEXT_DIRECTION_RTL);
+        }
+        qrText.addView(qrSubtitle);
         qrTop.addView(qrText,new LinearLayout.LayoutParams(0,-2,1));
         TextView qrArrow=homeText("›",20,ink(),false);
         qrArrow.setGravity(Gravity.CENTER);
@@ -1889,7 +1937,7 @@ public class MainActivity extends Activity {
         LinearLayout qrProgress=new LinearLayout(this);
         qrProgress.setOrientation(LinearLayout.VERTICAL);
         qrProgress.setGravity(Gravity.CENTER_VERTICAL);
-        TextView qrPct=homeText(quizPct+"%",10.0f,muted(),false);
+        TextView qrPct=homeText(displayNumber(quizPct)+"%",10.0f,muted(),false);
         qrPct.setGravity(Gravity.CENTER);
         qrProgress.addView(qrPct,new LinearLayout.LayoutParams(dp(38),dp(17)));
         LinearLayout.LayoutParams qrBarLp=new LinearLayout.LayoutParams(dp(38),dp(4));
@@ -1899,7 +1947,7 @@ public class MainActivity extends Activity {
         qrpLp.setMargins(dp(6),0,0,0);
         quizResume.addView(qrProgress,qrpLp);
 
-        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(54));
+        LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(arabicUi()?65:54));
         qrLp.setMargins(0,0,0,dp(2));
         page.addView(quizResume,qrLp);
 
@@ -2031,7 +2079,7 @@ public class MainActivity extends Activity {
 
         LinearLayout textBlock=new LinearLayout(this);
         textBlock.setOrientation(LinearLayout.VERTICAL);
-        textBlock.setGravity(Gravity.BOTTOM|Gravity.LEFT);
+        textBlock.setGravity(Gravity.BOTTOM|(arabicUi()?Gravity.RIGHT:Gravity.LEFT));
         final boolean liftSingleLineTile=
                 "Малый ширк".equals(title)
                 || "Азкары".equals(title)
@@ -2066,8 +2114,9 @@ public class MainActivity extends Activity {
         t.setMinLines(1);
         t.setMaxLines(2);
         t.setEllipsize(null);
-        t.setGravity(Gravity.LEFT);
-        t.setLineSpacing(0,1.00f);
+        t.setGravity(arabicUi()?Gravity.RIGHT:Gravity.LEFT);
+        t.setTextDirection(arabicUi()?View.TEXT_DIRECTION_RTL:View.TEXT_DIRECTION_FIRST_STRONG);
+        t.setLineSpacing(0,arabicUi()?1.12f:1.00f);
         t.setPadding(0,0,0,0);
         textBlock.addView(t,new LinearLayout.LayoutParams(-1,-2));
 
@@ -2075,8 +2124,9 @@ public class MainActivity extends Activity {
         st.setMinLines(1);
         st.setMaxLines(2);
         st.setEllipsize(null);
-        st.setGravity(Gravity.LEFT);
-        st.setLineSpacing(0,1.00f);
+        st.setGravity(arabicUi()?Gravity.RIGHT:Gravity.LEFT);
+        st.setTextDirection(arabicUi()?View.TEXT_DIRECTION_RTL:View.TEXT_DIRECTION_FIRST_STRONG);
+        st.setLineSpacing(0,arabicUi()?1.10f:1.00f);
         st.setPadding(0,0,0,0);
 
         LinearLayout.LayoutParams subLp=
