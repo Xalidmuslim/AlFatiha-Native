@@ -35,6 +35,7 @@ data class BookBlock(
     val text: String,
     val level: Int = 0,
     val hadithSources: List<String> = emptyList(),
+    val quranReference: String? = null,
 )
 
 data class Topic(val id: String, val title: String, val chapterIds: List<String>)
@@ -120,6 +121,7 @@ private fun blockFromJson(o: JSONObject): BookBlock {
         text = o.optString("text"),
         level = o.optInt("level"),
         hadithSources = sources,
+        quranReference = o.optString("quranReference").takeIf { it.isNotBlank() },
     )
 }
 

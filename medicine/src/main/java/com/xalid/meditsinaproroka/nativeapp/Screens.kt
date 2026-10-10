@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,11 +19,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageHeader(title: String, subtitle: String? = null, back: (() -> Unit)? = null) {
-    WebHeader(title = title, subtitle = subtitle, back = back)
+fun PageHeader(
+    title: String,
+    subtitle: String? = null,
+    back: (() -> Unit)? = null,
+    settings: (() -> Unit)? = null,
+    compact: Boolean = false,
+) {
+    WebHeader(title = title, subtitle = subtitle, back = back, settings = settings, compact = compact)
 }
 
 @Composable
@@ -42,7 +52,7 @@ private fun ChapterRow(chapter: Chapter, onClick: () -> Unit, trailing: String? 
                 modifier = Modifier.width(34.dp)
             )
             Column(Modifier.weight(1f)) {
-                Text(chapter.title, fontFamily = WebModernFont, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 20.sp)
+                Text(chapter.title, fontFamily = WebLiterataFont, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 20.sp)
                 if (chapter.section.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -86,11 +96,11 @@ fun HomeScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 110.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Text("Медицина Пророка ﷺ", fontFamily = WebModernFont, fontSize = 34.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold)
+            Text("Медицина Пророка ﷺ", fontFamily = WebLiterataFont, fontSize = 34.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold)
             Text(book.author, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
             Spacer(Modifier.height(8.dp))
             Text("Полный текст · чтение и изучение", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
@@ -102,7 +112,7 @@ fun HomeScreen(
                     Column(Modifier.padding(18.dp)) {
                         Text("Продолжить чтение", style = MaterialTheme.typography.labelLarge)
                         Spacer(Modifier.height(5.dp))
-                        Text(last.title, fontFamily = WebModernFont, fontSize = 23.sp, lineHeight = 27.sp, fontWeight = FontWeight.SemiBold)
+                        Text(last.title, fontFamily = WebLiterataFont, fontSize = 23.sp, lineHeight = 27.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(12.dp))
                         Button(onClick = { navigate(Route.Reader(last.id, resume = true)) }, modifier = Modifier.fillMaxWidth()) { Text("Продолжить") }
                     }
@@ -176,11 +186,55 @@ fun HomeScreen(
 }
 
 @Composable
-fun BookScreen(book: BookData, modifier: Modifier, back: () -> Unit, open: (String) -> Unit) {
+fun BookScreen(
+    book: BookData,
+    modifier: Modifier,
+    back: () -> Unit,
+    focusChapterId: String? = null,
+    focusRequest: Int = 0,
+    open: (String) -> Unit,
+) {
+    val readableChapters = remember(book) { book.chapters.filter { it.blocks.isNotEmpty() } }
+    val sections = remember(readableChapters) { readableChapters.groupBy { it.section } }
+    val focusIndex = remember(sections, focusChapterId) {
+        var index = 0
+        var found = 0
+        sections.forEach { (_, chapters) ->
+            index += 1 // section heading
+            val indexInSection = chapters.indexOfFirst { it.id == focusChapterId }
+            if (indexInSection >= 0) found = index + indexInSection
+            index += chapters.size
+        }
+        found
+    }
+    val listState = rememberLazyListState()
+    LaunchedEffect(focusChapterId, focusRequest) {
+        if (focusChapterId != null) listState.scrollToItem(focusIndex)
+    }
     Column(modifier.fillMaxSize()) {
-        PageHeader("Содержание", "${book.chapters.size} глав", back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            items(book.chapters, key = { it.id }) { chapter -> ChapterRow(chapter, { open(chapter.id) }) }
+        PageHeader("Содержание", "${readableChapters.size} глав для чтения", back)
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 112.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            sections.forEach { (sectionTitle, chapters) ->
+                item(key = "section:" + sectionTitle) {
+                    Text(
+                        sectionTitle,
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(start = 4.dp, top = 14.dp, bottom = 3.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = WebModernFont,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                items(chapters, key = { it.id }) { chapter ->
+                    ChapterRow(chapter, { open(chapter.id) })
+                }
+            }
         }
     }
 }
@@ -190,7 +244,7 @@ fun TopicsScreen(book: BookData, modifier: Modifier, open: (String) -> Unit) {
     Column(modifier.fillMaxSize()) {
         WebHeader("Темы", "Изучение поверх полного текста")
         LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 28.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 110.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
@@ -285,7 +339,7 @@ fun TopicDetailScreen(book: BookData, id: String, modifier: Modifier, back: () -
     val chapters = topic?.chapterIds?.mapNotNull(map::get).orEmpty()
     Column(modifier.fillMaxSize()) {
         PageHeader(topic?.title ?: "Тема", "${chapters.size} глав", back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             items(chapters, key = { it.id }) { ChapterRow(it, { open(it.id) }) }
         }
     }
@@ -302,9 +356,19 @@ fun SearchScreen(
     modifier: Modifier,
     onOpen: (String, String?) -> Unit,
 ) {
-    val results = remember(book, query, filter) { searchBook(book, query, filter) }
+    // Cancel stale queries and avoid full-book searching on the UI thread.
+    val resultsState = remember(book, query, filter) { mutableStateOf<List<SearchHit>?>(null) }
+    LaunchedEffect(book, query, filter) {
+        if (query.trim().length >= 2) {
+            delay(180)
+            resultsState.value = withContext(Dispatchers.Default) {
+                searchBook(book, query, filter)
+            }
+        }
+    }
+    val results = resultsState.value
     Column(modifier.fillMaxSize()) {
-        PageHeader("Поиск", if (query.length >= 2) "${results.size} результатов" else null)
+        PageHeader("Поиск", if (query.length >= 2) (if (results == null) "Поиск…" else "${results.size} результатов") else null)
         OutlinedTextField(
             value = query,
             onValueChange = onQuery,
@@ -319,9 +383,10 @@ fun SearchScreen(
         }
         when {
             query.length < 2 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Введите не менее двух символов", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            results == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             results.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Ничего не найдено", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            else -> LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                itemsIndexed(results, key = { index, hit -> "${hit.chapterId}-${hit.anchor}-§index" }) { _, hit ->
+            else -> LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                itemsIndexed(results, key = { index, hit -> "${hit.chapterId}-${hit.anchor}-$index" }) { _, hit ->
                     Card(Modifier.fillMaxWidth().clickable { onOpen(hit.chapterId, hit.anchor) }) {
                         Column(Modifier.padding(15.dp)) {
                             Text(hit.chapterTitle, fontWeight = FontWeight.SemiBold, lineHeight = 19.sp)
@@ -366,7 +431,7 @@ fun BookmarksScreen(
         if (visible.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("В этой папке пока нет закладок", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         } else {
-            LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 items(visible, key = { "${it.chapterId}-${it.anchor}-${it.folder}" }) { bm ->
                     val ch = map[bm.chapterId] ?: return@items
                     ChapterRow(ch, { onOpen(ch.id, bm.anchor) }, if (bm.anchor != null) "Фрагмент" else bm.folder)
@@ -411,7 +476,7 @@ fun MoreScreen(modifier: Modifier, navigate: (Route) -> Unit) {
     )
     Column(modifier.fillMaxSize()) {
         PageHeader("Ещё")
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             items(rows) { (title, subtitle, route) ->
                 ListItem(
                     headlineContent = { Text(title, fontWeight = FontWeight.SemiBold) },
@@ -428,7 +493,7 @@ fun MoreScreen(modifier: Modifier, navigate: (Route) -> Unit) {
 fun RemediesScreen(book: BookData, modifier: Modifier, back: () -> Unit, open: (String) -> Unit) {
     Column(modifier.fillMaxSize()) {
         PageHeader("Средства", book.remedies.size.toString(), back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(book.remedies.sortedBy { it.title }, key = { it.id }) { remedy ->
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { open(remedy.id) },
@@ -458,7 +523,7 @@ fun RemedyDetailScreen(book: BookData, id: String, modifier: Modifier, back: () 
     val chapters = remedy?.chapterIds?.mapNotNull(map::get).orEmpty()
     Column(modifier.fillMaxSize()) {
         PageHeader(remedy?.title ?: "Средство", "${chapters.size} глав", back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             if (remedy != null && remedy.aliases.isNotEmpty()) item {
                 Card { Column(Modifier.padding(16.dp)) { Text("Также встречается как", fontWeight = FontWeight.SemiBold); Text(remedy.aliases.joinToString(", "), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
             }
@@ -478,7 +543,7 @@ fun NotesScreen(book: BookData, store: AppStore, modifier: Modifier, back: () ->
         if (store.notes.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Выделите текст в главе и выберите «Заметка»", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         } else {
-            LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(store.notes, key = { it.id }) { note ->
                     val ch = chapters[note.chapterId]
                     Card {
@@ -510,7 +575,7 @@ fun HadithsScreen(book: BookData, modifier: Modifier, back: () -> Unit, open: (S
     }
     Column(modifier.fillMaxSize()) {
         PageHeader("Хадисы и источники", hits.size.toString(), back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             itemsIndexed(hits, key = { index, item -> "${item.second.id}-§index" }) { _, (ch, block, hasSource) ->
                 Card(Modifier.fillMaxWidth().clickable { open(ch.id, block.anchor) }) {
                     Column(Modifier.padding(15.dp)) {
@@ -535,7 +600,7 @@ fun HistoryScreen(book: BookData, store: AppStore, modifier: Modifier, back: () 
     val chapters = remember(book) { book.chapters.associateBy { it.id } }
     Column(modifier.fillMaxSize()) {
         PageHeader("История", store.history.size.toString(), back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(store.history, key = { "${it.chapterId}-${it.anchor}-${it.openedAt}" }) { entry ->
                 val ch = chapters[entry.chapterId] ?: return@items
                 Card(Modifier.fillMaxWidth().clickable { open(ch.id, entry.anchor) }) {
@@ -565,7 +630,7 @@ fun CollectionsScreen(book: BookData, modifier: Modifier, back: () -> Unit, open
     Column(modifier.fillMaxSize()) {
         WebHeader("Быстрые подборки", "${cols.size} подборок", back)
         LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 28.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 110.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
@@ -641,7 +706,7 @@ fun CollectionDetailScreen(book: BookData, id: String, modifier: Modifier, back:
     val chapters = col?.chapterIds?.mapNotNull(map::get).orEmpty()
     Column(modifier.fillMaxSize()) {
         PageHeader(col?.title ?: "Подборка", "${chapters.size} глав", back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             if (!col?.description.isNullOrBlank()) {
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
@@ -702,7 +767,7 @@ fun TreatmentsScreen(book: BookData, modifier: Modifier, back: () -> Unit, open:
                 Tab(selected = value == category, onClick = { category = value }, text = { Text(value) })
             }
         }
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             items(visible, key = { it.id }) { treatment ->
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { open(treatment.chapterId) },
@@ -733,7 +798,7 @@ fun TreatmentsScreen(book: BookData, modifier: Modifier, back: () -> Unit, open:
 fun GlossaryScreen(book: BookData, modifier: Modifier, back: () -> Unit, open: (String) -> Unit) {
     Column(modifier.fillMaxSize()) {
         PageHeader("Словарь терминов", "${book.glossary.size} терминов", back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             items(book.glossary, key = { it.id }) { term ->
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { open(term.id) },
@@ -767,7 +832,7 @@ fun GlossaryDetailScreen(
     }
     Column(modifier.fillMaxSize()) {
         PageHeader(term?.term ?: "Термин", "${hits.size} упоминаний", back)
-        LazyColumn(contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             if (term != null) {
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
@@ -837,7 +902,7 @@ fun AboutScreen(book: BookData, modifier: Modifier, back: () -> Unit) {
     Column(modifier.fillMaxSize()) {
         PageHeader("О книге", null, back)
         Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(book.title, fontFamily = WebModernFont, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text(book.title, fontFamily = WebLiterataFont, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Text(book.author, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Здесь сохранён полный текст издания с исходным порядком глав и дополнительной тематической навигацией.")
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {

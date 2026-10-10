@@ -31,7 +31,11 @@ fun chapterPlainText(book: BookData, chapter: Chapter, includeSource: Boolean = 
     }
     chapter.blocks.forEach { block ->
         if (block.type == "subheading") append("\n").append(block.text).append("\n\n")
-        else append(block.text).append("\n\n")
+        else {
+            append(block.text)
+            if (block.type == "quran") append(block.quranReference.orEmpty())
+            append("\n\n")
+        }
     }
 }.trim()
 

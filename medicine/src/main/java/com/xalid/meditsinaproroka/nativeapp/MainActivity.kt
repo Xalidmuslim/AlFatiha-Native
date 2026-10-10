@@ -4,15 +4,22 @@ import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +33,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +49,10 @@ private data class MedicineLaunchState(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+        )
         configureActivityTransitions()
 
         val appContext = applicationContext
@@ -47,13 +60,13 @@ class MainActivity : ComponentActivity() {
             getSharedPreferences("alfatiha_native", MODE_PRIVATE).getBoolean("dark", false)
         ) "dark" else "light"
 
-        MedicineRuntimeWarmup.preload(appContext)
-
+        // The standalone Activity's IO coroutine performs the single cold load.
+        // Avoid racing it with separate preload threads on every cold launch.
         setContent {
             val warmedState = remember {
                 val warmedStore = MedicineRuntimeWarmup.peekStore()
                 val warmedBook = MedicineBookCache.peekOrNull()
-                if (warmedStore != null && warmedBook != null) {
+                if (warmedStore != null && warmedBook != null && MedicineHomeArtwork.isReady()) {
                     warmedStore.syncSharedTheme()
                     MedicineLaunchState(
                         store = warmedStore,
@@ -71,6 +84,12 @@ class MainActivity : ComponentActivity() {
                         val store = MedicineRuntimeWarmup.getOrCreateStore(appContext)
                         store.syncSharedTheme()
                         val bookResult = MedicineBookCache.getOrLoad(appContext)
+                        // Decode home artwork while the loading screen is still
+                        // visible. The first Home frame should never synchronously
+                        // decode the hero, paper tiles or bottom-navigation icons.
+                        if (bookResult.isSuccess) {
+                            MedicineHomeArtwork.preload(appContext)
+                        }
                         bookResult.exceptionOrNull()?.let { error ->
                             Log.e(TAG, "Failed to load bundled book.json", error)
                         }
@@ -84,15 +103,23 @@ class MainActivity : ComponentActivity() {
 
             val state = launchState
             MedicinaTheme(state?.store?.settings?.theme ?: launchTheme) {
-                if (state == null) {
-                    BookLoadingScreen()
-                } else {
-                    state.bookResult.fold(
-                        onSuccess = { book ->
-                            MedicinaApp(book = book, store = state.store)
-                        },
-                        onFailure = { BookLoadErrorScreen() },
-                    )
+                // Fade directly into ready content; no text-based loading page.
+                Crossfade(
+                    targetState = state == null,
+                    animationSpec = tween(durationMillis = 170, easing = FastOutSlowInEasing),
+                    label = "medicineLaunch",
+                ) { stillLoading ->
+                    if (stillLoading) {
+                        BookLoadingScreen()
+                    } else {
+                        val loaded = state
+                        if (loaded != null) {
+                            loaded.bookResult.fold(
+                                onSuccess = { book -> MedicinaApp(book = book, store = loaded.store) },
+                                onFailure = { BookLoadErrorScreen() },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -122,15 +149,18 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun BookLoadingScreen() {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "Открываем книгу…",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 16.sp,
+    // Cold starts may require one asynchronous JSON parse. Keep it quiet
+    // and on-brand rather than showing a conspicuous loading sentence.
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Image(
+                painter = painterResource(R.drawable.medicine_launcher_book),
+                contentDescription = null,
+                modifier = Modifier.size(56.dp),
+                alpha = 0.82f,
             )
         }
     }
