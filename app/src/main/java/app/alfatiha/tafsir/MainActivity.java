@@ -43,6 +43,7 @@ public class MainActivity extends Activity {
     private float fontScale = 1f;
     private boolean dark = false;
     private String fontMode = "modern";
+    private String appLanguage = CompassLanguage.RU;
     private final HashMap<String, JSONArray> cache = new HashMap<>();
     private String currentSection = "home";
     private int homeTileHeightDp=150;
@@ -108,6 +109,7 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
         prefs=getSharedPreferences("alfatiha_native",MODE_PRIVATE);
+        appLanguage=CompassLanguage.get(this);
         sessionHeroPhrase=pickHeroPhraseForLaunch();
         fontScale=prefs.getFloat("fontScale",1f);
         dark=prefs.getBoolean("dark",false);
@@ -202,9 +204,28 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(flags);
     }
 
+    private boolean arabicUi() { return CompassLanguage.AR.equals(appLanguage); }
+
+    private String ui(String original) {
+        return arabicUi() ? CompassLanguage.ui(this, original) : original;
+    }
+
+    private void changeAppLanguage(String next) {
+        String selected=CompassLanguage.AR.equals(next)?CompassLanguage.AR:CompassLanguage.RU;
+        if(selected.equals(appLanguage))return;
+        CompassLanguage.set(this,selected);
+        appLanguage=selected;
+        // Recreate the host View hierarchy, without altering progress, reader
+        // state, font size, the shared dark theme, or the installed package.
+        buildShell();
+        renderSettings(false);
+    }
+
     private void buildShell(){
         applyWindowChrome();
+        getWindow().getDecorView().setLayoutDirection(arabicUi()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);
         LinearLayout root=new LinearLayout(this);
+        root.setLayoutDirection(arabicUi()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(bg());
 
@@ -277,7 +298,7 @@ public class MainActivity extends Activity {
         icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         box.addView(icon,new LinearLayout.LayoutParams(dp(24),dp(24)));
 
-        TextView l=chromeText(label,11.2f,color,false);
+        TextView l=chromeText(ui(label),11.2f,color,false);
         l.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams llp=new LinearLayout.LayoutParams(-1,dp(22));
         llp.setMargins(0,dp(2),0,0);
@@ -303,7 +324,9 @@ public class MainActivity extends Activity {
 
     private TextView text(String s,float size,int color,boolean bold){
         TextView t=new TextView(this);
-        t.setText(s==null?"":s);
+        String localized=ui(s);
+        t.setText(localized==null?"":localized);
+        t.setTextDirection(View.TEXT_DIRECTION_FIRST_STRONG);
         t.setTextSize(sz(size));
         t.setTextColor(color);
         t.setLineSpacing(dp(2),1.09f);
@@ -354,7 +377,7 @@ public class MainActivity extends Activity {
 
     private Button action(String label,int color){
         Button b=new Button(this);
-        b.setText(label); b.setTextSize(sz(16)); b.setTextColor(Color.WHITE); b.setAllCaps(false);
+        b.setText(ui(label)); b.setTextSize(sz(16)); b.setTextColor(Color.WHITE); b.setAllCaps(false);
         b.setTypeface(tf(false)); b.setGravity(Gravity.CENTER);
         b.setPadding(dp(14),0,dp(14),0);
         b.setBackground(surfaceBg(color,blend(color,Color.BLACK,.08f),18,0));
@@ -366,7 +389,7 @@ public class MainActivity extends Activity {
 
     private Button outline(String label){
         Button b=new Button(this);
-        b.setText(label); b.setTextSize(sz(15)); b.setTextColor(ink()); b.setAllCaps(false);
+        b.setText(ui(label)); b.setTextSize(sz(15)); b.setTextColor(ink()); b.setAllCaps(false);
         b.setTypeface(tf(false)); b.setGravity(Gravity.CENTER_VERTICAL|Gravity.CENTER_HORIZONTAL);
         b.setPadding(dp(12),0,dp(12),0);
         b.setBackground(surfaceBg(dark?Color.rgb(43,50,46):Color.rgb(251,249,244),dark?Color.rgb(39,46,42):Color.rgb(247,244,237),16,line()));
@@ -7474,7 +7497,22 @@ public class MainActivity extends Activity {
     }
 
     private void renderSettings(boolean push){
-        clear("settings","",push);currentSection="settings";appTop();header("Настройки","Изменения применяются сразу в этом окне.");
+        clear("settings","",push);currentSection="settings";appTop();
+        header("Настройки",arabicUi()?"تُطبّق إعدادات الواجهة فورًا.":"Изменения применяются сразу в этом окне.");
+        LinearLayout language=card(panel());
+        language.addView(text("Язык приложения",18,ink(),true));
+        language.addView(text(arabicUi()?"اختر لغة الواجهة.":"Выберите язык интерфейса",14,muted(),false));
+        Button ru=outline((arabicUi()?"":"✓  ")+"Русский");
+        Button ar=outline((arabicUi()?"✓  ":"")+"العربية");
+        ru.setOnClickListener(v->changeAppLanguage(CompassLanguage.RU));
+        ar.setOnClickListener(v->changeAppLanguage(CompassLanguage.AR));
+        language.addView(ru,new LinearLayout.LayoutParams(-1,dp(48)));
+        language.addView(ar,new LinearLayout.LayoutParams(-1,dp(48)));
+        if(arabicUi()) {
+            language.addView(text("المحتوى العلمي والاختبارات والكتب التي لم تُراجع ترجمتها بعد ستبقى بلغتها الأصلية، حفاظًا على أمانة النصوص.",13,muted(),false));
+        } else {
+            language.addView(text("Переводы учебных материалов, хадисов и книг публикуются отдельно после сверки с источниками.",12,muted(),false));
+        }
         LinearLayout f=card(panel());f.addView(text("Размер текста",18,ink(),true));LinearLayout row=new LinearLayout(this);
         float[] zs={.9f,1f,1.15f,1.28f};String[] zn={"S","M","L","XL"};for(int i=0;i<zs.length;i++){float z=zs[i];Button b=outline(zn[i]);if(Math.abs(fontScale-z)<.02f)b.setBackground(surfaceBg(sageSoft(),sageSoft(),16,C_SAGE));b.setOnClickListener(v->{fontScale=z;prefs.edit().putFloat("fontScale",z).apply();renderSettings(false);});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(52),1);if(i>0)lp.setMargins(dp(6),0,0,0);row.addView(b,lp);}f.addView(row);
         LinearLayout font=card(blueSoft());font.addView(text("Стиль шрифта",18,ink(),true));String[][] modes={{"modern","Современный"},{"classic","Классический"},{"compact","Компактный"}};for(String[] m:modes){Button b=outline((fontMode.equals(m[0])?"✓  ":"")+m[1]);b.setOnClickListener(v->{fontMode=m[0];prefs.edit().putString("fontMode",fontMode).apply();renderSettings(false);});font.addView(b,new LinearLayout.LayoutParams(-1,dp(50)));}
