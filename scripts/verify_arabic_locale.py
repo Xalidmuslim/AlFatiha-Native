@@ -18,6 +18,14 @@ assert 'changeAppLanguage(CompassLanguage.RU)' in java
 assert 'assets/ar' in java or '"ar/"+name' in java
 assert 'private String sessionHeroPhrase=HERO_PHRASES[0]' in java
 assert len(re.findall(r'UI\.put\(',language)) >= 200
+assert 'displayNumber(quizDone)' in java, 'Arabic quiz counter not localized'
+assert 'quizResumeLine=arabicUi()' in java, 'Russian quiz resume leaks into Arabic dashboard'
+assert 'الدرس "+displayNumber(last)' in java, 'Arabic prayer resume missing'
+assert 'homeTileHeightDp += 18' in java, 'Arabic card height not protected'
+assert 'scroll.setVerticalScrollBarEnabled(arabicUi())' in java, 'Arabic card overflow may be clipped'
+assert 'setGravity(arabicUi()?Gravity.RIGHT:Gravity.LEFT)' in java, 'RTL titles must be right aligned'
+assert 'new LinearLayout.LayoutParams(dp(arabicUi()?224:214),dp(arabicUi()?62:44))' in java
+
 
 m=re.search(r'private static final String\[\] HERO_PHRASES_AR\s*=\s*new String\[\]\s*\{(.*?)\};',java,re.S)
 assert m,'Arabic hero phrase array missing'
