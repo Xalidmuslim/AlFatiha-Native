@@ -207,7 +207,7 @@ public class MainActivity extends Activity {
     private boolean arabicUi() { return CompassLanguage.AR.equals(appLanguage); }
 
     private String ui(String original) {
-        return arabicUi() ? CompassLanguage.ui(this, original) : original;
+        return arabicUi() ? CompassLanguage.translatedUi(original) : original;
     }
 
     private void changeAppLanguage(String next) {
