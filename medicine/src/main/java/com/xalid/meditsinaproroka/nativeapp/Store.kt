@@ -28,6 +28,7 @@ data class ReaderSettings(
     val fontSizeSp: Float = 17f,
     val lineSpacing: Float = 1.20f,
     val showHistoricalLabels: Boolean = true,
+    val paperBackground: String = "light", // original, light, sage
 )
 
 data class Bookmark(val chapterId: String, val anchor: String? = null, val folder: String = DEFAULT_BOOKMARK_FOLDER)
@@ -228,6 +229,7 @@ class AppStore(context: Context) {
                     fontSizeSp = it.optDouble("fontSizeSp", 17.0).toFloat(),
                     lineSpacing = it.optDouble("lineSpacing", 1.20).toFloat(),
                     showHistoricalLabels = it.optBoolean("showHistoricalLabels", true),
+                    paperBackground = it.optString("paperBackground", "light").takeIf { v -> v in setOf("original", "light", "sage") } ?: "light",
                 )
             }
         }.getOrDefault(ReaderSettings(theme = sharedTheme))
@@ -241,6 +243,7 @@ class AppStore(context: Context) {
             .put("fontSizeSp", s.fontSizeSp)
             .put("lineSpacing", s.lineSpacing)
             .put("showHistoricalLabels", s.showHistoricalLabels)
+            .put("paperBackground", s.paperBackground)
             .toString()).apply()
     }
 

@@ -5,13 +5,16 @@ import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +31,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -36,6 +46,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -50,9 +65,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -67,16 +82,32 @@ fun MedicinaApp(book: BookData, store: AppStore) {
     var searchQuery by remember { mutableStateOf("") }
     var searchFilter by remember { mutableStateOf(SearchFilter.ALL) }
     var bookmarkFolder by remember { mutableStateOf("Все") }
+    var lastReaderChapterId by remember { mutableStateOf<String?>(null) }
+    var contentsRequest by remember { mutableIntStateOf(0) }
+    // Only the foreground of chapters opened from the contents fades in.
+    // The parchment itself is always rendered fully opaque on first frame.
+    var animateChapterEntry by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val activity = context as? Activity
 
     fun navigate(route: Route, push: Boolean = true) {
-        if (push && current != route) backStack.add(current)
+        if (route is Route.Reader) {
+            animateChapterEntry = current is Route.Book
+            lastReaderChapterId = route.chapterId
+        }
+        // A page turn is not a new screen in the Android Back history.
+        // Preserve the actual entry screen (contents, search, home, etc.).
+        val isPageTurn = current is Route.Reader && route is Route.Reader
+        if (push && current != route && !isPageTurn) backStack.add(current)
         current = route
     }
 
     fun goBack() {
-        if (backStack.isNotEmpty()) current = backStack.removeAt(backStack.lastIndex)
+        when {
+            backStack.isNotEmpty() -> current = backStack.removeAt(backStack.lastIndex)
+            current != Route.Home -> current = Route.Home
+            else -> activity?.finish()
+        }
     }
 
     fun root(route: Route) {
@@ -84,58 +115,96 @@ fun MedicinaApp(book: BookData, store: AppStore) {
         current = route
     }
 
-    BackHandler(enabled = true) {
-        when {
-            backStack.isNotEmpty() -> goBack()
-            current != Route.Home -> root(Route.Home)
-            else -> navigateToHeartPrayer(context, "home")
-        }
-    }
+    BackHandler(enabled = true) { goBack() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            HeartPrayerBottomNav(
-                onHome = { navigateToHeartPrayer(context, "home") },
-                onContents = { root(Route.Book) },
-                onProgress = { navigateToHeartPrayer(context, "progress") },
-                onMenu = { navigateToHeartPrayer(context, "menu") },
-            )
-        },
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
     ) { insets ->
-        val modifier = Modifier.padding(insets)
-        AnimatedContent(
+        Box(Modifier.fillMaxSize().padding(insets)) {
+            AnimatedContent(
+            modifier = Modifier.fillMaxSize(),
             targetState = current,
             transitionSpec = {
-                (
-                    fadeIn(animationSpec = tween(150)) +
-                        scaleIn(initialScale = 0.992f, animationSpec = tween(150))
-                ).togetherWith(
-                    fadeOut(animationSpec = tween(150)) +
-                        scaleOut(targetScale = 0.996f, animationSpec = tween(150))
-                ).using(SizeTransform(clip = false))
+                val outgoingChapter = initialState as? Route.Reader
+                val incomingChapter = targetState as? Route.Reader
+                val pageTurn = outgoingChapter != null && incomingChapter != null &&
+                    outgoingChapter.chapterId != incomingChapter.chapterId
+                // Contents <-> chapter changes use no movement, alpha overlay
+                // or size animation. This removes parchment afterimages/ghosting
+                // caused by drawing both differently textured pages mid-transition.
+                val betweenContentsAndReader =
+                    (initialState is Route.Book && targetState is Route.Reader) ||
+                        (initialState is Route.Reader && targetState is Route.Book)
+                if (betweenContentsAndReader) {
+                    EnterTransition.None.togetherWith(ExitTransition.None).using(null)
+                } else if (pageTurn) {
+                    val oldOrder = book.chapters.firstOrNull {
+                        it.id == outgoingChapter!!.chapterId
+                    }?.order ?: 0
+                    val newOrder = book.chapters.firstOrNull {
+                        it.id == incomingChapter!!.chapterId
+                    }?.order ?: 0
+                    val direction = if (newOrder >= oldOrder) 1 else -1
+                    (
+                        fadeIn(animationSpec = tween(205, easing = FastOutSlowInEasing)) +
+                            slideInHorizontally(
+                                animationSpec = tween(245, easing = FastOutSlowInEasing),
+                                initialOffsetX = { distance -> direction * distance / 5 },
+                            )
+                    ).togetherWith(
+                        fadeOut(animationSpec = tween(175, easing = FastOutSlowInEasing)) +
+                            slideOutHorizontally(
+                                animationSpec = tween(235, easing = FastOutSlowInEasing),
+                                targetOffsetX = { distance -> -direction * distance / 5 },
+                            )
+                    ).using(SizeTransform(clip = false))
+                } else {
+                    (
+                        fadeIn(animationSpec = tween(205, easing = FastOutSlowInEasing)) +
+                            slideInHorizontally(
+                                animationSpec = tween(225, easing = FastOutSlowInEasing),
+                                initialOffsetX = { it / 40 },
+                            )
+                    ).togetherWith(
+                        fadeOut(animationSpec = tween(155, easing = FastOutSlowInEasing)) +
+                            slideOutHorizontally(
+                                animationSpec = tween(175, easing = FastOutSlowInEasing),
+                                targetOffsetX = { -it / 55 },
+                            )
+                    ).using(SizeTransform(clip = false))
+                }
             },
             label = "sectionTransition",
         ) { route ->
+            // The Reader parchment must extend behind the transparent Android
+            // status bar; only its interactive header gets statusBarsPadding().
+            val screenModifier = if (route == Route.Home || route is Route.Reader)
+                Modifier.fillMaxSize()
+            else Modifier.fillMaxSize().statusBarsPadding()
             screenStateHolder.SaveableStateProvider(routeStateKey(route)) {
                 when (route) {
                 Route.Home -> WebHomeScreen(
                     book = book,
                     store = store,
-                    modifier = modifier,
+                    modifier = screenModifier,
                     navigate = ::navigate,
-                    onGlobalSearch = { navigateToHeartPrayer(context, "search") },
+                    onGlobalSearch = { navigate(Route.Search) },
                     onToggleTheme = store::toggleSharedTheme,
                 )
-                Route.Book -> BookScreen(book, modifier, ::goBack) { navigate(Route.Reader(it)) }
-                Route.Topics -> TopicsScreen(book, modifier) { navigate(Route.TopicDetail(it)) }
+                Route.Book -> BookScreen(
+                    book, screenModifier, ::goBack,
+                    focusChapterId = lastReaderChapterId,
+                    focusRequest = contentsRequest,
+                ) { navigate(Route.Reader(it)) }
+                Route.Topics -> TopicsScreen(book, screenModifier) { navigate(Route.TopicDetail(it)) }
                 Route.Search -> SearchScreen(
                     book = book,
                     query = searchQuery,
                     onQuery = { searchQuery = it },
                     filter = searchFilter,
                     onFilter = { searchFilter = it },
-                    modifier = modifier,
+                    modifier = screenModifier,
                     onOpen = { chapterId, anchor -> navigate(Route.Reader(chapterId, anchor)) },
                 )
                 Route.Bookmarks -> BookmarksScreen(
@@ -143,38 +212,55 @@ fun MedicinaApp(book: BookData, store: AppStore) {
                     store = store,
                     folder = bookmarkFolder,
                     onFolder = { bookmarkFolder = it },
-                    modifier = modifier,
+                    modifier = screenModifier,
                     onOpen = { id, anchor -> navigate(Route.Reader(id, anchor)) },
                 )
-                Route.More -> WebMoreScreen(modifier, ::navigate)
-                Route.Remedies -> RemediesScreen(book, modifier, ::goBack) { navigate(Route.RemedyDetail(it)) }
-                Route.Treatments -> TreatmentsScreen(book, modifier, ::goBack) { navigate(Route.Reader(it)) }
-                Route.Notes -> NotesScreen(book, store, modifier, ::goBack) { id, anchor -> navigate(Route.Reader(id, anchor)) }
-                Route.Settings -> WebSettingsScreen(store, modifier, ::goBack)
-                Route.Hadiths -> HadithsScreen(book, modifier, ::goBack) { id, anchor -> navigate(Route.Reader(id, anchor)) }
-                Route.History -> HistoryScreen(book, store, modifier, ::goBack) { id, anchor -> navigate(Route.Reader(id, anchor)) }
-                Route.Offline -> OfflineScreen(book, modifier, ::goBack)
-                Route.About -> AboutScreen(book, modifier, ::goBack)
-                Route.Collections -> CollectionsScreen(book, modifier, ::goBack) { navigate(Route.CollectionDetail(it)) }
-                Route.Glossary -> GlossaryScreen(book, modifier, ::goBack) { navigate(Route.GlossaryDetail(it)) }
-                Route.Source -> SourceScreen(book, modifier, ::goBack)
-                is Route.GlossaryDetail -> GlossaryDetailScreen(book, route.id, modifier, ::goBack) { id, anchor ->
+                Route.More -> WebMoreScreen(screenModifier, ::navigate)
+                Route.Remedies -> RemediesScreen(book, screenModifier, ::goBack) { navigate(Route.RemedyDetail(it)) }
+                Route.Treatments -> TreatmentsScreen(book, screenModifier, ::goBack) { navigate(Route.Reader(it)) }
+                Route.Notes -> NotesScreen(book, store, screenModifier, ::goBack) { id, anchor -> navigate(Route.Reader(id, anchor)) }
+                Route.Settings -> WebSettingsScreen(store, screenModifier, ::goBack)
+                Route.Hadiths -> HadithsScreen(book, screenModifier, ::goBack) { id, anchor -> navigate(Route.Reader(id, anchor)) }
+                Route.History -> HistoryScreen(book, store, screenModifier, ::goBack) { id, anchor -> navigate(Route.Reader(id, anchor)) }
+                Route.Offline -> OfflineScreen(book, screenModifier, ::goBack)
+                Route.About -> AboutScreen(book, screenModifier, ::goBack)
+                Route.Collections -> CollectionsScreen(book, screenModifier, ::goBack) { navigate(Route.CollectionDetail(it)) }
+                Route.Glossary -> GlossaryScreen(book, screenModifier, ::goBack) { navigate(Route.GlossaryDetail(it)) }
+                Route.Source -> SourceScreen(book, screenModifier, ::goBack)
+                is Route.GlossaryDetail -> GlossaryDetailScreen(book, route.id, screenModifier, ::goBack) { id, anchor ->
                     navigate(Route.Reader(id, anchor))
                 }
-                is Route.TopicDetail -> TopicDetailScreen(book, route.id, modifier, ::goBack) {
+                is Route.TopicDetail -> TopicDetailScreen(book, route.id, screenModifier, ::goBack) {
                     navigate(Route.Reader(it))
                 }
-                is Route.RemedyDetail -> RemedyDetailScreen(book, route.id, modifier, ::goBack) { id, anchor ->
+                is Route.RemedyDetail -> RemedyDetailScreen(book, route.id, screenModifier, ::goBack) { id, anchor ->
                     navigate(Route.Reader(id, anchor))
                 }
-                is Route.CollectionDetail -> CollectionDetailScreen(book, route.id, modifier, ::goBack) {
+                is Route.CollectionDetail -> CollectionDetailScreen(book, route.id, screenModifier, ::goBack) {
                     navigate(Route.Reader(it))
                 }
-                is Route.Reader -> ReaderScreen(book, store, route, modifier, ::goBack) { next ->
+                is Route.Reader -> ReaderScreen(
+                    book, store, route, screenModifier, ::goBack,
+                    animateEntrance = animateChapterEntry,
+                ) { next ->
                     navigate(next)
                 }
                 }
             }
+        }
+            StandaloneBottomNav(
+                current = current,
+                onHome = { root(Route.Home) },
+                onTopics = {
+                    if (current is Route.Reader) lastReaderChapterId = (current as Route.Reader).chapterId
+                    contentsRequest += 1
+                    root(Route.Book)
+                },
+                onSearch = { root(Route.Search) },
+                onBookmarks = { root(Route.Bookmarks) },
+                onMore = { root(Route.More) },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 }
@@ -204,113 +290,80 @@ private fun routeStateKey(route: Route): String = when (route) {
     is Route.GlossaryDetail -> "glossary:${route.id}"
     is Route.Reader -> "reader:${route.chapterId}:${route.anchor.orEmpty()}:${route.resume}"
 }
-private fun navigateToHeartPrayer(context: android.content.Context, destination: String) {
-    val intent = Intent()
-        .setClassName(context.packageName, "app.alfatiha.tafsir.MainActivity")
-        .putExtra("heart_nav", destination)
-        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-    context.startActivity(intent)
-    (context as? Activity)?.let { activity ->
-        activity.finish()
-        if (Build.VERSION.SDK_INT < 34) {
-            @Suppress("DEPRECATION")
-            activity.overridePendingTransition(
-                R.anim.section_return_enter,
-                R.anim.section_return_exit,
-            )
-        }
-    }
-}
-
 @Composable
-private fun HeartPrayerBottomNav(
+private fun StandaloneBottomNav(
+    current: Route,
     onHome: () -> Unit,
-    onContents: () -> Unit,
-    onProgress: () -> Unit,
-    onMenu: () -> Unit,
+    onTopics: () -> Unit,
+    onSearch: () -> Unit,
+    onBookmarks: () -> Unit,
+    onMore: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    data class NavItem(
-        val label: String,
-        val iconRes: Int,
-        val action: () -> Unit,
-    )
-
-    // Keep these dimensions in lock-step with MainActivity.buildShell()/navBtn().
-    // This section is a separate Compose activity, but visually it must remain
-    // indistinguishable from the main application's bottom navigation.
+    data class NavItem(val label: String, val icon: Int, val selected: Boolean, val action: () -> Unit)
     val items = listOf(
-        NavItem("Главная", R.drawable.ic_nav_home, onHome),
-        NavItem("Содержание", R.drawable.ic_nav_contents, onContents),
-        NavItem("Прогресс", R.drawable.ic_nav_progress, onProgress),
-        NavItem("Меню", R.drawable.ic_nav_menu, onMenu),
+        NavItem("Главная", R.drawable.nav_home, current == Route.Home, onHome),
+        NavItem("Темы", R.drawable.nav_topics, current == Route.Topics || current == Route.Book, onTopics),
+        NavItem("Поиск", R.drawable.nav_search, current == Route.Search, onSearch),
+        NavItem("Закладки", R.drawable.nav_bookmark, current == Route.Bookmarks, onBookmarks),
+        NavItem("Ещё", R.drawable.nav_more, current == Route.More, onMore),
     )
     val dark = MaterialTheme.colorScheme.background.red < 0.25f
-    val navStart = if (dark) Color(0xFF1F2522) else Color(0xFFFBF7F0)
-    val navEnd = if (dark) Color(0xFF1D2220) else Color(0xFFF8F4EC)
-    val navLine = if (dark) Color(0xFF3D4641) else Color(0xFFE6DDD0)
-    val homeColor = Color(0xFF356D57)
-    val mutedColor = if (dark) Color(0xFFAAB3AD) else Color(0xFF6E6A63)
-    val shape = RoundedCornerShape(18.dp)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-            .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-            .height(64.dp)
-            .shadow(3.dp, shape, clip = false)
-            .clip(shape)
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(navStart, navEnd),
-                ),
-                shape = shape,
-            )
-            .border(1.dp, navLine, shape),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    val panelShape = RoundedCornerShape(16.dp)
+    Box(modifier.fillMaxWidth()) {
+        Box(
+            Modifier.fillMaxWidth().navigationBarsPadding()
+                .padding(start = 13.dp, end = 13.dp, top = 4.dp, bottom = 4.dp),
         ) {
-            items.forEachIndexed { index, item ->
-                val color = if (index == 0) homeColor else mutedColor
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clickable(onClick = item.action)
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
+            Box(
+                Modifier.fillMaxWidth()
+                    .clip(panelShape)
+                    .background(if (dark) MaterialTheme.colorScheme.surface else Color(0xFFF2E8D9))
+                    .border(
+                        width = 0.9.dp,
+                        color = if (dark) MaterialTheme.colorScheme.outline else Color(0xFFCDBBA2),
+                        shape = panelShape,
+                    ),
+            ) {
+                if (!dark) {
                     Image(
-                        painter = painterResource(item.iconRes),
-                        contentDescription = item.label,
-                        modifier = Modifier.size(24.dp),
-                        colorFilter = ColorFilter.tint(color),
+                        painter = MedicineHomeArtwork.painter(R.drawable.antique_card_paper),
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.Crop,
+                        alpha = 0.40f,
                     )
-                    Spacer(Modifier.height(2.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(22.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BasicText(
-                            text = item.label,
-                            style = TextStyle(
-                                color = color,
-                                fontFamily = FontFamily.SansSerif,
-                                fontSize = 11.2.sp,
-                                lineHeight = 13.sp,
-                                platformStyle = PlatformTextStyle(
-                                    includeFontPadding = false,
-                                ),
-                            ),
-                            maxLines = 1,
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 3.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    items.forEach { item ->
+                        val color by animateColorAsState(
+                            targetValue = if (item.selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            animationSpec = tween(180, easing = FastOutSlowInEasing),
+                            label = "bottomNavSelection",
                         )
+                        Column(
+                            Modifier.weight(1f).heightIn(min = 51.dp)
+                                .semantics { selected = item.selected }
+                                .clickable(role = Role.Tab, onClick = item.action)
+                                .padding(vertical = 2.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            AntiqueIcon(item.icon, Modifier.size(30.dp))
+                            Spacer(Modifier.height(1.dp))
+                            Text(
+                                item.label,
+                                fontFamily = WebSansFont,
+                                fontSize = 10.5.sp,
+                                lineHeight = 13.sp,
+                                color = color,
+                                fontWeight = if (item.selected) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                        }
                     }
                 }
             }
