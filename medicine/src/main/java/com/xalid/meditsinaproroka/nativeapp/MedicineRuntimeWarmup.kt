@@ -28,6 +28,11 @@ object MedicineRuntimeWarmup {
             name = "medicine-runtime-warmup",
         ) {
             runCatching { getOrCreateStore(appContext) }
+            // MainActivity requires predecoded artwork before it can render
+            // the ready Home immediately. Previously this happened only
+            // after opening Medicine and produced a visible loading/fade.
+            // Reuse the existing background thread; never decode on main.
+            runCatching { MedicineHomeArtwork.preload(appContext) }
         }
     }
 

@@ -7965,6 +7965,10 @@ public class MainActivity extends Activity {
 
 
         Button medicineEntry=outline("Медицина Пророка ﷺ  ·  Книга Ибн аль-Каййима");
+        // This action closes a Dialog and opens another Activity immediately.
+        // Do not leave an animated detached Button competing with that window
+        // handoff. Keep press animation on all non-transition buttons.
+        medicineEntry.setOnTouchListener(null);
         medicineEntry.setOnClickListener(v->{d.dismiss();openMedicine();});
         LinearLayout.LayoutParams medicineEntryLp=
                 new LinearLayout.LayoutParams(-1,dp(54));

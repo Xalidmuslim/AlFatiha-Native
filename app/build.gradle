@@ -99,6 +99,15 @@ android {
             minifyEnabled true
             shrinkResources false
         }
+        entryCompare {
+            // R8-optimized comparison variant. Unique package name preserves
+            // the user's installed Compass and its local data.
+            initWith smoothPreview
+            applicationIdSuffix '.medicineentrycompare1103'
+            versionNameSuffix '-medicine-entry-compare'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
