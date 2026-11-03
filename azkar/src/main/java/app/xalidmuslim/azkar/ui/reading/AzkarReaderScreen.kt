@@ -358,11 +358,15 @@ fun AzkarReaderScreen(
     }
     val transitionOffset = remember(navigation.generation) { Animatable(initialOffset) }
     val transitionAlpha = remember(navigation.generation) { Animatable(initialAlpha) }
+    val transitionScale = remember(navigation.generation) {
+        Animatable(if (navigation.generation > 0L && animationsEnabled) 0.992f else 1f)
+    }
 
     LaunchedEffect(navigation.generation, animationsEnabled) {
         if (!animationsEnabled || navigation.generation == 0L) {
             transitionOffset.snapTo(0f)
             transitionAlpha.snapTo(1f)
+            transitionScale.snapTo(1f)
         } else {
             coroutineScope {
                 launch {
@@ -376,6 +380,15 @@ fun AzkarReaderScreen(
                 }
                 launch {
                     transitionAlpha.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = AzkarMotion.dhikrPageDurationMillis,
+                            easing = AzkarMotion.dhikrPageEasing,
+                        ),
+                    )
+                }
+                launch {
+                    transitionScale.animateTo(
                         targetValue = 1f,
                         animationSpec = tween(
                             durationMillis = AzkarMotion.dhikrPageDurationMillis,
@@ -429,6 +442,8 @@ fun AzkarReaderScreen(
     val transitionModifier = Modifier.graphicsLayer {
         translationX = transitionOffset.value
         alpha = transitionAlpha.value
+        scaleX = transitionScale.value
+        scaleY = transitionScale.value
     }
 
     AzkarTheme(
