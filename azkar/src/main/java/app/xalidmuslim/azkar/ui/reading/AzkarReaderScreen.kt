@@ -8,6 +8,8 @@ import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,6 +21,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -42,6 +46,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -60,6 +65,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -747,8 +753,25 @@ private fun HeartPrayerBottomNav(
     val homeColor = Color(0xFF356D57)
     val mutedColor = if (dark) Color(0xFFAAB3AD) else Color(0xFF6E6A63)
     val shape = RoundedCornerShape(18.dp)
+    val scope = rememberCoroutineScope()
+    // Azkar reading itself belongs to the Contents context.
+    // Outside destinations remain transient until the native Activity opens.
+    var activeNavIndex by remember { mutableIntStateOf(1) }
+    var leaving by remember { mutableStateOf(false) }
+    LaunchedEffect(contentsSelected) {
+        if(contentsSelected) activeNavIndex = 1
+    }
+    fun exitTo(index: Int, target: () -> Unit) {
+        if(leaving)return
+        leaving = true
+        activeNavIndex = index
+        scope.launch {
+            kotlinx.coroutines.delay(145L)
+            target()
+        }
+    }
 
-    Row(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
@@ -764,37 +787,57 @@ private fun HeartPrayerBottomNav(
             )
             .border(1.dp, navLine, shape)
             .padding(horizontal = 8.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
+        val cellWidth = maxWidth / 4
+        val capsuleX by animateDpAsState(
+            targetValue = cellWidth * activeNavIndex,
+            animationSpec = tween(265, easing = FastOutSlowInEasing),
+            label = "azkarMorphPill",
+        )
+        Box(
+            Modifier.offset(x = capsuleX, y = 3.dp)
+                .width(cellWidth)
+                .height(48.dp)
+                .clip(RoundedCornerShape(13.dp))
+                .background(homeColor.copy(alpha = if (dark) 0.20f else 0.10f)),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_home,
             label = "Главная",
-            color = homeColor,
-            onClick = onHome,
+            color = if (activeNavIndex == 0) homeColor else mutedColor,
+            selected = activeNavIndex == 0,
+            onClick = { exitTo(0, onHome) },
             modifier = Modifier.weight(1f),
         )
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_contents,
             label = "Содержание",
-            color = if (contentsSelected) homeColor else mutedColor,
-            selected = contentsSelected,
-            onClick = onContents,
+            color = if (activeNavIndex == 1) homeColor else mutedColor,
+            selected = activeNavIndex == 1,
+            onClick = { if(!leaving) { activeNavIndex = 1; onContents() } },
             modifier = Modifier.weight(1f),
         )
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_progress,
             label = "Прогресс",
-            color = mutedColor,
-            onClick = onProgress,
+            color = if (activeNavIndex == 2) homeColor else mutedColor,
+            selected = activeNavIndex == 2,
+            onClick = { exitTo(2, onProgress) },
             modifier = Modifier.weight(1f),
         )
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_menu,
             label = "Меню",
-            color = mutedColor,
-            onClick = onMenu,
+            color = if (activeNavIndex == 3) homeColor else mutedColor,
+            selected = activeNavIndex == 3,
+            onClick = { exitTo(3, onMenu) },
             modifier = Modifier.weight(1f),
         )
+        }
     }
 }
 
@@ -810,7 +853,7 @@ private fun HeartPrayerNavItem(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.94f else 1f,
+        targetValue = if (pressed) 0.94f else if (selected) 1.045f else 1f,
         animationSpec = tween(
             durationMillis = AzkarMotion.navigationPressDurationMillis,
             easing = AzkarMotion.dhikrPageEasing,
@@ -825,13 +868,13 @@ private fun HeartPrayerNavItem(
                 scaleY = pressScale
             }
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) color.copy(alpha = 0.10f) else Color.Transparent)
+            .background(Color.Transparent)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
             )
-            .semantics { contentDescription = label }
+            .semantics { contentDescription = label; this.selected = selected }
             .padding(horizontal = 4.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
