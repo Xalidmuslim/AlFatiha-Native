@@ -46,21 +46,21 @@ jobs:
           grep -q 'implementation project.*:medicine' app/build.gradle
           test -s app/src/main/java/app/alfatiha/tafsir/MainActivity.java
       - name: Build native APK with R8
-        run: ./gradlew :app:assembleSmoothPreview --no-daemon --stacktrace
+        run: ./gradlew :app:assembleEntryCompare --no-daemon --stacktrace
       - name: Verify APK signature and package
         shell: bash
         run: |
           set -euo pipefail
-          APK=app/build/outputs/apk/smoothPreview/app-smoothPreview.apk
+          APK=app/build/outputs/apk/entryCompare/app-entryCompare.apk
           test -s "$APK"
           unzip -t "$APK" >/dev/null
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F 'app.alfatiha.tafsir.medicinepreview146'
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F 'app.alfatiha.tafsir.medicineentrycompare1103'
           unzip -l "$APK" | grep -F 'assets/book.json'
       - name: Upload separately installable Compass Heart preview
         uses: actions/upload-artifact@v4
         with:
           name: Compass-Heart-Medicine-R8-Preview-20261103
-          path: app/build/outputs/apk/smoothPreview/app-smoothPreview.apk
+          path: app/build/outputs/apk/entryCompare/app-entryCompare.apk
           retention-days: 30
           if-no-files-found: error
