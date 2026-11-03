@@ -1,0 +1,126 @@
+name: Build tiny resumable Compass APK downloader
+
+on:
+  push:
+    branches: [codex/compass-reliable-download-20261103]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build-verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android API 36 and build tools
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Source safety and resumable transport contracts
+        run: python3 scripts/verify_compass_downloader.py
+
+      - name: Build standalone compact APK
+        run: ./gradlew :downloader:assembleRelease --no-daemon --stacktrace
+
+      - name: Verify signed helper is small enough for fragile connections
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=downloader/build/outputs/apk/release/downloader-release.apk
+          test -s "$APK"
+          unzip -t "$APK" > /dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" \
+            | grep -F "app.xalidmuslim.compassdownloader"
+          test "$(stat -c%s "$APK")" -lt 1500000
+          sha256sum "$APK"
+
+      - name: Download already tested Full Morph APK and verify its digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 41648386023 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name Compass-Heart-Full-Morph-R8-APK \
+            --dir "$RUNNER_TEMP/verified"
+          APK="$RUNNER_TEMP/verified/app-fullMorphCompare.apk"
+          test -s "$APK"
+          printf '889f57814f8c688541f5549e02bd07429061a04d177fcf69f23cdd7bb70dc51b  %s\n' "$APK" | sha256sum -c -
+          test "$(stat -c%s "$APK")" = 10934336
+
+      - name: Split into individually retryable 512 KiB pieces and test perfect reassembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/chunks"
+          python3 - "$RUNNER_TEMP/verified/app-fullMorphCompare.apk" "$RUNNER_TEMP/chunks" <<'PY'
+          from pathlib import Path
+          import sys
+          apk = Path(sys.argv[1]).read_bytes()
+          chunks=Path(sys.argv[2])
+          for n, offset in enumerate(range(0,len(apk),524288)):
+              (chunks / f"Compass-Full-Morph-{n:02d}.part").write_bytes(
+                  apk[offset:offset+524288])
+          print("chunks",len(list(chunks.glob("*.part"))))
+          PY
+          python3 scripts/verify_compass_downloader.py \
+            "$RUNNER_TEMP/verified/app-fullMorphCompare.apk" "$RUNNER_TEMP/chunks"
+
+      - name: Publish helper and part-by-part GitHub Release mirrors
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG=compass-reliable-downloader-20261103
+          HELPER="$RUNNER_TEMP/Compass-Heart-Resumable-Downloader.apk"
+          cp downloader/build/outputs/apk/release/downloader-release.apk "$HELPER"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$HELPER" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$HELPER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Compass Heart — resumable 512KB APK downloader" \
+              --notes "Standalone lightweight Android downloader for unreliable connections. Downloads 21 immutable 512 KiB chunks, resumes and retries, verifies full SHA-256 before system installation. Does not alter the installed Compass app." \
+              --prerelease
+          fi
+          gh release upload "compass-full-morph-motion-20261103" \
+            "$RUNNER_TEMP/chunks/"*.part --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Publish helper and 21 pieces to independent raw GitHub CDN
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin +refs/heads/apk-mobile-direct:refs/remotes/origin/apk-mobile-direct
+          git worktree add --detach "$RUNNER_TEMP/mobile-download" origin/apk-mobile-direct
+          cd "$RUNNER_TEMP/mobile-download"
+          cp "$RUNNER_TEMP/Compass-Heart-Resumable-Downloader.apk" \
+            ./Compass-Heart-Resumable-Downloader.apk
+          cp "$RUNNER_TEMP/chunks/"*.part .
+          git add Compass-Heart-Resumable-Downloader.apk Compass-Full-Morph-*.part
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "publish: tiny downloader and 512 KiB verified Full Morph APK parts"
+          git push origin HEAD:refs/heads/apk-mobile-direct
+
+      - name: Upload helper as CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Compass-Heart-Resumable-Downloader-APK
+          path: downloader/build/outputs/apk/release/downloader-release.apk
+          if-no-files-found: error
+          retention-days: 30
