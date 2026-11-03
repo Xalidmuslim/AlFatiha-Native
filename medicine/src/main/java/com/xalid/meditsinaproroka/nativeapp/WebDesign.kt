@@ -168,19 +168,21 @@ internal fun WebCollectionCard(
 ) {
     val interactions = remember { MutableInteractionSource() }
     val pressed by interactions.collectIsPressedAsState()
-    val scale by animateFloatAsState(
+    val scaleState = animateFloatAsState(
         targetValue = if (pressed) 0.983f else 1f,
         animationSpec = tween(durationMillis = 165, easing = FastOutSlowInEasing),
         label = "medicineCollectionMorph",
     )
-    val moving by remember { derivedStateOf { scale < 0.999f } }
+    val moving by remember(scaleState) {
+        derivedStateOf { scaleState.value < 0.999f }
+    }
     Surface(
         onClick = onClick,
         interactionSource = interactions,
         modifier = modifier
             .then(if (moving) Modifier.graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                scaleX = scaleState.value
+                scaleY = scaleState.value
             } else Modifier)
             .heightIn(min = 152.dp),
         color = MaterialTheme.colorScheme.surface,
