@@ -126,6 +126,15 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        fullMorphCompare {
+            // Separate A/B candidate: host card-to-container morph, Medicine
+            // surfaces and Azkar navigation without replacing saved data.
+            initWith morphCompare
+            applicationIdSuffix '.compassfullmorph1103'
+            versionNameSuffix '-full-morph-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 

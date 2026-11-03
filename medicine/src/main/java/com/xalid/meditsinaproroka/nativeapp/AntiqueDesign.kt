@@ -195,6 +195,16 @@ private fun ReadingCard(title: String, pct: Int, hasLast: Boolean, onContinue: (
         animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
         label = "readerProgress",
     )
+    val actionInteractions = remember { MutableInteractionSource() }
+    val pressed by actionInteractions.collectIsPressedAsState()
+    val actionScaleState = animateFloatAsState(
+        targetValue = if (pressed) .965f else 1f,
+        animationSpec = tween(durationMillis = 175, easing = FastOutSlowInEasing),
+        label = "medicineReadingButtonMorph",
+    )
+    val actionMoving by remember(actionScaleState) {
+        derivedStateOf { actionScaleState.value < .999f }
+    }
     PaperCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -228,7 +238,13 @@ private fun ReadingCard(title: String, pct: Int, hasLast: Boolean, onContinue: (
             Spacer(Modifier.height(8.dp))
             Surface(
                 onClick = onContinue,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                interactionSource = actionInteractions,
+                modifier = Modifier.fillMaxWidth()
+                    .then(if (actionMoving) Modifier.graphicsLayer {
+                        scaleX = actionScaleState.value
+                        scaleY = actionScaleState.value
+                    } else Modifier)
+                    .heightIn(min = 48.dp),
                 shape = RoundedCornerShape(10.dp),
                 color = Color(0xFF315A46),
                 border = BorderStroke(1.dp, Color(0xFFAF986C)),

@@ -15,6 +15,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -166,18 +168,31 @@ fun MedicinaApp(book: BookData, store: AppStore) {
                             )
                     ).using(SizeTransform(clip = false))
                 } else {
+                    // Only ordinary section-to-section navigation receives the
+                    // container scale. Do not touch reading-page transitions:
+                    // parchment draw-over previously produced visible ghosting.
+                    val morphSection = initialState !is Route.Reader &&
+                        targetState !is Route.Reader
                     (
                         fadeIn(animationSpec = tween(205, easing = FastOutSlowInEasing)) +
                             slideInHorizontally(
                                 animationSpec = tween(225, easing = FastOutSlowInEasing),
                                 initialOffsetX = { it / 40 },
-                            )
+                            ) +
+                            (if (morphSection) scaleIn(
+                                initialScale = .985f,
+                                animationSpec = tween(205, easing = FastOutSlowInEasing),
+                            ) else EnterTransition.None)
                     ).togetherWith(
                         fadeOut(animationSpec = tween(155, easing = FastOutSlowInEasing)) +
                             slideOutHorizontally(
                                 animationSpec = tween(175, easing = FastOutSlowInEasing),
                                 targetOffsetX = { -it / 55 },
-                            )
+                            ) +
+                            (if (morphSection) scaleOut(
+                                targetScale = .993f,
+                                animationSpec = tween(155, easing = FastOutSlowInEasing),
+                            ) else ExitTransition.None)
                     ).using(SizeTransform(clip = false))
                 }
             },

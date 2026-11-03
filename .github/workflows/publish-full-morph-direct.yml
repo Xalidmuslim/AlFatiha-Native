@@ -1,0 +1,41 @@
+name: Publish verified Full Morph APK to raw GitHub CDN
+
+on:
+  push:
+    branches: [codex/compass-complete-morph-20261103]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  mirror-verified-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve and verify the already tested R8 APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 41648386023 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name Compass-Heart-Full-Morph-R8-APK \
+            --dir "$RUNNER_TEMP/verified"
+          APK="$RUNNER_TEMP/verified/app-fullMorphCompare.apk"
+          test -s "$APK"
+          printf '889f57814f8c688541f5549e02bd07429061a04d177fcf69f23cdd7bb70dc51b  %s\n' "$APK" | sha256sum -c -
+      - name: Push only the verified APK through a clean Git worktree
+        run: |
+          set -euo pipefail
+          git fetch origin +refs/heads/apk-mobile-direct:refs/remotes/origin/apk-mobile-direct
+          git worktree add --detach "$RUNNER_TEMP/direct-mirror" origin/apk-mobile-direct
+          cd "$RUNNER_TEMP/direct-mirror"
+          cp "$RUNNER_TEMP/verified/app-fullMorphCompare.apk" \
+            ./Compass-Heart-Full-Morph-Motion-Verified.apk
+          git add Compass-Heart-Full-Morph-Motion-Verified.apk
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "publish verified Full Morph APK for mobile download"
+          git push origin HEAD:refs/heads/apk-mobile-direct
