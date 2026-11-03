@@ -186,6 +186,14 @@ fun ReaderScreen(
         // Almost imperceptible finish; do not reveal any intermediary surface.
         Animatable(if (animateEntrance) 0.90f else 1f)
     }
+    // The full-page graphics layer is useful for the 110 ms entrance fade,
+    // but retaining it while the LazyColumn scrolls adds an extra RenderNode.
+    // This A/B variant removes the layer once the content is opaque.
+    // derivedStateOf changes the modifier only at the fade boundary, rather
+    // than recomposing the reading list on every animation frame.
+    val showEntryFadeLayer by remember(foregroundOpacity) {
+        derivedStateOf { foregroundOpacity.value < 0.999f }
+    }
     LaunchedEffect(chapter.id, animateEntrance) {
         if (animateEntrance) {
             foregroundOpacity.animateTo(
@@ -316,7 +324,11 @@ fun ReaderScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .graphicsLayer { alpha = foregroundOpacity.value }
+                    .then(
+                        if (showEntryFadeLayer) Modifier.graphicsLayer {
+                            alpha = foregroundOpacity.value
+                        } else Modifier
+                    )
                     .clipToBounds()
                     // Gestures in the reading body turn CHAPTERS, never
                     // navigate back to the contents. Android keeps its native

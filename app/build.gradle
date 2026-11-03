@@ -108,6 +108,15 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        scrollCompare {
+            // Separate R8 A/B experiment: don't overwrite the user-verified
+            // Medicine entry-build, or its independent local reading data.
+            initWith entryCompare
+            applicationIdSuffix '.medicinescrollcompare1103'
+            versionNameSuffix '-medicine-scroll-compare'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
