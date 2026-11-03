@@ -9,6 +9,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
@@ -59,10 +62,30 @@ private fun PaperCard(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val dark = MaterialTheme.colorScheme.background.red < 0.25f
+    val interactions = remember { MutableInteractionSource() }
+    val pressed by interactions.collectIsPressedAsState()
+    val cardScale = animateFloatAsState(
+        targetValue = if (onClick != null && pressed) 0.983f else 1f,
+        animationSpec = tween(165, easing = FastOutSlowInEasing),
+        label = "medicinePaperCardPress",
+    )
+    // Preserve the approved no-layer reading performance: allocate a press
+    // layer only while the card actually animates, never during ordinary scroll.
+    val hasPressLayer by remember { derivedStateOf { cardScale.value < 0.999f } }
     Surface(
-        // Do not force an off-screen framebuffer per card: on mid-range
-        // devices it consumes extra memory/bandwidth while scrolling.
-        modifier = modifier.then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
+        modifier = modifier.then(
+            if (onClick != null) Modifier.then(
+                if (hasPressLayer) Modifier.graphicsLayer {
+                    scaleX = cardScale.value
+                    scaleY = cardScale.value
+                } else Modifier
+            ).clickable(
+                interactionSource = interactions,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            ) else Modifier
+        ),
         color = if (dark) MaterialTheme.colorScheme.surface else Color.Transparent,
         shape = if (dark) RoundedCornerShape(13.dp) else RectangleShape,
         border = if (dark) BorderStroke(0.7.dp, MaterialTheme.colorScheme.outline) else null,

@@ -1,0 +1,72 @@
+name: Compass Morph Motion R8 APK
+
+on:
+  push:
+    branches: [codex/compass-morph-motion-20261103]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android API 36
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Validate motion and preserve reading content
+        run: |
+          python3 scripts/verify_compass_morph.py
+          python3 scripts/verify_medicine_entry.py
+          python3 scripts/verify_medicine_scroll_layer.py
+          python3 scripts/verify_content.py
+      - name: Android tests, lint, and isolated optimized APK
+        run: ./gradlew :azkar:testDebugUnitTest :app:lintDebug :app:assembleMorphCompare --no-daemon --stacktrace
+      - name: Verify integrity, signature and distinct package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/morphCompare/app-morphCompare.apk
+          test -s "$APK"
+          unzip -t "$APK" > /dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "app.alfatiha.tafsir.compassmorph1103"
+          unzip -l "$APK" | grep -F "assets/book.json"
+          sha256sum "$APK"
+      - name: Upload checked APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Compass-Heart-Morph-Motion-APK
+          path: app/build/outputs/apk/morphCompare/app-morphCompare.apk
+          retention-days: 30
+          if-no-files-found: error
+      - name: Publish APK directly as GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=compass-morph-motion-20261103
+          APK="$RUNNER_TEMP/Compass-Heart-Morph-Motion.apk"
+          cp app/build/outputs/apk/morphCompare/app-morphCompare.apk "$APK"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Compass Heart — Morph Motion R8 preview" \
+              --notes "Native R8 diagnostic preview: moving pill in Compass and Medicine bottom navigation, soft card and button press, directional section entrance. Reading scroll code and previous smooth A/B build remain unchanged. Installs separately. Debug signed; not a production release." \
+              --prerelease
+          fi

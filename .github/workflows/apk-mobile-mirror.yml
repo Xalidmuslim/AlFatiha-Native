@@ -1,0 +1,46 @@
+name: Mirror APK for direct mobile downloading
+
+on:
+  push:
+    branches: [codex/compass-morph-motion-20261103]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish-raw-mobile-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download the verified R8 APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 41637014993 --repo "$GITHUB_REPOSITORY" \
+            --name Compass-Heart-Morph-Motion-APK --dir "$RUNNER_TEMP/apk"
+          APK="$RUNNER_TEMP/apk/app-morphCompare.apk"
+          test -s "$APK"
+          echo "affaf031395caf94a79655e1633a3c55aa9275119062e26b10427504b8c13a2d  $APK" | sha256sum -c -
+          cp "$APK" "$RUNNER_TEMP/Compass-Heart-Morph-Motion.apk"
+      - name: Publish to isolated APK-only branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code origin refs/heads/apk-mobile-direct >/dev/null 2>&1; then
+            git fetch origin +refs/heads/apk-mobile-direct:refs/remotes/origin/apk-mobile-direct
+            git switch -c apk-mobile-direct --track origin/apk-mobile-direct
+          else
+            git switch --orphan apk-mobile-direct
+            git rm -rf --cached . >/dev/null 2>&1 || true
+          fi
+          cp "$RUNNER_TEMP/Compass-Heart-Morph-Motion.apk" ./Compass-Heart-Morph-Motion.apk
+          git add Compass-Heart-Morph-Motion.apk
+          git commit -m "publish: verified 10.9 MB Compass Morph Motion R8 APK"
+          git push origin HEAD:refs/heads/apk-mobile-direct

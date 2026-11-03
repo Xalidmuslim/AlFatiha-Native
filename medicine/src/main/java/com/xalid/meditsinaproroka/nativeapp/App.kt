@@ -9,6 +9,8 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -20,8 +22,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -39,6 +44,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -325,7 +331,11 @@ private fun StandaloneBottomNav(
     data class NavItem(val label: String, val icon: Int, val selected: Boolean, val action: () -> Unit)
     val items = listOf(
         NavItem("Главная", R.drawable.nav_home, current == Route.Home, onHome),
-        NavItem("Темы", R.drawable.nav_topics, current == Route.Topics || current == Route.Book, onTopics),
+        NavItem("Темы", R.drawable.nav_topics,
+            current == Route.Topics || current == Route.Book ||
+                current is Route.Reader || current is Route.TopicDetail ||
+                current is Route.CollectionDetail || current is Route.GlossaryDetail,
+            onTopics),
         NavItem("Поиск", R.drawable.nav_search, current == Route.Search, onSearch),
         NavItem("Закладки", R.drawable.nav_bookmark, current == Route.Bookmarks, onBookmarks),
         NavItem("Ещё", R.drawable.nav_more, current == Route.More, onMore),
@@ -337,7 +347,7 @@ private fun StandaloneBottomNav(
             Modifier.fillMaxWidth().navigationBarsPadding()
                 .padding(start = 13.dp, end = 13.dp, top = 4.dp, bottom = 4.dp),
         ) {
-            Box(
+            BoxWithConstraints(
                 Modifier.fillMaxWidth()
                     .clip(panelShape)
                     .background(if (dark) MaterialTheme.colorScheme.surface else Color(0xFFF2E8D9))
@@ -356,11 +366,38 @@ private fun StandaloneBottomNav(
                         alpha = 0.40f,
                     )
                 }
+                // One translucent capsule slides between destinations without
+                // reflowing icons, text or any reading LazyColumn.
+                val activeIndex = items.indexOfFirst { it.selected }.coerceAtLeast(0)
+                val cellWidth = (maxWidth - 6.dp) / items.size
+                val pillX by animateDpAsState(
+                    targetValue = 3.dp + cellWidth * activeIndex,
+                    animationSpec = tween(265, easing = FastOutSlowInEasing),
+                    label = "medicineMorphPill",
+                )
+                Box(
+                    Modifier.offset(x = pillX, y = 3.dp)
+                        .width(cellWidth)
+                        .height(49.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(
+                                alpha = if (dark) 0.18f else 0.10f
+                            )
+                        ),
+                )
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 3.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     items.forEach { item ->
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val pressed by interactionSource.collectIsPressedAsState()
+                        val iconScale by animateFloatAsState(
+                            targetValue = if (pressed) 0.94f else if (item.selected) 1.07f else 1f,
+                            animationSpec = tween(175, easing = FastOutSlowInEasing),
+                            label = "medicineMorphIcon",
+                        )
                         val color by animateColorAsState(
                             targetValue = if (item.selected) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -370,12 +407,24 @@ private fun StandaloneBottomNav(
                         Column(
                             Modifier.weight(1f).heightIn(min = 51.dp)
                                 .semantics { selected = item.selected }
-                                .clickable(role = Role.Tab, onClick = item.action)
+                                .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                    role = Role.Tab,
+                                    onClick = item.action,
+                                )
                                 .padding(vertical = 2.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
-                            AntiqueIcon(item.icon, Modifier.size(30.dp))
+                            AntiqueIcon(
+                                item.icon,
+                                Modifier.size(30.dp).graphicsLayer {
+                                    scaleX = iconScale
+                                    scaleY = iconScale
+                                    translationY = if (item.selected) -2.dp.toPx() else 0f
+                                },
+                            )
                             Spacer(Modifier.height(1.dp))
                             Text(
                                 item.label,
