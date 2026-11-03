@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 host = (ROOT / "app/src/main/java/app/alfatiha/tafsir/MainActivity.java").read_text()
 med = (ROOT / "medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/App.kt").read_text()
 reader = (ROOT / "medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/Reader.kt").read_text()
+antique = (ROOT / "medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/AntiqueDesign.kt").read_text()
 azkar = (ROOT / "azkar/src/main/java/app/xalidmuslim/azkar/ui/reading/AzkarReaderScreen.kt").read_text()
 
 assert "class MorphNavBackground" in host, "Host nav must have a moving capsule"
@@ -25,6 +26,10 @@ assert "BoxWithConstraints(" in med and 'label = "medicineMorphPill"' in med, (
 assert 'label = "medicineMorphIcon"' in med, "Medicine icons need micro-transform"
 assert 'betweenContentsAndReader' in med and 'EnterTransition.None' in med, (
     "Preserve parchment no-ghost transitions"
+)
+assert 'label = "medicinePaperCardPress"' in antique, "Home paper cards need soft press"
+assert "if (hasPressLayer) Modifier.graphicsLayer" in antique, (
+    "Do not keep a permanent graphics layer on the scrolling Medicine home list"
 )
 assert "setTextIsSelectable(true)" in reader, "Reader selection must be preserved"
 assert "showEntryFadeLayer" in reader, "Preserve approved scroll-layer optimization"
