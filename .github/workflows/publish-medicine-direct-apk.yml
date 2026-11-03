@@ -42,3 +42,15 @@ jobs:
               --notes "Android native R8 performance test. Installs separately from Compass Heart. This is a debug-signed prerelease, not a production release." \
               --prerelease
           fi
+
+      - name: Publish a ZIP alternative for restricted APK downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ZIP="$RUNNER_TEMP/Compass-Heart-Medicine-R8-Compare-ANDROID.zip"
+          cd "$RUNNER_TEMP"
+          zip -9 "$ZIP" Compass-Heart-Medicine-R8-Compare.apk
+          unzip -t "$ZIP"
+          gh release upload "compass-medicine-r8-compare-20261103" "$ZIP" \
+            --clobber --repo "$GITHUB_REPOSITORY"
