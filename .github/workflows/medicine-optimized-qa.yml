@@ -2,7 +2,7 @@ name: Compass Heart with Smooth Medicine - optimized APK
 
 on:
   push:
-    branches: [codex/compass-medicine-smooth-integration-20261010, codex/compass-medicine-home-fade-20261010, codex/compass-medicine-fade-safe-install-20261010]
+    branches: [codex/compass-medicine-smooth-integration-20261010, codex/compass-medicine-home-fade-20261010, codex/compass-medicine-fade-safe-install-20261010, codex/compass-medicine-entry-smooth-20261103]
   workflow_dispatch:
 
 permissions:
@@ -60,7 +60,7 @@ jobs:
       - name: Upload separately installable Compass Heart preview
         uses: actions/upload-artifact@v4
         with:
-          name: Compass-Heart-v1.3.46-Home-Fade-Safe-Install
+          name: Compass-Heart-Medicine-R8-Preview-20261103
           path: app/build/outputs/apk/smoothPreview/app-smoothPreview.apk
           retention-days: 30
           if-no-files-found: error
