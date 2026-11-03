@@ -111,12 +111,12 @@ internal fun AzkarProductionReaderScreen(
     val readerUi = uiController.state
     var restoredPeriod by remember(uiController) {
         mutableStateOf(
-            readerUi.isHydrated && readerUi.lastPeriod == periodController.period,
+            readerUi.hasLiveSnapshot && readerUi.lastPeriod == periodController.period,
         )
     }
 
-    LaunchedEffect(readerUi.isHydrated, readerUi.lastPeriod) {
-        if (readerUi.isHydrated && !restoredPeriod) {
+    LaunchedEffect(readerUi.hasLiveSnapshot, readerUi.lastPeriod) {
+        if (readerUi.hasLiveSnapshot && !restoredPeriod) {
             periodController.switchTo(readerUi.lastPeriod)
             restoredPeriod = true
         }
@@ -133,7 +133,7 @@ internal fun AzkarProductionReaderScreen(
             ?.item
             ?.id
         mutableStateOf(
-            readerUi.isHydrated && (savedId == null || savedId == activeId),
+            readerUi.hasLiveSnapshot && (savedId == null || savedId == activeId),
         )
     }
 
@@ -142,12 +142,12 @@ internal fun AzkarProductionReaderScreen(
     // could briefly draw the default morning/first item and then replace it after DataStore
     // hydration, which looked like a delayed page refresh.
     LaunchedEffect(
-        readerUi.isHydrated,
+        readerUi.hasLiveSnapshot,
         restoredPeriod,
         period,
         readerUi.lastItemByPeriod,
     ) {
-        if (readerUi.isHydrated && restoredPeriod && !restoredInitialItem) {
+        if (readerUi.hasLiveSnapshot && restoredPeriod && !restoredInitialItem) {
             val savedId = readerUi.lastItemByPeriod[period]
             val savedIndex = entries.indexOfFirst { it.item.id == savedId }
             if (savedIndex >= 0 && savedIndex != periodController.navigation.state.activeIndex) {
