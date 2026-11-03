@@ -7,6 +7,8 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.shrinkVertically
@@ -145,6 +147,13 @@ internal fun AzkarReaderSheetHost(
                     easing = AzkarMotion.sheetEasing,
                 ),
                 initialOffsetY = { (it * 0.02f).roundToInt().coerceAtLeast(1) },
+            ) +
+            scaleIn(
+                initialScale = .985f,
+                animationSpec = tween(
+                    durationMillis = AzkarMotion.sheetDurationMillis,
+                    easing = AzkarMotion.sheetEasing,
+                ),
             ),
         exit = fadeOut(tween(AzkarMotion.sheetExitDurationMillis)) +
             slideOutVertically(
@@ -153,6 +162,13 @@ internal fun AzkarReaderSheetHost(
                     easing = AzkarMotion.sheetEasing,
                 ),
                 targetOffsetY = { (it * 0.02f).roundToInt().coerceAtLeast(1) },
+            ) +
+            scaleOut(
+                targetScale = .992f,
+                animationSpec = tween(
+                    durationMillis = AzkarMotion.sheetExitDurationMillis,
+                    easing = AzkarMotion.sheetEasing,
+                ),
             ),
     ) {
         when (renderedSheet) {
