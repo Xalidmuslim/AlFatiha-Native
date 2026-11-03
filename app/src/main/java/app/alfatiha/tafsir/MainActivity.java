@@ -6,6 +6,12 @@ import android.content.*;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.Drawable;
+import android.animation.ValueAnimator;
 import android.graphics.drawable.GradientDrawable;
 import android.view.*;
 import android.view.inputmethod.InputMethodManager;
@@ -36,6 +42,9 @@ public class MainActivity extends Activity {
     private static final int C_BAD_BG = Color.rgb(247,232,230);
 
     private LinearLayout page, bottom, topHost;
+    private MorphNavBackground morphNavBackground;
+    private ValueAnimator morphNavAnimator;
+    private int morphNavIndex=0;
     private ScrollView scroll;
     private SharedPreferences prefs;
     private final ArrayDeque<Screen> history = new ArrayDeque<>();
@@ -202,7 +211,108 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(flags);
     }
 
+    // Native moving indicator drawn beneath the four tabs, without a layout pass.
+    private static final class MorphNavBackground extends Drawable {
+        private final Drawable base;
+        private final Paint fill=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint outline=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF capsule=new RectF();
+        private final float outerPx,innerPx,verticalPx,radiusPx;
+        float position;
+
+        MorphNavBackground(Drawable original,boolean dark,float outer,float inner,
+                           float vertical,float radius,float selected){
+            base=original;
+            outerPx=outer;
+            innerPx=inner;
+            verticalPx=vertical;
+            radiusPx=radius;
+            position=selected;
+            fill.setColor(dark?Color.argb(65,124,161,137):Color.argb(37,53,109,87));
+            outline.setStyle(Paint.Style.STROKE);
+            outline.setStrokeWidth(Math.max(1f,inner*.38f));
+            outline.setColor(dark?Color.argb(70,170,195,179):Color.argb(53,53,109,87));
+        }
+        void setPosition(float value){
+            position=value;
+            invalidateSelf();
+        }
+        @Override public void draw(Canvas canvas){
+            android.graphics.Rect b=getBounds();
+            base.setBounds(b);
+            base.draw(canvas);
+            float cell=(b.width()-outerPx*2)/4f;
+            float left=b.left+outerPx+cell*position+innerPx;
+            capsule.set(left,b.top+verticalPx,
+                    left+cell-innerPx*2,b.bottom-verticalPx);
+            canvas.drawRoundRect(capsule,radiusPx,radiusPx,fill);
+            canvas.drawRoundRect(capsule,radiusPx,radiusPx,outline);
+        }
+        @Override public void setAlpha(int alpha){base.setAlpha(alpha);invalidateSelf();}
+        @Override public void setColorFilter(android.graphics.ColorFilter filter){
+            base.setColorFilter(filter);
+            invalidateSelf();
+        }
+        @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
+    }
+
+    private boolean morphAnimationsEnabled(){
+        return Build.VERSION.SDK_INT<26 || ValueAnimator.areAnimatorsEnabled();
+    }
+
+    private int morphNavDestination(String sectionType){
+        if("home".equals(sectionType))return 0;
+        if("profile".equals(sectionType))return 2;
+        return 1;
+    }
+
+    private void animateMorphNavTo(int destination,boolean animate){
+        if(bottom==null||morphNavBackground==null)return;
+        final int target=Math.max(0,Math.min(3,destination));
+        if(morphNavIndex==target &&
+                Math.abs(morphNavBackground.position-target)<.001f)return;
+        morphNavIndex=target;
+        if(morphNavAnimator!=null){morphNavAnimator.cancel();morphNavAnimator=null;}
+        boolean motion=animate&&morphAnimationsEnabled();
+        if(motion){
+            morphNavAnimator=ValueAnimator.ofFloat(morphNavBackground.position,target);
+            morphNavAnimator.setDuration(265);
+            morphNavAnimator.setInterpolator(new android.view.animation.PathInterpolator(
+                    .20f,0f,.10f,1f));
+            morphNavAnimator.addUpdateListener(value->
+                    morphNavBackground.setPosition((float)value.getAnimatedValue()));
+            morphNavAnimator.start();
+        }else{
+            morphNavBackground.setPosition(target);
+        }
+        for(int i=0;i<bottom.getChildCount();i++){
+            View tab=bottom.getChildAt(i);
+            if(!(tab instanceof LinearLayout))continue;
+            LinearLayout item=(LinearLayout)tab;
+            ImageView icon=(ImageView)item.getChildAt(0);
+            TextView label=(TextView)item.getChildAt(1);
+            boolean selected=i==target;
+            int tint=selected?C_SAGE:muted();
+            icon.setColorFilter(tint);
+            label.setTextColor(tint);
+            icon.animate().cancel();
+            if(motion){
+                icon.animate().scaleX(selected?1.10f:1f)
+                        .scaleY(selected?1.10f:1f)
+                        .translationY(selected?-dp(2):0)
+                        .setDuration(225)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
+            }else{
+                icon.setScaleX(selected?1.10f:1f);
+                icon.setScaleY(selected?1.10f:1f);
+                icon.setTranslationY(selected?-dp(2):0);
+            }
+        }
+    }
+
     private void buildShell(){
+        if(morphNavAnimator!=null){morphNavAnimator.cancel();morphNavAnimator=null;}
         applyWindowChrome();
         LinearLayout root=new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -240,12 +350,13 @@ public class MainActivity extends Activity {
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setGravity(Gravity.CENTER);
         bottom.setPadding(dp(8),dp(5),dp(8),dp(5));
-        bottom.setBackground(surfaceBg(
-                dark?Color.rgb(31,37,34):Color.rgb(251,247,240),
-                dark?Color.rgb(29,34,32):Color.rgb(248,244,236),
-                18,
-                line()
-        ));
+        morphNavBackground=new MorphNavBackground(
+                surfaceBg(
+                        dark?Color.rgb(31,37,34):Color.rgb(251,247,240),
+                        dark?Color.rgb(29,34,32):Color.rgb(248,244,236),
+                        18,line()),
+                dark,dp(8),dp(4),dp(6),dp(14),morphNavIndex);
+        bottom.setBackground(morphNavBackground);
         bottom.setElevation(dp(3));
         LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(64));
         blp.setMargins(dp(8),0,dp(8),dp(8));
@@ -263,6 +374,9 @@ public class MainActivity extends Activity {
         navBtn(R.drawable.ic_nav_contents,"Содержание",muted(),this::openContents);
         navBtn(R.drawable.ic_nav_progress,"Прогресс",muted(),()->renderProfile(true));
         navBtn(R.drawable.ic_nav_menu,"Меню",muted(),this::showSectionsDialog);
+        int selected=morphNavIndex;
+        morphNavIndex=-1;
+        animateMorphNavTo(selected,false);
     }
 
     private void navBtn(int iconRes,String label,int color,Runnable r){
@@ -283,7 +397,12 @@ public class MainActivity extends Activity {
         llp.setMargins(0,dp(2),0,0);
         box.addView(l,llp);
 
-        box.setOnClickListener(v->r.run());
+        final int navPosition=bottom.getChildCount();
+        box.setContentDescription(label);
+        box.setOnClickListener(v->{
+            animateMorphNavTo(navPosition,true);
+            r.run();
+        });
         installPressMotion(box,.95f);
         bottom.addView(box,new LinearLayout.LayoutParams(0,-1,1));
     }
@@ -308,8 +427,8 @@ public class MainActivity extends Activity {
                 case android.view.MotionEvent.ACTION_CANCEL:
                     v.animate().cancel();
                     v.animate().scaleX(1f).scaleY(1f)
-                            .setDuration(150)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                            .setDuration(175)
+                            .setInterpolator(new android.view.animation.OvershootInterpolator(.40f))
                             .start();
                     break;
                 default: break;
@@ -922,15 +1041,37 @@ public class MainActivity extends Activity {
             history.push(current);
         }
         current=new Screen(type,arg);
+        animateMorphNavTo(morphNavDestination(type),true);
         if(topHost!=null)topHost.removeAllViews();
+        page.animate().cancel();
         page.removeAllViews();
         page.setPadding(dp(8),dp(4),dp(8),dp(24));
         page.setBackgroundColor(bg());
         scroll.setVerticalScrollBarEnabled(true);
         scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         scroll.scrollTo(0,0);
-        page.setAlpha(0f); page.setTranslationY(dp(7));
-        page.post(()->page.animate().alpha(1f).translationY(0f).setDuration(150).start());
+        final Screen arriving=current;
+        final boolean home="home".equals(type);
+        if(morphAnimationsEnabled()){
+            page.setAlpha(.94f);
+            page.setTranslationX(home?0:dp(push?10:-7));
+            page.setTranslationY(dp(home?8:3));
+            page.setScaleX(.997f);
+            page.setScaleY(.997f);
+            page.post(()->{
+                if(current!=arriving)return;
+                page.animate().alpha(1f).translationX(0f).translationY(0f)
+                        .scaleX(1f).scaleY(1f).setDuration(home?235:205)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
+            });
+        }else{
+            page.setAlpha(1f);
+            page.setTranslationX(0f);
+            page.setTranslationY(0f);
+            page.setScaleX(1f);
+            page.setScaleY(1f);
+        }
     }
 
     private TextView chromeText(String value,float size,int color,boolean bold){
@@ -973,6 +1114,7 @@ public class MainActivity extends Activity {
         b.setMinHeight(0); b.setMinimumHeight(0);
         b.setBackground(surfaceBg(color,blend(color,Color.BLACK,.06f),19,0));
         b.setElevation(dp(2));
+        installPressMotion(b,.965f);
         return b;
     }
 
@@ -995,6 +1137,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(38),dp(38));
         lp.setMargins(dp(4),0,0,0);
         b.setLayoutParams(lp);
+        installPressMotion(b,.97f);
         return b;
     }
 
@@ -2059,6 +2202,7 @@ public class MainActivity extends Activity {
         c.addView(textBlock,new LinearLayout.LayoutParams(-1,-2));
 
         c.setOnClickListener(v->open.run());
+        installPressMotion(c,.985f);
         return c;
     }
 
@@ -7719,7 +7863,7 @@ public class MainActivity extends Activity {
         detailView.setSingleLine(true);
         detailView.setEllipsize(android.text.TextUtils.TruncateAt.END);
         c.addView(detailView,new LinearLayout.LayoutParams(-1,-2));
-
+        installPressMotion(c,.975f);
         return c;
     }
 
