@@ -10,6 +10,7 @@ object AzkarMotion {
     const val sheetDurationMillis = 150
     const val sheetExitDurationMillis = 150
     const val progressDurationMillis = 150
+    const val navigationPressDurationMillis = 135
     const val toggleDurationMillis = 170
     const val stateTransitionDurationMillis = 150
     const val themeTransitionDurationMillis = 0
