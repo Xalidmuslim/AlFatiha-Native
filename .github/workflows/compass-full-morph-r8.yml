@@ -1,0 +1,85 @@
+name: Compass Full Morph Motion R8 APK
+
+on:
+  push:
+    branches: [codex/compass-complete-morph-20261103]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test-build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android API 36
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Verify motion contracts and reading preservation
+        run: |
+          python3 scripts/verify_compass_full_morph.py
+          python3 scripts/verify_compass_morph.py
+          python3 scripts/verify_medicine_entry.py
+          python3 scripts/verify_medicine_scroll_layer.py
+          python3 scripts/verify_content.py
+      - name: Regression tests, Lint and optimized R8 APK
+        run: ./gradlew :azkar:testDebugUnitTest :app:lintDebug :app:assembleFullMorphCompare --no-daemon --stacktrace
+      - name: Check APK signature, book assets and unique package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/fullMorphCompare/app-fullMorphCompare.apk
+          test -s "$APK"
+          unzip -t "$APK" > /dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "app.alfatiha.tafsir.compassfullmorph1103"
+          unzip -l "$APK" | grep -F "assets/book.json"
+          sha256sum "$APK"
+      - name: Upload checked APK as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Compass-Heart-Full-Morph-R8-APK
+          path: app/build/outputs/apk/fullMorphCompare/app-fullMorphCompare.apk
+          retention-days: 30
+          if-no-files-found: error
+      - name: Publish APK directly through GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=compass-full-morph-motion-20261103
+          APK="$RUNNER_TEMP/Compass-Heart-Full-Morph-Motion.apk"
+          cp app/build/outputs/apk/fullMorphCompare/app-fullMorphCompare.apk "$APK"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Compass Heart — Full Morph Motion R8 preview" \
+              --notes "Native R8 preview: reversible dashboard card container transform, in-dialog card transitions, consistent moving nav pill in Compass/Medicine/Azkar, animated Medicine section and Azkar sheets. Book and Azkar reader scrolling remains unchanged. Installs separately, debug signed." \
+              --prerelease
+          fi
+      - name: Publish a second direct APK link for Android browsers
+        run: |
+          set -euo pipefail
+          APK="$RUNNER_TEMP/Compass-Heart-Full-Morph-Motion.apk"
+          test -s "$APK"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin +refs/heads/apk-mobile-direct:refs/remotes/origin/apk-mobile-direct
+          git switch -c apk-mobile-direct --track origin/apk-mobile-direct
+          cp "$APK" ./Compass-Heart-Full-Morph-Motion.apk
+          git add Compass-Heart-Full-Morph-Motion.apk
+          git commit -m "publish: direct R8 Full Morph APK download"
+          git push origin HEAD:refs/heads/apk-mobile-direct
