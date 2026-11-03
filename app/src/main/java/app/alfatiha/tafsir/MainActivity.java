@@ -7,6 +7,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.Canvas;
+import android.graphics.Bitmap;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.PixelFormat;
@@ -45,6 +46,12 @@ public class MainActivity extends Activity {
     private MorphNavBackground morphNavBackground;
     private ValueAnimator morphNavAnimator;
     private int morphNavIndex=0;
+    private ValueAnimator morphContainerAnimator;
+    private MorphContainerDrawable morphContainerOverlay;
+    private String morphHomeTitle;
+    private int morphHomeTone;
+    private Bitmap morphHomeSnapshot;
+    private boolean morphContainerBusy;
     private ScrollView scroll;
     private SharedPreferences prefs;
     private final ArrayDeque<Screen> history = new ArrayDeque<>();
@@ -312,6 +319,164 @@ public class MainActivity extends Activity {
                 icon.setTranslationY(selected?-dp(2):0);
             }
         }
+    }
+
+
+    /**
+     * Draw the selected card's bitmap while the card container expands.
+     * All allocation happens on click, not in the scroll or reader path.
+     */
+    private static final class MorphContainerDrawable extends Drawable {
+        private final RectF start=new RectF(),end=new RectF(),rect=new RectF();
+        private final Paint fill=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint picture=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+        private final Bitmap snapshot;
+        private final float fromRadius,toRadius;
+        private final boolean backwards;
+        private float progress;
+
+        MorphContainerDrawable(RectF from,RectF to,Bitmap image,int color,
+                               float startRadius,float endRadius,boolean reverse){
+            start.set(from);end.set(to);snapshot=image;
+            fromRadius=startRadius;toRadius=endRadius;backwards=reverse;
+            fill.setColor(color);
+        }
+        void progress(float progress){this.progress=progress;invalidateSelf();}
+        @Override public void draw(Canvas canvas){
+            float p=progress;
+            rect.set(start.left+(end.left-start.left)*p,
+                    start.top+(end.top-start.top)*p,
+                    start.right+(end.right-start.right)*p,
+                    start.bottom+(end.bottom-start.bottom)*p);
+            float radius=fromRadius+(toRadius-fromRadius)*p;
+            float fade=Math.max(0f,Math.min(1f,(p-.70f)/.30f));
+            fill.setAlpha((int)(238*(1f-fade)));
+            canvas.drawRoundRect(rect,radius,radius,fill);
+            if(snapshot!=null && !snapshot.isRecycled()){
+                float bitmapFade=backwards?Math.max(0f,(p-.65f)/.35f)
+                        :Math.max(0f,1f-p*2.8f);
+                if(bitmapFade>0f){
+                    picture.setAlpha((int)(255*bitmapFade));
+                    android.graphics.Path clip=new android.graphics.Path();
+                    clip.addRoundRect(rect,radius,radius,android.graphics.Path.Direction.CW);
+                    canvas.save();
+                    canvas.clipPath(clip);
+                    canvas.drawBitmap(snapshot,null,rect,picture);
+                    canvas.restore();
+                }
+            }
+        }
+        @Override public void setAlpha(int alpha){fill.setAlpha(alpha);invalidateSelf();}
+        @Override public void setColorFilter(android.graphics.ColorFilter filter){
+            fill.setColorFilter(filter);invalidateSelf();
+        }
+        @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
+    }
+
+    private RectF morphViewRect(View v,ViewGroup root){
+        int[] from=new int[2],origin=new int[2];
+        v.getLocationOnScreen(from);root.getLocationOnScreen(origin);
+        int x=from[0]-origin[0],y=from[1]-origin[1];
+        return new RectF(x,y,x+v.getWidth(),y+v.getHeight());
+    }
+
+    private Bitmap morphSnapshot(View card){
+        if(card.getWidth()<1||card.getHeight()<1)return null;
+        try{
+            Bitmap bitmap=Bitmap.createBitmap(
+                    card.getWidth(),card.getHeight(),Bitmap.Config.ARGB_8888);
+            card.draw(new Canvas(bitmap));
+            return bitmap;
+        }catch(OutOfMemoryError ignored){return null;}
+    }
+
+    private void clearMorphContainer(){
+        if(morphContainerAnimator!=null){
+            ValueAnimator existing=morphContainerAnimator;
+            morphContainerAnimator=null;
+            existing.cancel();
+        }
+        if(morphContainerOverlay!=null){
+            ((ViewGroup)getWindow().getDecorView()).getOverlay().remove(morphContainerOverlay);
+            morphContainerOverlay=null;
+        }
+        morphContainerBusy=false;
+    }
+
+    private void animateMorphContainer(RectF from,RectF to,int tone,Bitmap snapshot,
+                                       boolean backwards,Runnable endAction){
+        if(!morphAnimationsEnabled()){
+            if(endAction!=null)endAction.run();
+            return;
+        }
+        clearMorphContainer();
+        ViewGroup root=(ViewGroup)getWindow().getDecorView();
+        MorphContainerDrawable overlay=new MorphContainerDrawable(
+                from,to,snapshot,tone,
+                dp(backwards?12:20),dp(backwards?20:12),backwards);
+        overlay.setBounds(0,0,root.getWidth(),root.getHeight());
+        root.getOverlay().add(overlay);
+        morphContainerOverlay=overlay;
+        morphContainerBusy=true;
+        ValueAnimator animator=ValueAnimator.ofFloat(0f,1f);
+        morphContainerAnimator=animator;
+        animator.setDuration(backwards?215:205);
+        animator.setInterpolator(new android.view.animation.PathInterpolator(.20f,0f,.12f,1f));
+        animator.addUpdateListener(frame->overlay.progress((float)frame.getAnimatedValue()));
+        animator.addListener(new android.animation.AnimatorListenerAdapter(){
+            private boolean cancelled;
+            @Override public void onAnimationCancel(android.animation.Animator animation){cancelled=true;}
+            @Override public void onAnimationEnd(android.animation.Animator animation){
+                if(morphContainerOverlay==overlay){
+                    root.getOverlay().remove(overlay);
+                    morphContainerOverlay=null;
+                }
+                if(morphContainerAnimator==animator)morphContainerAnimator=null;
+                morphContainerBusy=false;
+                if(!cancelled&&endAction!=null&&!isFinishing())endAction.run();
+            }
+        });
+        animator.start();
+    }
+
+    private void morphOpenHomeCard(View card,String title,int tone,Runnable open){
+        if(morphContainerBusy)return; // Debounce until the new screen exists.
+        if(!morphAnimationsEnabled()||scroll==null||card.getWidth()<1){
+            open.run();return;
+        }
+        ViewGroup root=(ViewGroup)getWindow().getDecorView();
+        RectF from=morphViewRect(card,root),to=morphViewRect(scroll,root);
+        if(from.width()<1||to.width()<1){open.run();return;}
+        morphHomeTitle=title;
+        morphHomeTone=tone;
+        morphHomeSnapshot=morphSnapshot(card);
+        animateMorphContainer(from,to,tone,morphHomeSnapshot,false,open);
+    }
+
+    private void morphReturnToHomeCard(String title){
+        if(title==null||scroll==null)return;
+        View card=page.findViewWithTag("compass-morph:"+title);
+        if(card==null||card.getWidth()<1)return;
+        ViewGroup root=(ViewGroup)getWindow().getDecorView();
+        RectF start=morphViewRect(scroll,root),end=morphViewRect(card,root);
+        if(end.width()>0)
+            animateMorphContainer(start,end,morphHomeTone,morphHomeSnapshot,true,null);
+    }
+
+    // A Dialog uses a separate Android window; avoid reparenting its content
+    // or doing expensive Bitmap work across Activity and Dialog windows.
+    private void morphOpenDialogCard(View card,Dialog dialog,Runnable open){
+        if(!morphAnimationsEnabled()){
+            dialog.dismiss();open.run();return;
+        }
+        card.animate().cancel();
+        card.animate().scaleX(1.025f).scaleY(1.025f).alpha(.87f)
+                .setDuration(125)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .withEndAction(()->{
+                    if(dialog.isShowing())dialog.dismiss();
+                    open.run();
+                }).start();
     }
 
     private void buildShell(){
