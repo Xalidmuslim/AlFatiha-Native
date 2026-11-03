@@ -480,6 +480,7 @@ public class MainActivity extends Activity {
     }
 
     private void buildShell(){
+        clearMorphContainer();
         if(morphNavAnimator!=null){morphNavAnimator.cancel();morphNavAnimator=null;}
         applyWindowChrome();
         LinearLayout root=new LinearLayout(this);
@@ -1933,6 +1934,10 @@ public class MainActivity extends Activity {
     }
 
     private void renderHome(boolean push){
+        final boolean reverseMorph=morphHomeTitle!=null&&current!=null
+                && !"home".equals(current.type)&&morphAnimationsEnabled();
+        final String returningTitle=morphHomeTitle;
+        morphHomeTitle=null;
         clearActiveFlow();
         clear("home","",push);
         currentSection="home";
@@ -2150,7 +2155,8 @@ public class MainActivity extends Activity {
                 20,
                 dark?Color.rgb(61,70,65):Color.rgb(228,218,204)
         ));
-        quizResume.setOnClickListener(v->continueLastQuiz());
+        quizResume.setOnClickListener(v->morphOpenHomeCard(quizResume,
+                "Продолжить викторину",quizResumeTone,this::continueLastQuiz));
 
         LinearLayout qrTop=new LinearLayout(this);
         qrTop.setOrientation(LinearLayout.HORIZONTAL);
@@ -2184,6 +2190,8 @@ public class MainActivity extends Activity {
 
         LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(54));
         qrLp.setMargins(0,0,0,dp(2));
+        quizResume.setTag("compass-morph:Продолжить викторину");
+        installPressMotion(quizResume,.987f);
         page.addView(quizResume,qrLp);
 
         // Six primary sections. Continue/progress now lives inside the hero.
@@ -2251,9 +2259,12 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
         row3lp.setMargins(0,dp(7),0,0);
         page.addView(row3,row3lp);
-
-
-
+        if(reverseMorph){
+            page.post(()->{
+                if(current!=null && "home".equals(current.type))
+                    morphReturnToHomeCard(returningTitle);
+            });
+        }
     }
 
     private LinearLayout homeFeature(
@@ -2369,7 +2380,12 @@ public class MainActivity extends Activity {
 
         c.addView(textBlock,new LinearLayout.LayoutParams(-1,-2));
 
-        c.setOnClickListener(v->open.run());
+        c.setTag("compass-morph:"+title);
+        c.setOnClickListener(v->{
+            // External modules keep their existing fast Activity transitions.
+            if("Азкары".equals(title)||medicineTile)open.run();
+            else morphOpenHomeCard(c,title,cardTone,open);
+        });
         installPressMotion(c,.985f);
         return c;
     }
