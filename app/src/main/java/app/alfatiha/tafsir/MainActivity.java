@@ -7869,6 +7869,10 @@ public class MainActivity extends Activity {
 
     private void showContentsDialog(){
         final Dialog d=new Dialog(this);
+        d.setOnDismissListener(ignored->{
+            if(morphNavIndex==1 && "home".equals(current.type))
+                animateMorphNavTo(0,true);
+        });
         LinearLayout shell=dialogSheet(
                 "Содержание",
                 "Все основные разделы в одном месте",
@@ -7994,6 +7998,11 @@ public class MainActivity extends Activity {
 
     private void showSectionsDialog(){
         final Dialog d=new Dialog(this);
+        d.setOnDismissListener(ignored->{
+            // A modal tab is transient; restore the actual page on dismissal.
+            if(morphNavIndex==3)
+                animateMorphNavTo(morphNavDestination(current.type),true);
+        });
         KnowledgeAnalytics model=analytics();
 
         LinearLayout shell=dialogSheet(
