@@ -466,8 +466,13 @@ public class MainActivity extends Activity {
     // A Dialog uses a separate Android window; avoid reparenting its content
     // or doing expensive Bitmap work across Activity and Dialog windows.
     private void morphOpenDialogCard(View card,Dialog dialog,Runnable open){
+        if(!card.isEnabled())return;
+        card.setEnabled(false); // Prevent double navigation while expanding.
         if(!morphAnimationsEnabled()){
-            dialog.dismiss();open.run();return;
+            dialog.setOnDismissListener(null);
+            dialog.dismiss();
+            open.run();
+            return;
         }
         card.animate().cancel();
         card.animate().scaleX(1.025f).scaleY(1.025f).alpha(.87f)
