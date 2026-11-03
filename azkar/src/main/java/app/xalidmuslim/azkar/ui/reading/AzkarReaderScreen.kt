@@ -318,8 +318,10 @@ fun AzkarReaderScreen(
         if (readerUi.viewMode == AzkarReaderViewMode.List && listPositionReady) {
             snapshotFlow { listState.firstVisibleItemIndex }.collect { firstVisible ->
                 if (!programmaticListScroll && firstVisible >= AzkarListCardStartIndex) {
-                    val indexInVisibleList = firstVisible - AzkarListCardStartIndex
-                    listVisibleIndices.getOrNull(indexInVisibleList)?.let { itemIndex ->
+                    readerIndexForVisibleListPosition(
+                        firstVisible,
+                        listVisibleIndices,
+                    )?.let { itemIndex ->
                         controller.selectAnchor(itemIndex)
                     }
                 }
