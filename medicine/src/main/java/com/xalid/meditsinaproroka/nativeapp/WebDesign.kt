@@ -5,10 +5,14 @@ import android.graphics.Typeface
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -23,10 +27,13 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
@@ -159,9 +166,23 @@ internal fun WebCollectionCard(
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
+    val interactions = remember { MutableInteractionSource() }
+    val pressed by interactions.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.983f else 1f,
+        animationSpec = tween(durationMillis = 165, easing = FastOutSlowInEasing),
+        label = "medicineCollectionMorph",
+    )
+    val moving by remember { derivedStateOf { scale < 0.999f } }
     Surface(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 152.dp),
+        interactionSource = interactions,
+        modifier = modifier
+            .then(if (moving) Modifier.graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            } else Modifier)
+            .heightIn(min = 152.dp),
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(13.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
