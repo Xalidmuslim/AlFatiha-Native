@@ -1,0 +1,44 @@
+name: Publish directly downloadable Medicine test APK
+
+on:
+  push:
+    branches: [codex/compass-medicine-entry-smooth-20261103]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish-tested-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download previously verified R8 APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 41599308116 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "Compass-Heart-Medicine-R8-Preview-20261103" \
+            --dir "$RUNNER_TEMP/medicine-apk"
+          test -s "$RUNNER_TEMP/medicine-apk/app-entryCompare.apk"
+          cp "$RUNNER_TEMP/medicine-apk/app-entryCompare.apk" \
+             "$RUNNER_TEMP/Compass-Heart-Medicine-R8-Compare.apk"
+      - name: Publish a direct APK download in GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="compass-medicine-r8-compare-20261103"
+          APK="$RUNNER_TEMP/Compass-Heart-Medicine-R8-Compare.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Compass Heart — Medicine R8 comparison APK" \
+              --notes "Android native R8 performance test. Installs separately from Compass Heart. This is a debug-signed prerelease, not a production release." \
+              --prerelease
+          fi
