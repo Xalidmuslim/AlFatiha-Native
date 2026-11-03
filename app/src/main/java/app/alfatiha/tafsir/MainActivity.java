@@ -152,6 +152,9 @@ public class MainActivity extends Activity {
     @Override protected void onResume(){
         super.onResume();
         if(prefs==null)return;
+        // Restore host tab state after returning from a nested Activity.
+        if(morphNavIndex==3 && current!=null)
+            animateMorphNavTo(morphNavDestination(current.type),false);
         boolean sharedDark=prefs.getBoolean("dark",dark);
         if(sharedDark!=dark){
             Screen s=current;
@@ -8122,7 +8125,13 @@ public class MainActivity extends Activity {
         // Do not leave an animated detached Button competing with that window
         // handoff. Keep press animation on all non-transition buttons.
         medicineEntry.setOnTouchListener(null);
-        medicineEntry.setOnClickListener(v->{d.dismiss();openMedicine();});
+        medicineEntry.setOnClickListener(v->{
+            // Do not animate the host navigation behind the Medicine Activity
+            // launch: this transition is already handled by ActivityOptions.
+            d.setOnDismissListener(null);
+            d.dismiss();
+            openMedicine();
+        });
         LinearLayout.LayoutParams medicineEntryLp=
                 new LinearLayout.LayoutParams(-1,dp(54));
         medicineEntryLp.setMargins(0,dp(8),0,0);
