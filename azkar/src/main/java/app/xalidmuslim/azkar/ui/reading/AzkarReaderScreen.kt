@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,6 +79,7 @@ import app.xalidmuslim.azkar.ui.designsystem.AzkarThemeValues
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 data class AzkarReaderEntry(
@@ -285,6 +287,10 @@ fun AzkarReaderScreen(
     val shellScrollState = rememberScrollState()
     val readingScrollState = remember(navigation.generation, readerUi.viewMode) { ScrollState(0) }
     val listState = rememberLazyListState()
+    val positionPrefs = remember(context) {
+        context.getSharedPreferences("azkar_reader_position", android.content.Context.MODE_PRIVATE)
+    }
+    var restoredFirstCardScroll by remember(period, controller) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val listScrollMarginPx = with(density) {
@@ -293,6 +299,47 @@ fun AzkarReaderScreen(
 
     LaunchedEffect(readingScrollState) {
         snapshotFlow { readingScrollState.value }.collect(controller::recordScrollY)
+    }
+
+    // Exact in-card scroll offset is stored separately from the active item:
+    // keep the existing DataStore IDs/progress untouched. The position is
+    // restored only at entry, not during normal next/previous paging.
+    LaunchedEffect(readerUi.viewMode) {
+        if (readerUi.viewMode == AzkarReaderViewMode.List) restoredFirstCardScroll = false
+    }
+    LaunchedEffect(
+        readerUi.viewMode, readerUi.hasLiveSnapshot, restoredLastItem,
+        active.item.id, readingScrollState,
+    ) {
+        if (readerUi.viewMode == AzkarReaderViewMode.Cards &&
+            readerUi.hasLiveSnapshot && restoredLastItem && !restoredFirstCardScroll
+        ) {
+            withFrameNanos { }
+            val savedY = positionPrefs.getInt(
+                "card_${period.name}_${active.item.id}", 0,
+            ).coerceAtLeast(0)
+            readingScrollState.scrollTo(savedY)
+            restoredFirstCardScroll = true
+        }
+    }
+    LaunchedEffect(readingScrollState, readerUi.viewMode, active.item.id, restoredFirstCardScroll) {
+        if (readerUi.viewMode == AzkarReaderViewMode.Cards && restoredFirstCardScroll) {
+            snapshotFlow { readingScrollState.value }.collectLatest { scrollY ->
+                delay(180)
+                positionPrefs.edit().putInt(
+                    "card_${period.name}_${active.item.id}", scrollY,
+                ).apply()
+            }
+        }
+    }
+    DisposableEffect(readingScrollState, active.item.id, readerUi.viewMode, restoredFirstCardScroll) {
+        onDispose {
+            if (readerUi.viewMode == AzkarReaderViewMode.Cards && restoredFirstCardScroll) {
+                positionPrefs.edit().putInt(
+                    "card_${period.name}_${active.item.id}", readingScrollState.value,
+                ).apply()
+            }
+        }
     }
 
     // Restore the list only after the real DataStore snapshot has supplied the
@@ -304,8 +351,16 @@ fun AzkarReaderScreen(
         if (readerUi.viewMode == AzkarReaderViewMode.List &&
             restoredLastItem && readerUi.hasLiveSnapshot
         ) {
+            val oldListIndex = positionPrefs.getInt("list_index_${period.name}", -1)
+            val destination = if (oldListIndex in 0 until AzkarListCardStartIndex) {
+                oldListIndex
+            } else {
+                AzkarListCardStartIndex + activeListIndex
+            }
             listState.scrollToItem(
-                index = AzkarListCardStartIndex + activeListIndex,
+                index = destination,
+                scrollOffset = positionPrefs.getInt("list_offset_${period.name}", 0)
+                    .coerceAtLeast(0),
             )
             listPositionReady = true
         }
@@ -325,6 +380,33 @@ fun AzkarReaderScreen(
                         controller.selectAnchor(itemIndex)
                     }
                 }
+            }
+        }
+    }
+    // Save pixel offset only after a brief idle period, not on every scroll
+    // frame. A dispose flush also keeps the final position on Activity exit.
+    LaunchedEffect(listState, readerUi.viewMode, listPositionReady, period) {
+        if (readerUi.viewMode == AzkarReaderViewMode.List && listPositionReady) {
+            snapshotFlow {
+                listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+            }.collectLatest { (index, offset) ->
+                delay(160)
+                if (!programmaticListScroll) {
+                    positionPrefs.edit()
+                        .putInt("list_index_${period.name}", index)
+                        .putInt("list_offset_${period.name}", offset)
+                        .apply()
+                }
+            }
+        }
+    }
+    DisposableEffect(listState, readerUi.viewMode, listPositionReady, period) {
+        onDispose {
+            if (readerUi.viewMode == AzkarReaderViewMode.List && listPositionReady) {
+                positionPrefs.edit()
+                    .putInt("list_index_${period.name}", listState.firstVisibleItemIndex)
+                    .putInt("list_offset_${period.name}", listState.firstVisibleItemScrollOffset)
+                    .apply()
             }
         }
     }
