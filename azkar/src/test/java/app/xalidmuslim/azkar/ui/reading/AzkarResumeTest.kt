@@ -43,6 +43,15 @@ class AzkarResumeTest {
         assertEquals("evening-new", controller.state.lastItemByPeriod[AzkarPeriod.Evening])
     }
 
+    @Test
+    fun listModePersistsVisibleDhikrRatherThanInitialNavigationItem() {
+        val visibleReaderIndices = listOf(0, 2, 4, 6)
+        assertEquals(4, readerIndexForVisibleListPosition(4, visibleReaderIndices))
+        assertEquals(0, readerIndexForVisibleListPosition(2, visibleReaderIndices))
+        assertEquals(null, readerIndexForVisibleListPosition(1, visibleReaderIndices))
+        assertEquals(null, readerIndexForVisibleListPosition(9, visibleReaderIndices))
+    }
+
     private class FakeRepository(
         private val changes: Flow<AzkarPreferencesSnapshot>,
     ) : AzkarPreferencesRepository {
