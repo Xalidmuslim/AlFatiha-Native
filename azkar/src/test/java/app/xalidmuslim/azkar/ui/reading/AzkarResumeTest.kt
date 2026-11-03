@@ -16,7 +16,7 @@ import org.junit.Test
 class AzkarResumeTest {
     @Test
     fun cachedWarmSnapshotMustNotBeTreatedAsFreshRestoration() {
-        val updates = MutableSharedFlow<AzkarPreferencesSnapshot>()
+        val updates = MutableSharedFlow<AzkarPreferencesSnapshot>(replay = 1)
         val cached = AzkarPreferencesSnapshot(
             lastPeriod = AzkarPeriod.Morning,
             lastItemByPeriod = mapOf(AzkarPeriod.Morning to "morning-old"),
