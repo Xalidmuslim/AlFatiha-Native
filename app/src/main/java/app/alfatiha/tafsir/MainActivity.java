@@ -8078,7 +8078,7 @@ public class MainActivity extends Activity {
                 "Продолжить курс",
                 C_SAGE
         );
-        a.setOnClickListener(v->morphOpenDialogCard(a,d,()->renderMindHub(true);));
+        a.setOnClickListener(v->morphOpenDialogCard(a,d,()->{renderMindHub(true);}));
         row1.addView(a,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout b=sectionDialogCard(
@@ -8089,7 +8089,7 @@ public class MainActivity extends Activity {
                 "Открыть раздел",
                 Color.rgb(132,108,74)
         );
-        b.setOnClickListener(v->morphOpenDialogCard(b,d,()->renderPrayerSecretsHub(true);));
+        b.setOnClickListener(v->morphOpenDialogCard(b,d,()->{renderPrayerSecretsHub(true);}));
         LinearLayout.LayoutParams bLp=
                 new LinearLayout.LayoutParams(0,dp(132),1);
         bLp.setMargins(dp(7),0,0,0);
@@ -8107,7 +8107,7 @@ public class MainActivity extends Activity {
                 "Курс и ситуации",
                 dark?Color.rgb(137,153,145):Color.rgb(103,126,115)
         );
-        c.setOnClickListener(v->morphOpenDialogCard(c,d,()->renderMinorShirkHub(true);));
+        c.setOnClickListener(v->morphOpenDialogCard(c,d,()->{renderMinorShirkHub(true);}));
         row2.addView(c,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout az=sectionDialogCard(
@@ -8139,7 +8139,7 @@ public class MainActivity extends Activity {
                 "Все режимы",
                 dark?Color.rgb(157,143,171):Color.rgb(112,96,134)
         );
-        q.setOnClickListener(v->morphOpenDialogCard(q,d,()->renderQuizCenter(true);));
+        q.setOnClickListener(v->morphOpenDialogCard(q,d,()->{renderQuizCenter(true);}));
         row3.addView(q,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout m=sectionDialogCard(
@@ -8150,7 +8150,7 @@ public class MainActivity extends Activity {
                 "Сахих и хасан",
                 dark?Color.rgb(144,165,177):Color.rgb(102,128,143)
         );
-        m.setOnClickListener(v->morphOpenDialogCard(m,d,()->renderHadithQudsiHub(true);));
+        m.setOnClickListener(v->morphOpenDialogCard(m,d,()->{renderHadithQudsiHub(true);}));
         LinearLayout.LayoutParams mLp=
                 new LinearLayout.LayoutParams(0,dp(132),1);
         mLp.setMargins(dp(7),0,0,0);
@@ -8210,7 +8210,7 @@ public class MainActivity extends Activity {
                 "Слова и смыслы",
                 dark?Color.rgb(157,143,171):Color.rgb(112,96,134)
         );
-        search.setOnClickListener(v->morphOpenDialogCard(search,d,()->renderSearch(true);));
+        search.setOnClickListener(v->morphOpenDialogCard(search,d,()->{renderSearch(true);}));
         row1.addView(search,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout repeat=sectionDialogCard(
@@ -8221,7 +8221,7 @@ public class MainActivity extends Activity {
                 model.reviewNowCount()+" сейчас",
                 dark?Color.rgb(137,153,145):Color.rgb(103,126,115)
         );
-        repeat.setOnClickListener(v->morphOpenDialogCard(repeat,d,()->renderRepeatHub(true);));
+        repeat.setOnClickListener(v->morphOpenDialogCard(repeat,d,()->{renderRepeatHub(true);}));
         LinearLayout.LayoutParams r1b=
                 new LinearLayout.LayoutParams(0,dp(132),1);
         r1b.setMargins(dp(7),0,0,0);
@@ -8239,7 +8239,7 @@ public class MainActivity extends Activity {
                 "Быстрый доступ",
                 dark?Color.rgb(174,147,103):Color.rgb(145,104,42)
         );
-        bookmarks.setOnClickListener(v->morphOpenDialogCard(bookmarks,d,()->renderTaskNavigator(5,true);));
+        bookmarks.setOnClickListener(v->morphOpenDialogCard(bookmarks,d,()->{renderTaskNavigator(5,true);}));
         row2.addView(
                 bookmarks,
                 new LinearLayout.LayoutParams(0,dp(132),1)
@@ -8253,7 +8253,7 @@ public class MainActivity extends Activity {
                 "Сохранённые результаты",
                 dark?Color.rgb(144,165,177):Color.rgb(102,128,143)
         );
-        historyCard.setOnClickListener(v->morphOpenDialogCard(historyCard,d,()->renderExamHistory(true);));
+        historyCard.setOnClickListener(v->morphOpenDialogCard(historyCard,d,()->{renderExamHistory(true);}));
         LinearLayout.LayoutParams r2b=
                 new LinearLayout.LayoutParams(0,dp(132),1);
         r2b.setMargins(dp(7),0,0,0);
@@ -8276,7 +8276,7 @@ public class MainActivity extends Activity {
                         :"Последний "+model.lastExamPercent()+"%",
                 dark?Color.rgb(144,165,177):Color.rgb(102,128,143)
         );
-        exam.setOnClickListener(v->morphOpenDialogCard(exam,d,()->renderExamCenter(true);));
+        exam.setOnClickListener(v->morphOpenDialogCard(exam,d,()->{renderExamCenter(true);}));
         row3.addView(exam,new LinearLayout.LayoutParams(0,dp(132),1));
 
         LinearLayout saved=sectionDialogCard(
@@ -8287,7 +8287,7 @@ public class MainActivity extends Activity {
                 "Материалы курса",
                 dark?Color.rgb(157,143,171):Color.rgb(112,96,134)
         );
-        saved.setOnClickListener(v->morphOpenDialogCard(saved,d,()->renderSavedMaterials(true);));
+        saved.setOnClickListener(v->morphOpenDialogCard(saved,d,()->{renderSavedMaterials(true);}));
         LinearLayout.LayoutParams r3b=
                 new LinearLayout.LayoutParams(0,dp(132),1);
         r3b.setMargins(dp(7),0,0,0);
