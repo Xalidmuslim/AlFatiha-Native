@@ -7,11 +7,14 @@ import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -43,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +79,7 @@ import app.xalidmuslim.azkar.ui.designsystem.AzkarThemeValues
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 data class AzkarReaderEntry(
@@ -223,8 +228,8 @@ fun AzkarReaderScreen(
     val active = resolvedEntries[activeIndex]
 
     var restoredLastItem by remember(period, controller) { mutableStateOf(false) }
-    LaunchedEffect(readerUi.isHydrated, period, readerUi.lastItemByPeriod) {
-        if (readerUi.isHydrated && !restoredLastItem) {
+    LaunchedEffect(readerUi.hasLiveSnapshot, readerUi.lastPeriod, period, readerUi.lastItemByPeriod) {
+        if (readerUi.hasLiveSnapshot && readerUi.lastPeriod == period && !restoredLastItem) {
             val savedId = readerUi.lastItemByPeriod[period]
             val savedIndex = resolvedEntries.indexOfFirst { it.item.id == savedId }
             if (savedIndex >= 0 && savedIndex != controller.state.activeIndex) {
@@ -234,7 +239,7 @@ fun AzkarReaderScreen(
         }
     }
     LaunchedEffect(restoredLastItem, period, navigation.activeIndex) {
-        if (restoredLastItem) {
+        if (restoredLastItem && readerUi.hasLiveSnapshot && readerUi.lastPeriod == period) {
             resolvedEntries.getOrNull(navigation.activeIndex)?.let { entry ->
                 resolvedUiController.saveLastItem(period, entry.item.id)
             }
@@ -282,6 +287,10 @@ fun AzkarReaderScreen(
     val shellScrollState = rememberScrollState()
     val readingScrollState = remember(navigation.generation, readerUi.viewMode) { ScrollState(0) }
     val listState = rememberLazyListState()
+    val positionPrefs = remember(context) {
+        context.getSharedPreferences("azkar_reader_position", android.content.Context.MODE_PRIVATE)
+    }
+    var restoredFirstCardScroll by remember(period, controller) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val listScrollMarginPx = with(density) {
@@ -292,12 +301,113 @@ fun AzkarReaderScreen(
         snapshotFlow { readingScrollState.value }.collect(controller::recordScrollY)
     }
 
+    // Exact in-card scroll offset is stored separately from the active item:
+    // keep the existing DataStore IDs/progress untouched. The position is
+    // restored only at entry, not during normal next/previous paging.
     LaunchedEffect(readerUi.viewMode) {
-        if (readerUi.viewMode == AzkarReaderViewMode.List) {
-            listState.animateScrollToItem(
-                index = AzkarListCardStartIndex + activeListIndex,
-                scrollOffset = -listScrollMarginPx,
+        if (readerUi.viewMode == AzkarReaderViewMode.List) restoredFirstCardScroll = false
+    }
+    LaunchedEffect(
+        readerUi.viewMode, readerUi.hasLiveSnapshot, restoredLastItem,
+        active.item.id, readingScrollState,
+    ) {
+        if (readerUi.viewMode == AzkarReaderViewMode.Cards &&
+            readerUi.hasLiveSnapshot && restoredLastItem && !restoredFirstCardScroll
+        ) {
+            withFrameNanos { }
+            val savedY = positionPrefs.getInt(
+                "card_${period.name}_${active.item.id}", 0,
+            ).coerceAtLeast(0)
+            readingScrollState.scrollTo(savedY)
+            restoredFirstCardScroll = true
+        }
+    }
+    LaunchedEffect(readingScrollState, readerUi.viewMode, active.item.id, restoredFirstCardScroll) {
+        if (readerUi.viewMode == AzkarReaderViewMode.Cards && restoredFirstCardScroll) {
+            snapshotFlow { readingScrollState.value }.collectLatest { scrollY ->
+                delay(180)
+                positionPrefs.edit().putInt(
+                    "card_${period.name}_${active.item.id}", scrollY,
+                ).apply()
+            }
+        }
+    }
+    DisposableEffect(readingScrollState, active.item.id, readerUi.viewMode, restoredFirstCardScroll) {
+        onDispose {
+            if (readerUi.viewMode == AzkarReaderViewMode.Cards && restoredFirstCardScroll) {
+                positionPrefs.edit().putInt(
+                    "card_${period.name}_${active.item.id}", readingScrollState.value,
+                ).apply()
+            }
+        }
+    }
+
+    // Restore the list only after the real DataStore snapshot has supplied the
+    // active item. Do not animate the initial scroll: it should open in place.
+    var listPositionReady by remember(period) { mutableStateOf(false) }
+    var programmaticListScroll by remember(period) { mutableStateOf(false) }
+    LaunchedEffect(readerUi.viewMode, restoredLastItem, period) {
+        listPositionReady = false
+        if (readerUi.viewMode == AzkarReaderViewMode.List &&
+            restoredLastItem && readerUi.hasLiveSnapshot
+        ) {
+            val oldListIndex = positionPrefs.getInt("list_index_${period.name}", -1)
+            val destination = if (oldListIndex in 0 until AzkarListCardStartIndex) {
+                oldListIndex
+            } else {
+                AzkarListCardStartIndex + activeListIndex
+            }
+            listState.scrollToItem(
+                index = destination,
+                scrollOffset = positionPrefs.getInt("list_offset_${period.name}", 0)
+                    .coerceAtLeast(0),
             )
+            listPositionReady = true
+        }
+    }
+
+    // In list mode the reader's active index did not change as the user scrolled.
+    // Persist the first visible card (not the header), so opening Azkar again
+    // returns to the item actually being read.
+    LaunchedEffect(readerUi.viewMode, listPositionReady, period, settings.hideCompleted) {
+        if (readerUi.viewMode == AzkarReaderViewMode.List && listPositionReady) {
+            snapshotFlow { listState.firstVisibleItemIndex }.collect { firstVisible ->
+                if (!programmaticListScroll && firstVisible >= AzkarListCardStartIndex) {
+                    readerIndexForVisibleListPosition(
+                        firstVisible,
+                        listVisibleIndices,
+                    )?.let { itemIndex ->
+                        controller.selectAnchor(itemIndex)
+                    }
+                }
+            }
+        }
+    }
+    // Save pixel offset only after a brief idle period, not on every scroll
+    // frame. A dispose flush also keeps the final position on Activity exit.
+    LaunchedEffect(listState, readerUi.viewMode, listPositionReady, period) {
+        if (readerUi.viewMode == AzkarReaderViewMode.List && listPositionReady) {
+            snapshotFlow {
+                listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+            }.collectLatest { (index, offset) ->
+                delay(160)
+                if (!programmaticListScroll) {
+                    positionPrefs.edit()
+                        .putInt("list_index_${period.name}", index)
+                        .putInt("list_offset_${period.name}", offset)
+                        .apply()
+                }
+            }
+        }
+    }
+    DisposableEffect(listState, readerUi.viewMode, listPositionReady, period) {
+        onDispose {
+            if (readerUi.viewMode == AzkarReaderViewMode.List && listPositionReady) {
+                positionPrefs.edit()
+                    .putInt("list_index_${period.name}", listState.firstVisibleItemIndex)
+                    .putInt("list_offset_${period.name}", listState.firstVisibleItemScrollOffset)
+                    .apply()
+            }
         }
     }
 
@@ -317,24 +427,28 @@ fun AzkarReaderScreen(
         ) > 0f
     }
     var pageDirection by remember { mutableStateOf(1) }
-    val pageSlidePx = with(density) { 32.dp.toPx() }
+    val pageSlidePx = with(density) { 18.dp.toPx() }
     val initialOffset = if (navigation.generation > 0L && animationsEnabled) {
         pageSlidePx * pageDirection
     } else {
         0f
     }
     val initialAlpha = if (navigation.generation > 0L && animationsEnabled) {
-        0.90f
+        0.94f
     } else {
         1f
     }
     val transitionOffset = remember(navigation.generation) { Animatable(initialOffset) }
     val transitionAlpha = remember(navigation.generation) { Animatable(initialAlpha) }
+    val transitionScale = remember(navigation.generation) {
+        Animatable(if (navigation.generation > 0L && animationsEnabled) 0.992f else 1f)
+    }
 
     LaunchedEffect(navigation.generation, animationsEnabled) {
         if (!animationsEnabled || navigation.generation == 0L) {
             transitionOffset.snapTo(0f)
             transitionAlpha.snapTo(1f)
+            transitionScale.snapTo(1f)
         } else {
             coroutineScope {
                 launch {
@@ -348,6 +462,15 @@ fun AzkarReaderScreen(
                 }
                 launch {
                     transitionAlpha.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = AzkarMotion.dhikrPageDurationMillis,
+                            easing = AzkarMotion.dhikrPageEasing,
+                        ),
+                    )
+                }
+                launch {
+                    transitionScale.animateTo(
                         targetValue = 1f,
                         animationSpec = tween(
                             durationMillis = AzkarMotion.dhikrPageDurationMillis,
@@ -401,6 +524,8 @@ fun AzkarReaderScreen(
     val transitionModifier = Modifier.graphicsLayer {
         translationX = transitionOffset.value
         alpha = transitionAlpha.value
+        scaleX = transitionScale.value
+        scaleY = transitionScale.value
     }
 
     AzkarTheme(
@@ -514,6 +639,7 @@ fun AzkarReaderScreen(
 
             HeartPrayerBottomNav(
                 modifier = Modifier.align(Alignment.BottomCenter),
+                contentsSelected = readerUi.activeSheet == AzkarReaderSheet.Contents,
                 onHome = {
                     navigateToHeartPrayer(context, "home")
                 },
@@ -558,14 +684,19 @@ fun AzkarReaderScreen(
                         }
 
                         AzkarReaderViewMode.List -> {
+                            programmaticListScroll = true
                             controller.selectAnchor(index)
                             resolvedUiController.closeSheet()
                             scope.launch {
-                                listState.animateScrollToItem(
-                                    index = AzkarListCardStartIndex +
-                                        listVisibleIndices.indexOf(index).coerceAtLeast(0),
-                                    scrollOffset = -listScrollMarginPx,
-                                )
+                                try {
+                                    listState.animateScrollToItem(
+                                        index = AzkarListCardStartIndex +
+                                            listVisibleIndices.indexOf(index).coerceAtLeast(0),
+                                        scrollOffset = -listScrollMarginPx,
+                                    )
+                                } finally {
+                                    programmaticListScroll = false
+                                }
                             }
                         }
                     }
@@ -601,6 +732,7 @@ private fun navigateToHeartPrayer(context: android.content.Context, destination:
 @Composable
 private fun HeartPrayerBottomNav(
     modifier: Modifier = Modifier,
+    contentsSelected: Boolean = false,
     onHome: () -> Unit,
     onContents: () -> Unit,
     onProgress: () -> Unit,
@@ -644,7 +776,8 @@ private fun HeartPrayerBottomNav(
         HeartPrayerNavItem(
             iconRes = R.drawable.ic_nav_contents,
             label = "Содержание",
-            color = mutedColor,
+            color = if (contentsSelected) homeColor else mutedColor,
+            selected = contentsSelected,
             onClick = onContents,
             modifier = Modifier.weight(1f),
         )
@@ -670,13 +803,34 @@ private fun HeartPrayerNavItem(
     iconRes: Int,
     label: String,
     color: Color,
+    selected: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = tween(
+            durationMillis = AzkarMotion.navigationPressDurationMillis,
+            easing = AzkarMotion.dhikrPageEasing,
+        ),
+        label = "azkar-bottom-nav-press",
+    )
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .clickable(onClick = onClick)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) color.copy(alpha = 0.10f) else Color.Transparent)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .semantics { contentDescription = label }
             .padding(horizontal = 4.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

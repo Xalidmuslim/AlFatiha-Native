@@ -284,7 +284,38 @@ public class MainActivity extends Activity {
         box.addView(l,llp);
 
         box.setOnClickListener(v->r.run());
+        installPressMotion(box,.95f);
         bottom.addView(box,new LinearLayout.LayoutParams(0,-1,1));
+    }
+
+    // Compositor-only touch feedback: does not re-layout cards, text or scrolling.
+    // OnTouch returns false so native clicks, accessibility and back gestures
+    // keep their existing behavior. Non-clickable surfaces are not animated.
+    private void installPressMotion(View view,float pressedScale){
+        view.setOnTouchListener((v,event)->{
+            if(!v.isEnabled() || !v.hasOnClickListeners())return false;
+            if(Build.VERSION.SDK_INT>=26 &&
+                    !android.animation.ValueAnimator.areAnimatorsEnabled())return false;
+            switch(event.getActionMasked()){
+                case android.view.MotionEvent.ACTION_DOWN:
+                    v.animate().cancel();
+                    v.animate().scaleX(pressedScale).scaleY(pressedScale)
+                            .setDuration(90)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                            .start();
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    v.animate().cancel();
+                    v.animate().scaleX(1f).scaleY(1f)
+                            .setDuration(150)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                            .start();
+                    break;
+                default: break;
+            }
+            return false;
+        });
     }
 
     private GradientDrawable solidBg(int color,float radius,int stroke){
@@ -361,6 +392,7 @@ public class MainActivity extends Activity {
         b.setElevation(dp(3));
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(56));
         lp.setMargins(0,dp(10),0,0); b.setLayoutParams(lp);
+        installPressMotion(b,.975f);
         return b;
     }
 
@@ -371,6 +403,7 @@ public class MainActivity extends Activity {
         b.setPadding(dp(12),0,dp(12),0);
         b.setBackground(surfaceBg(dark?Color.rgb(43,50,46):Color.rgb(251,249,244),dark?Color.rgb(39,46,42):Color.rgb(247,244,237),16,line()));
         b.setElevation(dp(1));
+        installPressMotion(b,.98f);
         return b;
     }
 

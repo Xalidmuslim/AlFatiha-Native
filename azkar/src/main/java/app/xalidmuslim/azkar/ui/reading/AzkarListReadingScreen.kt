@@ -28,6 +28,14 @@ import app.xalidmuslim.azkar.ui.designsystem.AzkarSurface
 
 internal const val AzkarListCardStartIndex = 2
 
+// The LazyColumn has a source note and a sticky toolbar before the first dhikr.
+// Convert a visible list card back to its stable source position; hidden
+// completed cards must not shift the stored reader index.
+internal fun readerIndexForVisibleListPosition(
+    firstVisibleItemIndex: Int,
+    visibleReaderIndices: List<Int>,
+): Int? = visibleReaderIndices.getOrNull(firstVisibleItemIndex - AzkarListCardStartIndex)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun AzkarListReadingScreen(

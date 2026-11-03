@@ -63,6 +63,9 @@ data class AzkarReaderUiState(
     val lastPeriod: AzkarPeriod = AzkarPeriod.Morning,
     val lastItemByPeriod: Map<AzkarPeriod, String> = emptyMap(),
     val isHydrated: Boolean = true,
+    // Warmup is an unchanging cache. Only DataStore's live first emission may
+    // select the resume target; otherwise re-entry can reopen an older item.
+    val hasLiveSnapshot: Boolean = true,
 ) {
     fun allowsHorizontalPaging(entryCount: Int): Boolean =
         viewMode == AzkarReaderViewMode.Cards &&
@@ -91,6 +94,7 @@ class AzkarReaderUiController(
                 lastPeriod = snapshot.lastPeriod,
                 lastItemByPeriod = snapshot.lastItemByPeriod,
                 isHydrated = true,
+                hasLiveSnapshot = repository == null,
             )
         } ?: AzkarReaderUiState(
             settings = initialSettings,
@@ -101,6 +105,7 @@ class AzkarReaderUiController(
                 persistentVisibleItemIds.associateWith { 0 }
             },
             isHydrated = repository == null,
+            hasLiveSnapshot = repository == null,
         ),
     )
         private set
@@ -121,6 +126,7 @@ class AzkarReaderUiController(
                                 lastPeriod = snapshot.lastPeriod,
                                 lastItemByPeriod = snapshot.lastItemByPeriod,
                                 isHydrated = true,
+                                hasLiveSnapshot = true,
                             )
                         }
                 } catch (error: Throwable) {
@@ -130,6 +136,7 @@ class AzkarReaderUiController(
                         viewMode = AzkarReaderViewMode.Cards,
                         progressById = persistentVisibleItemIds.associateWith { 0 },
                         isHydrated = true,
+                        hasLiveSnapshot = true,
                     )
                 }
             }
