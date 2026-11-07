@@ -8,7 +8,7 @@ def hasUploadSigning = uploadStoreFile && uploadStorePassword && uploadKeyAlias 
 
 def heartGeneratedRes = layout.buildDirectory.dir('generated/heart-design/res').get().asFile
 def heartGeneratedAssets = layout.buildDirectory.dir('generated/heart-design/assets').get().asFile
-def heartHandwritingFont = file('src/main/icon/caveat_cyrillic.b64')
+def heartHandwritingFont = file('src/main/icon/marckscript_cyrillic.b64')
 def heartHeroParts = (0..4).collect { file(String.format('src/main/icon/hero_1342_part%02d.b64', it)) }
 def heartDesignAssets = [
     [src: file('src/main/icon/heart_prayer_logo.b64'), out: 'heart_prayer_logo_exact.webp'],
@@ -41,8 +41,8 @@ tasks.register('prepareHeartDesignAssets') {
         // Decode the licensed Cyrillic handwriting font for offline use.
         String handwritingEncoded = heartHandwritingFont.getText('UTF-8').replaceAll('\\s+','')
         byte[] handwritingBytes = java.util.Base64.decoder.decode(handwritingEncoded)
-        if (handwritingBytes.length < 50000) throw new GradleException('Invalid Caveat font asset')
-        File handwritingAsset = new File(heartGeneratedAssets, 'fonts/Caveat.ttf')
+        if (handwritingBytes.length < 50000) throw new GradleException('Invalid Marck Script font asset')
+        File handwritingAsset = new File(heartGeneratedAssets, 'fonts/MarckScript-Regular.ttf')
         handwritingAsset.parentFile.mkdirs()
         handwritingAsset.bytes = handwritingBytes
 
@@ -152,6 +152,14 @@ android {
             initWith fullMorphCompare
             applicationIdSuffix '.compasssofthome1107'
             versionNameSuffix '-soft-home-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
+        premiumHomeCompare {
+            // New isolated install, preserving all prior release and A/B app data.
+            initWith softHomeCompare
+            applicationIdSuffix '.premiumhome1108'
+            versionNameSuffix '-premium-home-preview'
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
