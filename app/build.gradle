@@ -7,6 +7,8 @@ def uploadKeyPassword = System.getenv('ANDROID_UPLOAD_KEY_PASSWORD')
 def hasUploadSigning = uploadStoreFile && uploadStorePassword && uploadKeyAlias && uploadKeyPassword
 
 def heartGeneratedRes = layout.buildDirectory.dir('generated/heart-design/res').get().asFile
+def heartGeneratedAssets = layout.buildDirectory.dir('generated/heart-design/assets').get().asFile
+def heartHandwritingFont = file('src/main/icon/caveat_cyrillic.b64')
 def heartHeroParts = (0..4).collect { file(String.format('src/main/icon/hero_1342_part%02d.b64', it)) }
 def heartDesignAssets = [
     [src: file('src/main/icon/heart_prayer_logo.b64'), out: 'heart_prayer_logo_exact.webp'],
@@ -25,8 +27,9 @@ def heartDesignAssets = [
 
 tasks.register('prepareHeartDesignAssets') {
     def outputDir = new File(heartGeneratedRes, 'drawable-nodpi')
-    inputs.files(heartDesignAssets.collect { it.src } + heartHeroParts)
+    inputs.files(heartDesignAssets.collect { it.src } + heartHeroParts + [heartHandwritingFont])
     outputs.dir(outputDir)
+    outputs.dir(heartGeneratedAssets)
     doLast {
         outputDir.mkdirs()
 
@@ -34,6 +37,14 @@ tasks.register('prepareHeartDesignAssets') {
         byte[] heroBytes = java.util.Base64.decoder.decode(heroEncoded)
         if (heroBytes.length < 20000) throw new GradleException('Invalid Heart Prayer hero asset')
         new File(outputDir, 'heart_prayer_hero_exact.webp').bytes = heroBytes
+
+        // Decode the licensed Cyrillic handwriting font for offline use.
+        String handwritingEncoded = heartHandwritingFont.getText('UTF-8').replaceAll('\\s+','')
+        byte[] handwritingBytes = java.util.Base64.decoder.decode(handwritingEncoded)
+        if (handwritingBytes.length < 50000) throw new GradleException('Invalid Caveat font asset')
+        File handwritingAsset = new File(heartGeneratedAssets, 'fonts/Caveat.ttf')
+        handwritingAsset.parentFile.mkdirs()
+        handwritingAsset.bytes = handwritingBytes
 
         heartDesignAssets.each { spec ->
             String encoded = spec.src.getText('UTF-8').replaceAll('\\s+','')
@@ -77,6 +88,7 @@ android {
     sourceSets {
         main {
             res.srcDir heartGeneratedRes
+            assets.srcDir heartGeneratedAssets
         }
     }
 
@@ -135,6 +147,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        softHomeCompare {
+            // Installable A/B preview; never overwrite the existing production app.
+            initWith fullMorphCompare
+            applicationIdSuffix '.compasssofthome1107'
+            versionNameSuffix '-soft-home-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
@@ -147,5 +167,10 @@ dependencies {
 
 
 tasks.named('preBuild').configure {
+    dependsOn tasks.named('prepareHeartDesignAssets')
+}
+
+// Generated font must exist before AGP gathers assets for every build variant.
+tasks.matching { it.name.startsWith('merge') && it.name.endsWith('Assets') }.configureEach {
     dependsOn tasks.named('prepareHeartDesignAssets')
 }

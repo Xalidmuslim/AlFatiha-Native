@@ -13,11 +13,11 @@ reader = (root / "medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/Re
 azkar = (root / "azkar/src/main/java/app/xalidmuslim/azkar/ui/reading/AzkarReaderScreen.kt").read_text()
 azkar_components = (root / "azkar/src/main/java/app/xalidmuslim/azkar/ui/designsystem/AzkarComponents.kt").read_text()
 
-assert "class MorphContainerDrawable" in host, "Home cards must use genuine expanding container geometry"
-assert "morphOpenHomeCard(" in host, "Home cards should open through transform"
-assert "morphReturnToHomeCard(" in host, "Return home should reverse the container transform"
-assert "morphOpenDialogCard(" in host, "Menu cards need a consistent morph transition"
-assert "getWindow().getDecorView()" in host, "Transform uses overlay, not new activity"
+assert "class MorphContainerDrawable" not in host, "Home must no longer draw a fullscreen bitmap overlay"
+assert "morphOpenHomeCard(" not in host, "Home tiles should navigate without geometry expansion"
+assert "installHomeCardPressMotion(" in host, "Home cards keep soft touch feedback"
+assert "class HandwrittenPhraseView" in host, "Cyrillic reminder uses the bundled handwriting font"
+assert "morphOpenDialogCard(" in host, "Menu cards retain their separate transition"
 assert "morphAnimationsEnabled()" in host, "Respect Android animation scale"
 assert "class MorphNavBackground" in host, "Preserve native moving navigation indicator"
 assert 'label = "azkarMorphPill"' in azkar, "Azkar nav must share the capsule motion pattern"
@@ -29,4 +29,4 @@ assert "showEntryFadeLayer" in reader and "setTextIsSelectable(true)" in reader,
     "Preserve proven reader smoothness, native text selection and bookmarks"
 )
 assert "AzkarCardSurface(" in azkar_components, "Reading content remains unchanged"
-print("Compass Morph navigation, card and reader protection contract: OK")
+print("Compass soft-home, menu, navigation and reader protection contract: OK")

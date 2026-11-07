@@ -15,7 +15,7 @@ azkar = (ROOT / "azkar/src/main/java/app/xalidmuslim/azkar/ui/reading/AzkarReade
 
 assert "class MorphNavBackground" in host, "Host nav must have a moving capsule"
 assert "animateMorphNavTo(" in host, "Host nav must animate between destinations"
-assert "installPressMotion(c,.985f)" in host, "Home feature cards must respond to press"
+assert "installHomeCardPressMotion(c)" in host, "Home feature cards must respond with gentle compositor feedback"
 assert "installPressMotion(c,.975f)" in host, "Section-menu cards must respond to press"
 assert "private void clear(String type,String arg,boolean push)" in host
 assert "page.animate().cancel()" in host, "Screen transition must cancel stale animation"
