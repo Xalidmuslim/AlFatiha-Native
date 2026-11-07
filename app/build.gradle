@@ -169,3 +169,8 @@ dependencies {
 tasks.named('preBuild').configure {
     dependsOn tasks.named('prepareHeartDesignAssets')
 }
+
+// Generated font must exist before AGP gathers assets for every build variant.
+tasks.matching { it.name.startsWith('merge') && it.name.endsWith('Assets') }.configureEach {
+    dependsOn tasks.named('prepareHeartDesignAssets')
+}
