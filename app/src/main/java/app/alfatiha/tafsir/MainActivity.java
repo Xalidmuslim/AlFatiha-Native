@@ -46,12 +46,6 @@ public class MainActivity extends Activity {
     private MorphNavBackground morphNavBackground;
     private ValueAnimator morphNavAnimator;
     private int morphNavIndex=0;
-    private ValueAnimator morphContainerAnimator;
-    private MorphContainerDrawable morphContainerOverlay;
-    private String morphHomeTitle;
-    private int morphHomeTone;
-    private Bitmap morphHomeSnapshot;
-    private boolean morphContainerBusy;
     private ScrollView scroll;
     private SharedPreferences prefs;
     private final ArrayDeque<Screen> history = new ArrayDeque<>();
@@ -322,146 +316,8 @@ public class MainActivity extends Activity {
     }
 
 
-    /**
-     * Draw the selected card's bitmap while the card container expands.
-     * All allocation happens on click, not in the scroll or reader path.
-     */
-    private static final class MorphContainerDrawable extends Drawable {
-        private final RectF start=new RectF(),end=new RectF(),rect=new RectF();
-        private final Paint fill=new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint picture=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
-        private final Bitmap snapshot;
-        private final float fromRadius,toRadius;
-        private final boolean backwards;
-        private float progress;
-
-        MorphContainerDrawable(RectF from,RectF to,Bitmap image,int color,
-                               float startRadius,float endRadius,boolean reverse){
-            start.set(from);end.set(to);snapshot=image;
-            fromRadius=startRadius;toRadius=endRadius;backwards=reverse;
-            fill.setColor(color);
-        }
-        void progress(float progress){this.progress=progress;invalidateSelf();}
-        @Override public void draw(Canvas canvas){
-            float p=progress;
-            rect.set(start.left+(end.left-start.left)*p,
-                    start.top+(end.top-start.top)*p,
-                    start.right+(end.right-start.right)*p,
-                    start.bottom+(end.bottom-start.bottom)*p);
-            float radius=fromRadius+(toRadius-fromRadius)*p;
-            float fade=Math.max(0f,Math.min(1f,(p-.70f)/.30f));
-            fill.setAlpha((int)(238*(1f-fade)));
-            canvas.drawRoundRect(rect,radius,radius,fill);
-            if(snapshot!=null && !snapshot.isRecycled()){
-                float bitmapFade=backwards?Math.max(0f,(p-.65f)/.35f)
-                        :Math.max(0f,1f-p*2.8f);
-                if(bitmapFade>0f){
-                    picture.setAlpha((int)(255*bitmapFade));
-                    android.graphics.Path clip=new android.graphics.Path();
-                    clip.addRoundRect(rect,radius,radius,android.graphics.Path.Direction.CW);
-                    canvas.save();
-                    canvas.clipPath(clip);
-                    canvas.drawBitmap(snapshot,null,rect,picture);
-                    canvas.restore();
-                }
-            }
-        }
-        @Override public void setAlpha(int alpha){fill.setAlpha(alpha);invalidateSelf();}
-        @Override public void setColorFilter(android.graphics.ColorFilter filter){
-            fill.setColorFilter(filter);invalidateSelf();
-        }
-        @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
-    }
-
-    private RectF morphViewRect(View v,ViewGroup root){
-        int[] from=new int[2],origin=new int[2];
-        v.getLocationOnScreen(from);root.getLocationOnScreen(origin);
-        int x=from[0]-origin[0],y=from[1]-origin[1];
-        return new RectF(x,y,x+v.getWidth(),y+v.getHeight());
-    }
-
-    private Bitmap morphSnapshot(View card){
-        if(card.getWidth()<1||card.getHeight()<1)return null;
-        try{
-            Bitmap bitmap=Bitmap.createBitmap(
-                    card.getWidth(),card.getHeight(),Bitmap.Config.ARGB_8888);
-            card.draw(new Canvas(bitmap));
-            return bitmap;
-        }catch(OutOfMemoryError ignored){return null;}
-    }
-
-    private void clearMorphContainer(){
-        if(morphContainerAnimator!=null){
-            ValueAnimator existing=morphContainerAnimator;
-            morphContainerAnimator=null;
-            existing.cancel();
-        }
-        if(morphContainerOverlay!=null){
-            ((ViewGroup)getWindow().getDecorView()).getOverlay().remove(morphContainerOverlay);
-            morphContainerOverlay=null;
-        }
-        morphContainerBusy=false;
-    }
-
-    private void animateMorphContainer(RectF from,RectF to,int tone,Bitmap snapshot,
-                                       boolean backwards,Runnable endAction){
-        if(!morphAnimationsEnabled()){
-            if(endAction!=null)endAction.run();
-            return;
-        }
-        clearMorphContainer();
-        ViewGroup root=(ViewGroup)getWindow().getDecorView();
-        MorphContainerDrawable overlay=new MorphContainerDrawable(
-                from,to,snapshot,tone,
-                dp(backwards?12:20),dp(backwards?20:12),backwards);
-        overlay.setBounds(0,0,root.getWidth(),root.getHeight());
-        root.getOverlay().add(overlay);
-        morphContainerOverlay=overlay;
-        morphContainerBusy=true;
-        ValueAnimator animator=ValueAnimator.ofFloat(0f,1f);
-        morphContainerAnimator=animator;
-        animator.setDuration(backwards?215:205);
-        animator.setInterpolator(new android.view.animation.PathInterpolator(.20f,0f,.12f,1f));
-        animator.addUpdateListener(frame->overlay.progress((float)frame.getAnimatedValue()));
-        animator.addListener(new android.animation.AnimatorListenerAdapter(){
-            private boolean cancelled;
-            @Override public void onAnimationCancel(android.animation.Animator animation){cancelled=true;}
-            @Override public void onAnimationEnd(android.animation.Animator animation){
-                if(morphContainerOverlay==overlay){
-                    root.getOverlay().remove(overlay);
-                    morphContainerOverlay=null;
-                }
-                if(morphContainerAnimator==animator)morphContainerAnimator=null;
-                morphContainerBusy=false;
-                if(!cancelled&&endAction!=null&&!isFinishing())endAction.run();
-            }
-        });
-        animator.start();
-    }
-
-    private void morphOpenHomeCard(View card,String title,int tone,Runnable open){
-        if(morphContainerBusy)return; // Debounce until the new screen exists.
-        if(!morphAnimationsEnabled()||scroll==null||card.getWidth()<1){
-            open.run();return;
-        }
-        ViewGroup root=(ViewGroup)getWindow().getDecorView();
-        RectF from=morphViewRect(card,root),to=morphViewRect(scroll,root);
-        if(from.width()<1||to.width()<1){open.run();return;}
-        morphHomeTitle=title;
-        morphHomeTone=tone;
-        morphHomeSnapshot=morphSnapshot(card);
-        animateMorphContainer(from,to,tone,morphHomeSnapshot,false,open);
-    }
-
-    private void morphReturnToHomeCard(String title){
-        if(title==null||scroll==null)return;
-        View card=page.findViewWithTag("compass-morph:"+title);
-        if(card==null||card.getWidth()<1)return;
-        ViewGroup root=(ViewGroup)getWindow().getDecorView();
-        RectF start=morphViewRect(scroll,root),end=morphViewRect(card,root);
-        if(end.width()>0)
-            animateMorphContainer(start,end,morphHomeTone,morphHomeSnapshot,true,null);
-    }
+    // Home tiles now navigate without snapshots or an expanding fullscreen overlay.
+    // Navigation itself is softly faded in clear(); no card geometry is animated.
 
     // A Dialog uses a separate Android window; avoid reparenting its content
     // or doing expensive Bitmap work across Activity and Dialog windows.
@@ -488,7 +344,6 @@ public class MainActivity extends Activity {
     }
 
     private void buildShell(){
-        clearMorphContainer();
         if(morphNavAnimator!=null){morphNavAnimator.cancel();morphNavAnimator=null;}
         applyWindowChrome();
         LinearLayout root=new LinearLayout(this);
@@ -611,6 +466,33 @@ public class MainActivity extends Activity {
                 default: break;
             }
             return false;
+        });
+    }
+
+    // Calm, lightweight feedback on dashboard cards only: no bounce or spring.
+    private void installHomeCardPressMotion(View view){
+        view.setOnTouchListener((v,event)->{
+            if(!v.isEnabled() || !v.hasOnClickListeners())return false;
+            if(!morphAnimationsEnabled())return false;
+            switch(event.getActionMasked()){
+                case MotionEvent.ACTION_DOWN:
+                    v.animate().cancel();
+                    v.animate().scaleX(.993f).scaleY(.993f)
+                            .setDuration(110)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                            .start();
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    v.animate().cancel();
+                    v.animate().scaleX(1f).scaleY(1f)
+                            .setDuration(175)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                            .start();
+                    break;
+                default: break;
+            }
+            return false; // Keep native click, accessibility and scrolling.
         });
     }
 
@@ -1229,17 +1111,23 @@ public class MainActivity extends Activity {
         scroll.scrollTo(0,0);
         final Screen arriving=current;
         final boolean home="home".equals(type);
+        final boolean fromHome=push && !history.isEmpty()
+                && "home".equals(history.peek().type);
+        final boolean softHomeTransition=home || fromHome;
         if(morphAnimationsEnabled()){
-            page.setAlpha(.94f);
-            page.setTranslationX(home?0:dp(push?10:-7));
-            page.setTranslationY(dp(home?8:3));
-            page.setScaleX(.997f);
-            page.setScaleY(.997f);
+            page.setAlpha(softHomeTransition?.965f:.94f);
+            page.setTranslationX(softHomeTransition?0:dp(push?10:-7));
+            page.setTranslationY(dp(softHomeTransition?6:3));
+            page.setScaleX(softHomeTransition?1f:.997f);
+            page.setScaleY(softHomeTransition?1f:.997f);
             page.post(()->{
                 if(current!=arriving)return;
                 page.animate().alpha(1f).translationX(0f).translationY(0f)
-                        .scaleX(1f).scaleY(1f).setDuration(home?235:205)
-                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .scaleX(1f).scaleY(1f)
+                        .setDuration(softHomeTransition?275:205)
+                        .setInterpolator(softHomeTransition
+                                ?new android.view.animation.PathInterpolator(.22f,0f,.12f,1f)
+                                :new android.view.animation.DecelerateInterpolator())
                         .start();
             });
         }else{
@@ -1741,47 +1629,51 @@ public class MainActivity extends Activity {
     private float heroPhraseSizeDp(String phrase,int heroH){
         int len=phrase==null?0:phrase.length();
         float size;
-        if(len>=95)size=14.8f;
-        else if(len>=78)size=15.4f;
-        else if(len>=62)size=16.0f;
-        else if(len>=48)size=16.7f;
-        else size=17.6f;
-        if(heroH<=180)size-=1.0f;
-        else if(heroH<=198)size-=0.5f;
-        return Math.max(13.6f,size);
+        if(len>=95)size=18.4f;
+        else if(len>=78)size=19.2f;
+        else if(len>=62)size=20.0f;
+        else if(len>=48)size=20.8f;
+        else size=22.0f;
+        if(heroH<=180)size-=1.4f;
+        else if(heroH<=198)size-=.7f;
+        return Math.max(17.0f,size);
     }
 
-    private final class SandPhraseView extends View {
+    private Typeface heartHandwritingTypeface;
+    private Typeface heartHandwritingTypeface(){
+        if(heartHandwritingTypeface==null){
+            try{
+                Typeface bundled=Typeface.createFromAsset(getAssets(),"fonts/Caveat.ttf");
+                heartHandwritingTypeface=Build.VERSION.SDK_INT>=28
+                        ?Typeface.create(bundled,600,false)
+                        :Typeface.create(bundled,Typeface.BOLD);
+            }catch(RuntimeException missingAsset){
+                // Fail open if an incomplete development build lacks font assets.
+                heartHandwritingTypeface=Typeface.create("casual",Typeface.NORMAL);
+            }
+        }
+        return heartHandwritingTypeface;
+    }
+
+    // A real handwritten Cyrillic font, sized to fit without bitmap particles.
+    private final class HandwrittenPhraseView extends View {
         private final String phrase;
-        private final int phraseColor;
         private final float preferredSizeDp;
         private final boolean animateOnAttach;
-        private final android.text.TextPaint textPaint=new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.SUBPIXEL_TEXT_FLAG);
-        private final android.graphics.Paint particlePaint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.text.TextPaint textPaint=
+                new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG|Paint.SUBPIXEL_TEXT_FLAG);
         private android.text.StaticLayout textLayout;
-        private float layoutTop=0f;
-        private float progress=1f;
-        private android.animation.ValueAnimator animator;
-        private float[] targetX,targetY,startX,startY,phase,radius,delay;
+        private float layoutTop;
 
-        SandPhraseView(Context context,String phrase,float sizeDp,int color,boolean animate){
+        HandwrittenPhraseView(Context context,String phrase,float sizeDp,int color,boolean animate){
             super(context);
             this.phrase=phrase==null?"":phrase;
-            this.preferredSizeDp=sizeDp;
-            this.phraseColor=color;
-            this.animateOnAttach=animate;
+            preferredSizeDp=sizeDp;
+            animateOnAttach=animate;
+            textPaint.setTypeface(heartHandwritingTypeface());
             textPaint.setColor(color);
-            textPaint.setTypeface(Typeface.create("serif",Typeface.BOLD));
-            particlePaint.setColor(color);
-            particlePaint.setStyle(android.graphics.Paint.Style.FILL);
             setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
             setContentDescription(this.phrase);
-            if(!animate)progress=1f;
-        }
-
-        @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
-            super.onSizeChanged(w,h,oldw,oldh);
-            rebuildPhrase(w,h);
         }
 
         private android.text.StaticLayout makeLayout(int width,float textSizePx){
@@ -1790,162 +1682,57 @@ public class MainActivity extends Activity {
                     .obtain(phrase,0,phrase.length(),textPaint,Math.max(1,width))
                     .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL)
                     .setIncludePad(false)
-                    .setLineSpacing(0f,1.03f)
+                    .setLineSpacing(0f,1.10f)
+                    .setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE)
                     .build();
         }
 
-        private void rebuildPhrase(int w,int h){
-            if(w<=0 || h<=0)return;
+        @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
+            super.onSizeChanged(w,h,oldw,oldh);
+            if(w<=0||h<=0)return;
             float sizePx=dp(preferredSizeDp);
             textLayout=makeLayout(w,sizePx);
-            float minPx=dp(13.2f);
-            float step=Math.max(1f,dp(.35f));
+            final float minPx=dp(16.0f);
+            final float step=Math.max(1f,dp(.35f));
             while(textLayout.getHeight()>h && sizePx>minPx){
                 sizePx=Math.max(minPx,sizePx-step);
                 textLayout=makeLayout(w,sizePx);
             }
             layoutTop=Math.max(0f,(h-textLayout.getHeight())*.46f);
-            buildSandParticles(w,h);
         }
 
-        private void buildSandParticles(int w,int h){
-            if(textLayout==null || w<=0 || h<=0)return;
-            android.graphics.Bitmap mask=android.graphics.Bitmap.createBitmap(w,h,android.graphics.Bitmap.Config.ARGB_8888);
-            android.graphics.Canvas mc=new android.graphics.Canvas(mask);
-            int oldColor=textPaint.getColor();
-            int oldAlpha=textPaint.getAlpha();
-            textPaint.setColor(Color.WHITE);
-            textPaint.setAlpha(255);
-            mc.save();
-            mc.translate(0f,layoutTop);
-            textLayout.draw(mc);
-            mc.restore();
-            textPaint.setColor(oldColor);
-            textPaint.setAlpha(oldAlpha);
-
-            int scan=Math.max(3,dp(1.15f));
-            ArrayList<Integer> points=new ArrayList<>();
-            int[] row=new int[w];
-            for(int y=0;y<h;y+=scan){
-                mask.getPixels(row,0,w,0,y,w,1);
-                for(int x=0;x<w;x+=scan){
-                    if(Color.alpha(row[x])>80)points.add((y<<16)|(x&0xffff));
-                }
-            }
-            mask.recycle();
-
-            Random random=new Random(phrase.hashCode()*1103515245L+12345L);
-            Collections.shuffle(points,random);
-            int count=Math.min(760,points.size());
-            targetX=new float[count];
-            targetY=new float[count];
-            startX=new float[count];
-            startY=new float[count];
-            phase=new float[count];
-            radius=new float[count];
-            delay=new float[count];
-
-            for(int i=0;i<count;i++){
-                int packed=points.get(i);
-                float tx=packed&0xffff;
-                float ty=(packed>>>16)&0xffff;
-                targetX[i]=tx;
-                targetY[i]=ty;
-                startX[i]=tx-dp(24f+random.nextFloat()*76f)-random.nextFloat()*dp(28f);
-                startY[i]=ty+dp((random.nextFloat()-.5f)*38f);
-                phase[i]=(float)(random.nextFloat()*Math.PI*2.0);
-                radius[i]=Math.max(.7f,dp(.42f+random.nextFloat()*.48f));
-                float leftToRight=(w<=1?0f:tx/(float)w)*.20f;
-                delay[i]=Math.min(.34f,leftToRight+random.nextFloat()*.10f);
-            }
-        }
-
-        @Override protected void onAttachedToWindow(){
-            super.onAttachedToWindow();
-            if(animateOnAttach){
-                progress=0f;
-                postDelayed(this::startSandAnimation,90);
-            }else{
-                progress=1f;
-            }
-        }
-
-        private void startSandAnimation(){
-            if(!isAttachedToWindow() || getWidth()<=0 || textLayout==null)return;
-            if(animator!=null)animator.cancel();
-            animator=android.animation.ValueAnimator.ofFloat(0f,1f);
-            long duration=Math.min(2350L,1680L+phrase.length()*6L);
-            animator.setDuration(duration);
-            animator.setInterpolator(new android.view.animation.LinearInterpolator());
-            animator.addUpdateListener(a->{
-                progress=(Float)a.getAnimatedValue();
-                invalidate();
-            });
-            animator.addListener(new android.animation.AnimatorListenerAdapter(){
-                @Override public void onAnimationEnd(android.animation.Animator animation){
-                    progress=1f;
-                    invalidate();
-                }
-            });
-            animator.start();
-        }
-
-        private float clamp01(float v){
-            return v<0f?0f:(v>1f?1f:v);
-        }
-
-        private void drawFinalText(android.graphics.Canvas canvas,int alpha){
+        @Override protected void onDraw(Canvas canvas){
+            super.onDraw(canvas);
             if(textLayout==null)return;
-            int old=textPaint.getAlpha();
-            textPaint.setColor(phraseColor);
-            textPaint.setAlpha(Math.max(0,Math.min(255,alpha)));
             canvas.save();
             canvas.translate(0f,layoutTop);
             textLayout.draw(canvas);
             canvas.restore();
-            textPaint.setAlpha(old);
         }
 
-        @Override protected void onDraw(android.graphics.Canvas canvas){
-            super.onDraw(canvas);
-            if(textLayout==null)return;
-            if(!animateOnAttach || progress>=.999f || targetX==null){
-                drawFinalText(canvas,255);
-                return;
-            }
-
-            float textReveal=clamp01((progress-.56f)/.34f);
-            if(textReveal>0f)drawFinalText(canvas,(int)(255f*textReveal));
-
-            particlePaint.setColor(phraseColor);
-            float particleFade=1f-clamp01((progress-.80f)/.20f);
-            for(int i=0;i<targetX.length;i++){
-                float local=clamp01((progress-delay[i])/(1f-delay[i]));
-                if(local<=0f)continue;
-                float ease=1f-(float)Math.pow(1f-local,3.0);
-                float wind=(float)Math.sin(phase[i]+local*7.2f)*dp(3.1f)*(1f-ease);
-                float lift=(float)Math.cos(phase[i]*.73f+local*5.4f)*dp(1.8f)*(1f-ease);
-                float x=startX[i]+(targetX[i]-startX[i])*ease+wind;
-                float y=startY[i]+(targetY[i]-startY[i])*ease+lift;
-                int alpha=(int)(210f*particleFade*clamp01(.18f+local*1.35f));
-                if(alpha<=0)continue;
-                particlePaint.setAlpha(alpha);
-                canvas.drawCircle(x,y,radius[i]*(.72f+.28f*local),particlePaint);
+        @Override protected void onAttachedToWindow(){
+            super.onAttachedToWindow();
+            animate().cancel();
+            if(animateOnAttach && morphAnimationsEnabled()){
+                setAlpha(0f);
+                setTranslationY(dp(5));
+                animate().alpha(1f).translationY(0f)
+                        .setStartDelay(80).setDuration(380)
+                        .setInterpolator(new android.view.animation.PathInterpolator(.22f,0f,.12f,1f))
+                        .start();
+            }else{
+                setAlpha(1f);
+                setTranslationY(0f);
             }
         }
 
         @Override protected void onDetachedFromWindow(){
-            if(animator!=null)animator.cancel();
-            animator=null;
+            animate().cancel();
             super.onDetachedFromWindow();
         }
     }
 
     private void renderHome(boolean push){
-        final boolean reverseMorph=morphHomeTitle!=null&&current!=null
-                && !"home".equals(current.type)&&morphAnimationsEnabled();
-        final String returningTitle=morphHomeTitle;
-        morphHomeTitle=null;
         clearActiveFlow();
         clear("home","",push);
         currentSection="home";
@@ -2030,7 +1817,7 @@ public class MainActivity extends Activity {
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
 
         boolean animatePhrase=!heroPhraseAnimationPlayed;
-        SandPhraseView phraseView=new SandPhraseView(
+        HandwrittenPhraseView phraseView=new HandwrittenPhraseView(
                 this,
                 sessionHeroPhrase,
                 heroPhraseSizeDp(sessionHeroPhrase,heroH),
@@ -2163,8 +1950,7 @@ public class MainActivity extends Activity {
                 20,
                 dark?Color.rgb(61,70,65):Color.rgb(228,218,204)
         ));
-        quizResume.setOnClickListener(v->morphOpenHomeCard(quizResume,
-                "Продолжить викторину",quizResumeTone,this::continueLastQuiz));
+        quizResume.setOnClickListener(v->continueLastQuiz());
 
         LinearLayout qrTop=new LinearLayout(this);
         qrTop.setOrientation(LinearLayout.HORIZONTAL);
@@ -2198,8 +1984,7 @@ public class MainActivity extends Activity {
 
         LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(54));
         qrLp.setMargins(0,0,0,dp(2));
-        quizResume.setTag("compass-morph:Продолжить викторину");
-        installPressMotion(quizResume,.987f);
+        installHomeCardPressMotion(quizResume);
         page.addView(quizResume,qrLp);
 
         // Six primary sections. Continue/progress now lives inside the hero.
@@ -2267,12 +2052,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
         row3lp.setMargins(0,dp(7),0,0);
         page.addView(row3,row3lp);
-        if(reverseMorph){
-            page.post(()->{
-                if(current!=null && "home".equals(current.type))
-                    morphReturnToHomeCard(returningTitle);
-            });
-        }
     }
 
     private LinearLayout homeFeature(
@@ -2388,13 +2167,8 @@ public class MainActivity extends Activity {
 
         c.addView(textBlock,new LinearLayout.LayoutParams(-1,-2));
 
-        c.setTag("compass-morph:"+title);
-        c.setOnClickListener(v->{
-            // External modules keep their existing fast Activity transitions.
-            if("Азкары".equals(title)||medicineTile)open.run();
-            else morphOpenHomeCard(c,title,cardTone,open);
-        });
-        installPressMotion(c,.985f);
+        c.setOnClickListener(v->open.run());
+        installHomeCardPressMotion(c);
         return c;
     }
 
