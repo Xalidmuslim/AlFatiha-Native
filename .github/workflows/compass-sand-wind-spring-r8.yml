@@ -5,6 +5,10 @@ on:
     branches: [codex/compass-sand-wind-spring-neucha-20261108]
   workflow_dispatch:
 
+concurrency:
+  group: compass-sand-spring-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
