@@ -8,16 +8,16 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 host = (root / "app/src/main/java/app/alfatiha/tafsir/MainActivity.java").read_text()
 gradle = (root / "app/build.gradle").read_text()
-license = (root / "app/src/main/icon/MARCK_SCRIPT_OFL.txt").read_text()
+license = (root / "app/src/main/icon/NEUCHA_OFL.txt").read_text()
 
 # Readable, truly Cyrillic-capable handwriting only on the home reminder.
-assert "class HandwrittenPhraseView extends View" in host
-assert "new HandwrittenPhraseView(" in host
-assert "fonts/MarckScript-Regular.ttf" in host
-assert "MarckScript" in gradle and "assets.srcDir heartGeneratedAssets" in gradle
+assert "class SandPhraseView extends View" in host
+assert "new SandPhraseView(" in host
+assert "fonts/Neucha.ttf" in host
+assert "Neucha" in gradle and "assets.srcDir heartGeneratedAssets" in gradle
 assert "SIL OPEN FONT LICENSE" in license
-assert "class SandPhraseView" not in host
-assert "buildSandParticles(" not in host
+assert "class SandPhraseView" in host
+assert "buildSandParticles(" in host
 
 # Calm compositor-only home gestures: no bitmap overlays or spring bounce.
 assert "class MorphContainerDrawable" not in host

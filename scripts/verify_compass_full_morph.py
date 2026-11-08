@@ -16,7 +16,7 @@ azkar_components = (root / "azkar/src/main/java/app/xalidmuslim/azkar/ui/designs
 assert "class MorphContainerDrawable" not in host, "Home must no longer draw a fullscreen bitmap overlay"
 assert "morphOpenHomeCard(" not in host, "Home tiles should navigate without geometry expansion"
 assert "installHomeCardPressMotion(" in host, "Home cards keep soft touch feedback"
-assert "class HandwrittenPhraseView" in host, "Cyrillic reminder uses the bundled handwriting font"
+assert "class SandPhraseView" in host, "Cyrillic reminder preserves the wind-driven particle animation"
 assert "morphOpenDialogCard(" in host, "Menu cards retain their separate transition"
 assert "morphAnimationsEnabled()" in host, "Respect Android animation scale"
 assert "class MorphNavBackground" in host, "Preserve native moving navigation indicator"
