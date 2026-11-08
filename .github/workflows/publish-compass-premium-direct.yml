@@ -1,0 +1,54 @@
+name: Publish Compass Premium Home Direct APK
+
+on:
+  push:
+    branches: [codex/compass-marckscript-premium-card-motion-20261108]
+    paths: [.github/workflows/publish-compass-premium-direct.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish-direct-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download previously verified Android APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          RUN=42416193872
+          RESULT=$(gh run view "$RUN" --repo "$REPO" --json conclusion --jq .conclusion)
+          test "$RESULT" = "success"
+          mkdir -p "$RUNNER_TEMP/premium"
+          gh run download "$RUN" --repo "$REPO" \
+            --name Compass-Heart-Premium-Home-R8-APK \
+            --dir "$RUNNER_TEMP/premium"
+          SOURCE="$RUNNER_TEMP/premium/app-premiumHomeCompare.apk"
+          test -s "$SOURCE"
+          EXPECTED=d5a504a8fe67c578e9d517b189b977b7673c2c3f60df1b081ae43d509a40a501
+          printf '%s  %s\n' "$EXPECTED" "$SOURCE" | sha256sum --check -
+          cp "$SOURCE" "$RUNNER_TEMP/Compass-Heart-Premium-Home-20261108.apk"
+      - name: Publish permanent public direct-download release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=compass-premium-home-20261108
+          APK="$RUNNER_TEMP/Compass-Heart-Premium-Home-20261108.apk"
+          test -s "$APK"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$APK" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target b9fe1b048f79b5a11a9313c97072a7f91d166f0f \
+              --title "Компас сердца — Premium Home (Marck Script + card motion)" \
+              --notes "Отдельно устанавливаемый тестовый Android APK, оптимизированная R8-сборка. Рукописный Marck Script, каскадное появление и плавное нажатие карточек. Подпись debug; не обновляет основную установленную версию." \
+              --prerelease
+          fi

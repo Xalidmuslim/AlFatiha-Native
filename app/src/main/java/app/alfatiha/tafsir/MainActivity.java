@@ -469,7 +469,8 @@ public class MainActivity extends Activity {
         });
     }
 
-    // Calm, lightweight feedback on dashboard cards only: no bounce or spring.
+    // Premium Material-style feedback: perceptible without bouncing or layout changes.
+    // Respect Android's animator scale; do not retain hardware layers while scrolling.
     private void installHomeCardPressMotion(View view){
         view.setOnTouchListener((v,event)->{
             if(!v.isEnabled() || !v.hasOnClickListeners())return false;
@@ -477,22 +478,56 @@ public class MainActivity extends Activity {
             switch(event.getActionMasked()){
                 case MotionEvent.ACTION_DOWN:
                     v.animate().cancel();
-                    v.animate().scaleX(.993f).scaleY(.993f)
-                            .setDuration(110)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                    v.animate().setStartDelay(0)
+                            .scaleX(.972f).scaleY(.972f)
+                            .alpha(.955f).translationY(dp(1))
+                            .setDuration(115)
+                            .setInterpolator(new android.view.animation.PathInterpolator(.2f,0f,.2f,1f))
                             .start();
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     v.animate().cancel();
-                    v.animate().scaleX(1f).scaleY(1f)
-                            .setDuration(175)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                    v.animate().setStartDelay(0)
+                            .scaleX(1f).scaleY(1f)
+                            .alpha(1f).translationY(0f)
+                            .setDuration(230)
+                            .setInterpolator(new android.view.animation.PathInterpolator(.16f,1f,.3f,1f))
                             .start();
                     break;
                 default: break;
             }
-            return false; // Keep native click, accessibility and scrolling.
+            return false; // Let Android handle clicks, gestures, ripple and TalkBack.
+        });
+    }
+
+    private void installHomeCardRipple(View card){
+        int ink=dark?Color.argb(48,214,226,217):Color.argb(30,82,108,95);
+        android.graphics.drawable.GradientDrawable mask=solidBg(Color.WHITE,20,0);
+        card.setForeground(new android.graphics.drawable.RippleDrawable(
+                ColorStateList.valueOf(ink),null,mask));
+    }
+
+    // Staggered entrance: composited alpha/position/scale only; never measure again.
+    // Runs when the actual dashboard is rendered, not during list scroll.
+    private void animateHomeCardEntrance(View card,int index){
+        if(!morphAnimationsEnabled())return;
+        final Screen destination=current;
+        final int delayMs=Math.min(340,55+Math.max(0,index)*44);
+        card.setAlpha(0f);
+        card.setTranslationY(dp(14));
+        card.setScaleX(.976f);
+        card.setScaleY(.976f);
+        card.post(()->{
+            if(current!=destination || !"home".equals(current.type)
+                    || !card.isAttachedToWindow())return;
+            card.animate().cancel();
+            card.animate().alpha(1f).translationY(0f)
+                    .scaleX(1f).scaleY(1f)
+                    .setStartDelay(delayMs)
+                    .setDuration(450)
+                    .setInterpolator(new android.view.animation.PathInterpolator(.16f,1f,.3f,1f))
+                    .start();
         });
     }
 
@@ -1629,24 +1664,23 @@ public class MainActivity extends Activity {
     private float heroPhraseSizeDp(String phrase,int heroH){
         int len=phrase==null?0:phrase.length();
         float size;
-        if(len>=95)size=18.4f;
-        else if(len>=78)size=19.2f;
-        else if(len>=62)size=20.0f;
-        else if(len>=48)size=20.8f;
-        else size=22.0f;
-        if(heroH<=180)size-=1.4f;
-        else if(heroH<=198)size-=.7f;
-        return Math.max(17.0f,size);
+        if(len>=95)size=19.0f;
+        else if(len>=78)size=20.0f;
+        else if(len>=62)size=21.0f;
+        else if(len>=48)size=22.0f;
+        else size=23.0f;
+        if(heroH<=180)size-=1.2f;
+        else if(heroH<=198)size-=.6f;
+        return Math.max(17.5f,size);
     }
 
     private Typeface heartHandwritingTypeface;
     private Typeface heartHandwritingTypeface(){
         if(heartHandwritingTypeface==null){
             try{
-                Typeface bundled=Typeface.createFromAsset(getAssets(),"fonts/Caveat.ttf");
-                heartHandwritingTypeface=Build.VERSION.SDK_INT>=28
-                        ?Typeface.create(bundled,600,false)
-                        :Typeface.create(bundled,Typeface.BOLD);
+                Typeface bundled=Typeface.createFromAsset(getAssets(),"fonts/MarckScript-Regular.ttf");
+                // Preserve the authentic script's fine strokes; synthetic bold hurts legibility.
+                heartHandwritingTypeface=Typeface.create(bundled,Typeface.NORMAL);
             }catch(RuntimeException missingAsset){
                 // Fail open if an incomplete development build lacks font assets.
                 heartHandwritingTypeface=Typeface.create("casual",Typeface.NORMAL);
@@ -1928,6 +1962,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(heroH));
         hp.setMargins(0,0,0,dp(10));
         page.addView(hero,hp);
+        animateHomeCardEntrance(hero,0);
 
         int quizTotal=Math.max(1,lastQuizTotal());
         int quizDone=Math.min(quizTotal,lastQuizAnswered());
@@ -1984,8 +2019,10 @@ public class MainActivity extends Activity {
 
         LinearLayout.LayoutParams qrLp=new LinearLayout.LayoutParams(-1,dp(54));
         qrLp.setMargins(0,0,0,dp(2));
+        installHomeCardRipple(quizResume);
         installHomeCardPressMotion(quizResume);
         page.addView(quizResume,qrLp);
+        animateHomeCardEntrance(quizResume,1);
 
         // Six primary sections. Continue/progress now lives inside the hero.
         int dashboardCard=dark?Color.rgb(40,47,43):Color.rgb(251,247,240);
@@ -2010,6 +2047,8 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row1lp=new LinearLayout.LayoutParams(-1,-2);
         row1lp.setMargins(0,dp(7),0,0);
         page.addView(row1,row1lp);
+        animateHomeCardEntrance(f1,2);
+        animateHomeCardEntrance(f2,3);
 
         LinearLayout row2=new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
@@ -2031,6 +2070,8 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
         row2lp.setMargins(0,dp(7),0,0);
         page.addView(row2,row2lp);
+        animateHomeCardEntrance(f3,4);
+        animateHomeCardEntrance(f4,5);
 
         LinearLayout row3=new LinearLayout(this);
         row3.setOrientation(LinearLayout.HORIZONTAL);
@@ -2052,6 +2093,8 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
         row3lp.setMargins(0,dp(7),0,0);
         page.addView(row3,row3lp);
+        animateHomeCardEntrance(f5,6);
+        animateHomeCardEntrance(f6,7);
     }
 
     private LinearLayout homeFeature(
@@ -2168,6 +2211,7 @@ public class MainActivity extends Activity {
         c.addView(textBlock,new LinearLayout.LayoutParams(-1,-2));
 
         c.setOnClickListener(v->open.run());
+        installHomeCardRipple(c);
         installHomeCardPressMotion(c);
         return c;
     }

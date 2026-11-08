@@ -8,13 +8,13 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 host = (root / "app/src/main/java/app/alfatiha/tafsir/MainActivity.java").read_text()
 gradle = (root / "app/build.gradle").read_text()
-license = (root / "app/src/main/icon/CAVEAT_OFL.txt").read_text()
+license = (root / "app/src/main/icon/MARCK_SCRIPT_OFL.txt").read_text()
 
 # Readable, truly Cyrillic-capable handwriting only on the home reminder.
 assert "class HandwrittenPhraseView extends View" in host
 assert "new HandwrittenPhraseView(" in host
-assert "fonts/Caveat.ttf" in host
-assert "Caveat" in gradle and "assets.srcDir heartGeneratedAssets" in gradle
+assert "fonts/MarckScript-Regular.ttf" in host
+assert "MarckScript" in gradle and "assets.srcDir heartGeneratedAssets" in gradle
 assert "SIL OPEN FONT LICENSE" in license
 assert "class SandPhraseView" not in host
 assert "buildSandParticles(" not in host
