@@ -90,6 +90,7 @@ public class MainActivity extends Activity {
     };
     private String sessionHeroPhrase=HERO_PHRASES[0];
     private boolean heroPhraseAnimationPlayed=false;
+    private boolean homeCardNavigationPending=false;
     private KnowledgeAnalytics.Catalog knowledgeCatalog;
     private final ArrayList<KnowledgeAnalytics.QuestionRef> activeFlow=new ArrayList<>();
     private final LinkedHashMap<String,Boolean> activeFlowResults=new LinkedHashMap<>();
@@ -469,36 +470,65 @@ public class MainActivity extends Activity {
         });
     }
 
-    // Premium Material-style feedback: perceptible without bouncing or layout changes.
-    // Respect Android's animator scale; do not retain hardware layers while scrolling.
+    // Only home cards use true damped spring physics, with no re-layout.
     private void installHomeCardPressMotion(View view){
+        final androidx.dynamicanimation.animation.SpringAnimation springX=
+                new androidx.dynamicanimation.animation.SpringAnimation(
+                        view,androidx.dynamicanimation.animation.DynamicAnimation.SCALE_X);
+        final androidx.dynamicanimation.animation.SpringAnimation springY=
+                new androidx.dynamicanimation.animation.SpringAnimation(
+                        view,androidx.dynamicanimation.animation.DynamicAnimation.SCALE_Y);
+        springX.setSpring(new androidx.dynamicanimation.animation.SpringForce(1f)
+                .setStiffness(390f).setDampingRatio(.43f));
+        springY.setSpring(new androidx.dynamicanimation.animation.SpringForce(1f)
+                .setStiffness(390f).setDampingRatio(.43f));
         view.setOnTouchListener((v,event)->{
-            if(!v.isEnabled() || !v.hasOnClickListeners())return false;
-            if(!morphAnimationsEnabled())return false;
+            if(!v.isEnabled()||!v.hasOnClickListeners()||!morphAnimationsEnabled())
+                return false;
             switch(event.getActionMasked()){
                 case MotionEvent.ACTION_DOWN:
+                    springX.cancel();
+                    springY.cancel();
                     v.animate().cancel();
                     v.animate().setStartDelay(0)
-                            .scaleX(.972f).scaleY(.972f)
-                            .alpha(.955f).translationY(dp(1))
-                            .setDuration(115)
-                            .setInterpolator(new android.view.animation.PathInterpolator(.2f,0f,.2f,1f))
+                            .scaleX(.88f).scaleY(.88f)
+                            .setDuration(125)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
                             .start();
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     v.animate().cancel();
-                    v.animate().setStartDelay(0)
-                            .scaleX(1f).scaleY(1f)
-                            .alpha(1f).translationY(0f)
-                            .setDuration(230)
-                            .setInterpolator(new android.view.animation.PathInterpolator(.16f,1f,.3f,1f))
-                            .start();
+                    springX.setStartVelocity(0f);
+                    springY.setStartVelocity(0f);
+                    springX.animateToFinalPosition(1f);
+                    springY.animateToFinalPosition(1f);
                     break;
                 default: break;
             }
-            return false; // Let Android handle clicks, gestures, ripple and TalkBack.
+            return false;
         });
+        view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
+            @Override public void onViewAttachedToWindow(View v){}
+            @Override public void onViewDetachedFromWindow(View v){
+                springX.cancel();
+                springY.cancel();
+                v.animate().cancel();
+            }
+        });
+    }
+
+    // Make the rebound visible before the next screen removes this card.
+    private void openHomeCardWithSpring(View card,Runnable open){
+        if(homeCardNavigationPending)return;
+        if(!morphAnimationsEnabled()){open.run();return;}
+        homeCardNavigationPending=true;
+        final Screen source=current;
+        card.postDelayed(()->{
+            homeCardNavigationPending=false;
+            if(current==source&&card.isAttachedToWindow()&&!isFinishing())
+                open.run();
+        },300);
     }
 
     private void installHomeCardRipple(View card){
@@ -506,29 +536,6 @@ public class MainActivity extends Activity {
         android.graphics.drawable.GradientDrawable mask=solidBg(Color.WHITE,20,0);
         card.setForeground(new android.graphics.drawable.RippleDrawable(
                 ColorStateList.valueOf(ink),null,mask));
-    }
-
-    // Staggered entrance: composited alpha/position/scale only; never measure again.
-    // Runs when the actual dashboard is rendered, not during list scroll.
-    private void animateHomeCardEntrance(View card,int index){
-        if(!morphAnimationsEnabled())return;
-        final Screen destination=current;
-        final int delayMs=Math.min(340,55+Math.max(0,index)*44);
-        card.setAlpha(0f);
-        card.setTranslationY(dp(14));
-        card.setScaleX(.976f);
-        card.setScaleY(.976f);
-        card.post(()->{
-            if(current!=destination || !"home".equals(current.type)
-                    || !card.isAttachedToWindow())return;
-            card.animate().cancel();
-            card.animate().alpha(1f).translationY(0f)
-                    .scaleX(1f).scaleY(1f)
-                    .setStartDelay(delayMs)
-                    .setDuration(450)
-                    .setInterpolator(new android.view.animation.PathInterpolator(.16f,1f,.3f,1f))
-                    .start();
-        });
     }
 
     private GradientDrawable solidBg(int color,float radius,int stroke){
@@ -1135,6 +1142,7 @@ public class MainActivity extends Activity {
             history.push(current);
         }
         current=new Screen(type,arg);
+        homeCardNavigationPending=false;
         animateMorphNavTo(morphNavDestination(type),true);
         if(topHost!=null)topHost.removeAllViews();
         page.animate().cancel();
@@ -1808,7 +1816,8 @@ public class MainActivity extends Activity {
                 25,
                 dark?Color.rgb(58,67,62):Color.rgb(236,230,220)));
         hero.setContentDescription("Продолжить обучение");
-        hero.setOnClickListener(v->continuePrimaryLearning());
+        hero.setOnClickListener(v->openHomeCardWithSpring(hero,this::continuePrimaryLearning));
+        installHomeCardPressMotion(hero);
 
         ImageView heroArt=new ImageView(this);
         heroArt.setImageResource(R.drawable.heart_prayer_hero_exact);
@@ -1874,7 +1883,7 @@ public class MainActivity extends Activity {
                 14,
                 dark?Color.rgb(57,65,61):Color.rgb(236,230,220)
         ));
-        heroResume.setOnClickListener(v->continuePrimaryLearning());
+        heroResume.setOnClickListener(v->openHomeCardWithSpring(hero,this::continuePrimaryLearning));
 
         LinearLayout heroResumeLeft=new LinearLayout(this);
         heroResumeLeft.setOrientation(LinearLayout.VERTICAL);
@@ -1945,7 +1954,7 @@ public class MainActivity extends Activity {
                 16,
                 0
         ));
-        continueBtn.setOnClickListener(v->continuePrimaryLearning());
+        continueBtn.setOnClickListener(v->openHomeCardWithSpring(hero,this::continuePrimaryLearning));
         LinearLayout.LayoutParams continueLp=
                 new LinearLayout.LayoutParams(dp(78),dp(30));
         continueLp.setMargins(dp(6),0,0,0);
@@ -1962,7 +1971,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,dp(heroH));
         hp.setMargins(0,0,0,dp(10));
         page.addView(hero,hp);
-        animateHomeCardEntrance(hero,0);
 
         int quizTotal=Math.max(1,lastQuizTotal());
         int quizDone=Math.min(quizTotal,lastQuizAnswered());
@@ -1985,7 +1993,7 @@ public class MainActivity extends Activity {
                 20,
                 dark?Color.rgb(61,70,65):Color.rgb(228,218,204)
         ));
-        quizResume.setOnClickListener(v->continueLastQuiz());
+        quizResume.setOnClickListener(v->openHomeCardWithSpring(quizResume,this::continueLastQuiz));
 
         LinearLayout qrTop=new LinearLayout(this);
         qrTop.setOrientation(LinearLayout.HORIZONTAL);
@@ -2022,7 +2030,6 @@ public class MainActivity extends Activity {
         installHomeCardRipple(quizResume);
         installHomeCardPressMotion(quizResume);
         page.addView(quizResume,qrLp);
-        animateHomeCardEntrance(quizResume,1);
 
         // Six primary sections. Continue/progress now lives inside the hero.
         int dashboardCard=dark?Color.rgb(40,47,43):Color.rgb(251,247,240);
@@ -2047,8 +2054,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row1lp=new LinearLayout.LayoutParams(-1,-2);
         row1lp.setMargins(0,dp(7),0,0);
         page.addView(row1,row1lp);
-        animateHomeCardEntrance(f1,2);
-        animateHomeCardEntrance(f2,3);
 
         LinearLayout row2=new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
@@ -2070,8 +2075,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row2lp=new LinearLayout.LayoutParams(-1,-2);
         row2lp.setMargins(0,dp(7),0,0);
         page.addView(row2,row2lp);
-        animateHomeCardEntrance(f3,4);
-        animateHomeCardEntrance(f4,5);
 
         LinearLayout row3=new LinearLayout(this);
         row3.setOrientation(LinearLayout.HORIZONTAL);
@@ -2093,8 +2096,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams row3lp=new LinearLayout.LayoutParams(-1,-2);
         row3lp.setMargins(0,dp(7),0,0);
         page.addView(row3,row3lp);
-        animateHomeCardEntrance(f5,6);
-        animateHomeCardEntrance(f6,7);
     }
 
     private LinearLayout homeFeature(
@@ -2210,7 +2211,7 @@ public class MainActivity extends Activity {
 
         c.addView(textBlock,new LinearLayout.LayoutParams(-1,-2));
 
-        c.setOnClickListener(v->open.run());
+        c.setOnClickListener(v->openHomeCardWithSpring(c,open));
         installHomeCardRipple(c);
         installHomeCardPressMotion(c);
         return c;
