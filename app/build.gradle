@@ -8,7 +8,7 @@ def hasUploadSigning = uploadStoreFile && uploadStorePassword && uploadKeyAlias 
 
 def heartGeneratedRes = layout.buildDirectory.dir('generated/heart-design/res').get().asFile
 def heartGeneratedAssets = layout.buildDirectory.dir('generated/heart-design/assets').get().asFile
-def heartHandwritingFont = file('src/main/icon/marckscript_cyrillic.b64')
+def heartHandwritingFont = file('src/main/icon/neucha_cyrillic.b64')
 def heartHeroParts = (0..4).collect { file(String.format('src/main/icon/hero_1342_part%02d.b64', it)) }
 def heartDesignAssets = [
     [src: file('src/main/icon/heart_prayer_logo.b64'), out: 'heart_prayer_logo_exact.webp'],
@@ -41,8 +41,8 @@ tasks.register('prepareHeartDesignAssets') {
         // Decode the licensed Cyrillic handwriting font for offline use.
         String handwritingEncoded = heartHandwritingFont.getText('UTF-8').replaceAll('\\s+','')
         byte[] handwritingBytes = java.util.Base64.decoder.decode(handwritingEncoded)
-        if (handwritingBytes.length < 50000) throw new GradleException('Invalid Marck Script font asset')
-        File handwritingAsset = new File(heartGeneratedAssets, 'fonts/MarckScript-Regular.ttf')
+        if (handwritingBytes.length < 50000) throw new GradleException('Invalid Neucha font asset')
+        File handwritingAsset = new File(heartGeneratedAssets, 'fonts/Neucha.ttf')
         handwritingAsset.parentFile.mkdirs()
         handwritingAsset.bytes = handwritingBytes
 
@@ -163,6 +163,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        sandSpringCompare {
+            // Separate installation for restored sand reveal and real spring cards.
+            initWith premiumHomeCompare
+            applicationIdSuffix '.compasssandspring1108'
+            versionNameSuffix '-sand-spring-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
@@ -171,6 +179,7 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     implementation project(':azkar')
     implementation project(':medicine')
+    implementation 'androidx.dynamicanimation:dynamicanimation:1.1.0'
 }
 
 
