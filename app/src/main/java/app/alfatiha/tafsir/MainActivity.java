@@ -1686,7 +1686,7 @@ public class MainActivity extends Activity {
     private Typeface heartHandwritingTypeface(){
         if(heartHandwritingTypeface==null){
             try{
-                Typeface bundled=Typeface.createFromAsset(getAssets(),"fonts/MarckScript-Regular.ttf");
+                Typeface bundled=Typeface.createFromAsset(getAssets(),"fonts/Neucha.ttf");
                 // Preserve the authentic script's fine strokes; synthetic bold hurts legibility.
                 heartHandwritingTypeface=Typeface.create(bundled,Typeface.NORMAL);
             }catch(RuntimeException missingAsset){
@@ -1698,24 +1698,38 @@ public class MainActivity extends Activity {
     }
 
     // A real handwritten Cyrillic font, sized to fit without bitmap particles.
-    private final class HandwrittenPhraseView extends View {
+    private final class SandPhraseView extends View {
         private final String phrase;
+        private final int phraseColor;
         private final float preferredSizeDp;
         private final boolean animateOnAttach;
-        private final android.text.TextPaint textPaint=
-                new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG|Paint.SUBPIXEL_TEXT_FLAG);
+        private final android.text.TextPaint textPaint=new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.SUBPIXEL_TEXT_FLAG);
+        private final android.graphics.Paint particlePaint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         private android.text.StaticLayout textLayout;
-        private float layoutTop;
+        private float layoutTop=0f;
+        private float progress=1f;
+        private android.animation.ValueAnimator animator;
+        private float[] targetX,targetY,startX,startY,phase,radius,delay;
+        private final Runnable startCallback=this::startSandAnimation;
 
-        HandwrittenPhraseView(Context context,String phrase,float sizeDp,int color,boolean animate){
+        SandPhraseView(Context context,String phrase,float sizeDp,int color,boolean animate){
             super(context);
             this.phrase=phrase==null?"":phrase;
-            preferredSizeDp=sizeDp;
-            animateOnAttach=animate;
-            textPaint.setTypeface(heartHandwritingTypeface());
+            this.preferredSizeDp=sizeDp;
+            this.phraseColor=color;
+            this.animateOnAttach=animate;
             textPaint.setColor(color);
+            textPaint.setTypeface(heartHandwritingTypeface());
+            particlePaint.setColor(color);
+            particlePaint.setStyle(android.graphics.Paint.Style.FILL);
             setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
             setContentDescription(this.phrase);
+            if(!animate)progress=1f;
+        }
+
+        @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
+            super.onSizeChanged(w,h,oldw,oldh);
+            rebuildPhrase(w,h);
         }
 
         private android.text.StaticLayout makeLayout(int width,float textSizePx){
@@ -1724,52 +1738,155 @@ public class MainActivity extends Activity {
                     .obtain(phrase,0,phrase.length(),textPaint,Math.max(1,width))
                     .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL)
                     .setIncludePad(false)
-                    .setLineSpacing(0f,1.10f)
-                    .setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE)
+                    .setLineSpacing(0f,1.03f)
                     .build();
         }
 
-        @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
-            super.onSizeChanged(w,h,oldw,oldh);
-            if(w<=0||h<=0)return;
+        private void rebuildPhrase(int w,int h){
+            if(w<=0 || h<=0)return;
             float sizePx=dp(preferredSizeDp);
             textLayout=makeLayout(w,sizePx);
-            final float minPx=dp(16.0f);
-            final float step=Math.max(1f,dp(.35f));
+            float minPx=dp(16.0f);
+            float step=Math.max(1f,dp(.35f));
             while(textLayout.getHeight()>h && sizePx>minPx){
                 sizePx=Math.max(minPx,sizePx-step);
                 textLayout=makeLayout(w,sizePx);
             }
             layoutTop=Math.max(0f,(h-textLayout.getHeight())*.46f);
+            if(animateOnAttach && morphAnimationsEnabled())buildSandParticles(w,h);
         }
 
-        @Override protected void onDraw(Canvas canvas){
-            super.onDraw(canvas);
-            if(textLayout==null)return;
-            canvas.save();
-            canvas.translate(0f,layoutTop);
-            textLayout.draw(canvas);
-            canvas.restore();
+        private void buildSandParticles(int w,int h){
+            if(textLayout==null || w<=0 || h<=0)return;
+            android.graphics.Bitmap mask=android.graphics.Bitmap.createBitmap(w,h,android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas mc=new android.graphics.Canvas(mask);
+            int oldColor=textPaint.getColor();
+            int oldAlpha=textPaint.getAlpha();
+            textPaint.setColor(Color.WHITE);
+            textPaint.setAlpha(255);
+            mc.save();
+            mc.translate(0f,layoutTop);
+            textLayout.draw(mc);
+            mc.restore();
+            textPaint.setColor(oldColor);
+            textPaint.setAlpha(oldAlpha);
+
+            int scan=Math.max(4,dp(1.30f));
+            ArrayList<Integer> points=new ArrayList<>();
+            int[] row=new int[w];
+            for(int y=0;y<h;y+=scan){
+                mask.getPixels(row,0,w,0,y,w,1);
+                for(int x=0;x<w;x+=scan){
+                    if(Color.alpha(row[x])>80)points.add((y<<16)|(x&0xffff));
+                }
+            }
+            mask.recycle();
+
+            Random random=new Random(phrase.hashCode()*1103515245L+12345L);
+            Collections.shuffle(points,random);
+            int count=Math.min(590,points.size());
+            targetX=new float[count];
+            targetY=new float[count];
+            startX=new float[count];
+            startY=new float[count];
+            phase=new float[count];
+            radius=new float[count];
+            delay=new float[count];
+
+            for(int i=0;i<count;i++){
+                int packed=points.get(i);
+                float tx=packed&0xffff;
+                float ty=(packed>>>16)&0xffff;
+                targetX[i]=tx;
+                targetY[i]=ty;
+                startX[i]=tx-dp(24f+random.nextFloat()*76f)-random.nextFloat()*dp(28f);
+                startY[i]=ty+dp((random.nextFloat()-.5f)*38f);
+                phase[i]=(float)(random.nextFloat()*Math.PI*2.0);
+                radius[i]=Math.max(.7f,dp(.42f+random.nextFloat()*.48f));
+                float leftToRight=(w<=1?0f:tx/(float)w)*.20f;
+                delay[i]=Math.min(.34f,leftToRight+random.nextFloat()*.10f);
+            }
         }
 
         @Override protected void onAttachedToWindow(){
             super.onAttachedToWindow();
-            animate().cancel();
             if(animateOnAttach && morphAnimationsEnabled()){
-                setAlpha(0f);
-                setTranslationY(dp(5));
-                animate().alpha(1f).translationY(0f)
-                        .setStartDelay(80).setDuration(380)
-                        .setInterpolator(new android.view.animation.PathInterpolator(.22f,0f,.12f,1f))
-                        .start();
+                progress=0f;
+                postDelayed(startCallback,90);
             }else{
-                setAlpha(1f);
-                setTranslationY(0f);
+                progress=1f;
+            }
+        }
+
+        private void startSandAnimation(){
+            if(!isAttachedToWindow() || getWidth()<=0 || textLayout==null){progress=1f;invalidate();return;}
+            if(animator!=null)animator.cancel();
+            animator=android.animation.ValueAnimator.ofFloat(0f,1f);
+            long duration=Math.min(2250L,1620L+phrase.length()*6L);
+            animator.setDuration(duration);
+            animator.setInterpolator(new android.view.animation.LinearInterpolator());
+            animator.addUpdateListener(a->{
+                progress=(Float)a.getAnimatedValue();
+                invalidate();
+            });
+            animator.addListener(new android.animation.AnimatorListenerAdapter(){
+                @Override public void onAnimationEnd(android.animation.Animator animation){
+                    progress=1f;
+                    invalidate();
+                }
+            });
+            animator.start();
+        }
+
+        private float clamp01(float v){
+            return v<0f?0f:(v>1f?1f:v);
+        }
+
+        private void drawFinalText(android.graphics.Canvas canvas,int alpha){
+            if(textLayout==null)return;
+            int old=textPaint.getAlpha();
+            textPaint.setColor(phraseColor);
+            textPaint.setAlpha(Math.max(0,Math.min(255,alpha)));
+            canvas.save();
+            canvas.translate(0f,layoutTop);
+            textLayout.draw(canvas);
+            canvas.restore();
+            textPaint.setAlpha(old);
+        }
+
+        @Override protected void onDraw(android.graphics.Canvas canvas){
+            super.onDraw(canvas);
+            if(textLayout==null)return;
+            if(!animateOnAttach || progress>=.999f || targetX==null){
+                drawFinalText(canvas,255);
+                return;
+            }
+
+            // Lettering becomes readable as the particles travel into place.
+            float textReveal=clamp01((progress-.36f)/.55f);
+            if(textReveal>0f)drawFinalText(canvas,(int)(255f*textReveal));
+
+            particlePaint.setColor(phraseColor);
+            float particleFade=1f-clamp01((progress-.80f)/.20f);
+            for(int i=0;i<targetX.length;i++){
+                float local=clamp01((progress-delay[i])/(1f-delay[i]));
+                if(local<=0f)continue;
+                float ease=1f-(float)Math.pow(1f-local,3.0);
+                float wind=(float)Math.sin(phase[i]+local*7.2f)*dp(3.1f)*(1f-ease);
+                float lift=(float)Math.cos(phase[i]*.73f+local*5.4f)*dp(1.8f)*(1f-ease);
+                float x=startX[i]+(targetX[i]-startX[i])*ease+wind;
+                float y=startY[i]+(targetY[i]-startY[i])*ease+lift;
+                int alpha=(int)(210f*particleFade*clamp01(.18f+local*1.35f));
+                if(alpha<=0)continue;
+                particlePaint.setAlpha(alpha);
+                canvas.drawCircle(x,y,radius[i]*(.72f+.28f*local),particlePaint);
             }
         }
 
         @Override protected void onDetachedFromWindow(){
-            animate().cancel();
+            removeCallbacks(startCallback);
+            if(animator!=null)animator.cancel();
+            animator=null;
             super.onDetachedFromWindow();
         }
     }
@@ -1860,7 +1977,7 @@ public class MainActivity extends Activity {
         int mutedHeroGreen=dark?Color.rgb(72,91,83):Color.rgb(96,119,108);
 
         boolean animatePhrase=!heroPhraseAnimationPlayed;
-        HandwrittenPhraseView phraseView=new HandwrittenPhraseView(
+        SandPhraseView phraseView=new SandPhraseView(
                 this,
                 sessionHeroPhrase,
                 heroPhraseSizeDp(sessionHeroPhrase,heroH),
