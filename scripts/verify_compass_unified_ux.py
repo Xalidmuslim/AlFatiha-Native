@@ -5,6 +5,7 @@ root = Path(__file__).resolve().parents[1]
 host = (root/"app/src/main/java/app/alfatiha/tafsir/MainActivity.java").read_text()
 search = (root/"app/src/main/java/app/alfatiha/tafsir/ContentSearchEntry.java").read_text()
 gradle = (root/"app/build.gradle").read_text()
+medicine = (root/"medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp/App.kt").read_text()
 
 # Less pronounced motion; never hold navigation for 300ms.
 assert ".scaleX(.88f)" not in host
@@ -30,10 +31,12 @@ assert "featureStroke=0" in host
 assert "String snippet(String query)" in search
 assert "searchHighlight(" in host
 assert "e.snippet(q)" in host
-assert "openMedicineChapter(e.arg)" in host
+assert "openMedicineChapter(e.arg,query)" in host
+assert '"medicine_search_query"' in host
 
 # Keep reader position for resumes; review uses existing schedule not duplicate data.
 assert '"last_reader_route"' in host
 assert "renderReviewToday(true)" in host
 assert "unifiedUXCompare" in gradle
+assert "Route.Reader(chapter.id, anchor)" in medicine
 print("Compass unified UX contracts: OK")
