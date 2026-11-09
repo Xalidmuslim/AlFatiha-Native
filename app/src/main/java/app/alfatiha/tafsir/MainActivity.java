@@ -4339,12 +4339,13 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void openMedicine(){openMedicineChapter(null);}
+    private void openMedicine(){openMedicineChapter(null,null);}
 
-    private void openMedicineChapter(String chapterId){
+    private void openMedicineChapter(String chapterId,String query){
         try{
             Intent i=new Intent(this,com.xalid.meditsinaproroka.nativeapp.MainActivity.class);
             if(chapterId!=null&&!chapterId.isEmpty())i.putExtra("medicine_chapter_id",chapterId);
+            if(query!=null&&!query.trim().isEmpty())i.putExtra("medicine_search_query",query);
             android.app.ActivityOptions options=
                     android.app.ActivityOptions.makeCustomAnimation(
                             this,
@@ -5933,7 +5934,7 @@ public class MainActivity extends Activity {
         return out;
     }
 
-    private void openSearchEntry(ContentSearchEntry e){
+    private void openSearchEntry(ContentSearchEntry e,String query){
         switch(e.type){
             case"mindLesson":renderMindLesson(parseInt(e.arg),true);break;
             case"prayerLesson":renderPrayerSecretLesson(parseInt(e.arg),true);break;
@@ -5944,9 +5945,44 @@ public class MainActivity extends Activity {
             case"minorShirkCourse":renderMinorShirkCourse(parseInt(e.arg),true);break;
             case"minorShirkDaily":renderMinorShirkDaily(parseInt(e.arg),true);break;
             case"hadithQudsi":renderHadithQudsiDetail(parseInt(e.arg),true);break;
-            case"medicineChapter":openMedicineChapter(e.arg);break;
+            case"medicineChapter":openMedicineChapter(e.arg,query);break;
             default:renderHome(true);
         }
+        if(!"medicineChapter".equals(e.type))scrollToSearchMatch(query);
+    }
+
+    private TextView findTextInReader(View root,String query){
+        if(root instanceof TextView){
+            TextView label=(TextView)root;
+            String value=label.getText().toString().toLowerCase(java.util.Locale.ROOT)
+                    .replace('ё','е');
+            if(value.length()>query.length()+12&&value.contains(query))return label;
+        }
+        if(root instanceof ViewGroup){
+            ViewGroup group=(ViewGroup)root;
+            for(int i=0;i<group.getChildCount();i++){
+                TextView found=findTextInReader(group.getChildAt(i),query);
+                if(found!=null)return found;
+            }
+        }
+        return null;
+    }
+
+    private void scrollToSearchMatch(String query){
+        final String term=query==null?"":query.toLowerCase(java.util.Locale.ROOT)
+                .replace('ё','е').trim();
+        if(term.isEmpty())return;
+        final Screen target=current;
+        page.post(()->{
+            if(current!=target||scroll==null)return;
+            TextView found=findTextInReader(page,term);
+            if(found==null)return;
+            android.graphics.Rect bounds=new android.graphics.Rect();
+            found.getDrawingRect(bounds);
+            page.offsetDescendantRectToMyCoords(found,bounds);
+            int y=Math.max(0,bounds.top-dp(20));
+            if(motionIsFull())scroll.smoothScrollTo(0,y);else scroll.scrollTo(0,y);
+        });
     }
 
     private void renderSearch(boolean push){
@@ -6032,7 +6068,7 @@ public class MainActivity extends Activity {
                 excerpt.setEllipsize(android.text.TextUtils.TruncateAt.END);
                 item.addView(excerpt);
             }
-            item.setOnClickListener(v->openSearchEntry(e));
+            item.setOnClickListener(v->openSearchEntry(e,q));
             LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
             lp.setMargins(0,dp(4),0,dp(4));
             results.addView(item,lp);
