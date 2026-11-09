@@ -83,8 +83,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun MedicinaApp(book: BookData, store: AppStore) {
-    var current by remember { mutableStateOf<Route>(Route.Home) }
+fun MedicinaApp(book: BookData, store: AppStore, initialChapterId: String? = null, initialQuery: String? = null) {
+    // Only known chapter/block IDs are accepted. Open the precise matching paragraph.
+    var current by remember {
+        val chapter = book.chapters.firstOrNull { it.id == initialChapterId }
+        val query = initialQuery?.trim().orEmpty()
+        val anchor = if (query.isNotEmpty()) chapter?.blocks
+            ?.firstOrNull { it.text.contains(query, ignoreCase = true) }?.anchor else null
+        mutableStateOf<Route>(if (chapter != null) Route.Reader(chapter.id, anchor) else Route.Home)
+    }
     val backStack = remember { mutableStateListOf<Route>() }
     val screenStateHolder = rememberSaveableStateHolder()
     var searchQuery by remember { mutableStateOf("") }

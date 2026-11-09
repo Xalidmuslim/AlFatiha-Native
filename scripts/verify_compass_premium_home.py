@@ -23,8 +23,8 @@ assert "installHomeCardPressMotion(hero)" in host
 assert "installHomeCardPressMotion(quizResume)" in host
 assert "animateHomeCardEntrance(f" not in host
 assert "new androidx.dynamicanimation.animation.SpringAnimation(" in host
-assert "setDampingRatio(.43f)" in host
-assert "scaleX(.88f)" in host
+assert "setDampingRatio(.72f)" in host  # Updated restrained spring design
+assert "scaleX(.97f)" in host  # New accessible feedback, no deep shrink
 assert "new android.graphics.drawable.RippleDrawable(" in host
 assert "class MorphContainerDrawable" not in host
 assert "morphSnapshot(" not in host

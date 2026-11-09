@@ -171,6 +171,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        unifiedUXCompare {
+            // Separate A/B APK, does not overwrite original release or earlier previews.
+            initWith sandSpringCompare
+            applicationIdSuffix '.compassux1109'
+            versionNameSuffix '-ux-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
