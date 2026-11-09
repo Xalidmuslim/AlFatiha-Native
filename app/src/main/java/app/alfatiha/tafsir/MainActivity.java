@@ -1196,7 +1196,7 @@ public class MainActivity extends Activity {
         if(topHost!=null)topHost.removeAllViews();
         page.animate().cancel();
         page.removeAllViews();
-        page.setPadding(dp(8),dp(4),dp(8),dp(24));
+        page.setPadding(dp(12),dp(4),dp(12),dp(24));
         page.setBackgroundColor(bg());
         scroll.setVerticalScrollBarEnabled(true);
         scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
@@ -1387,9 +1387,9 @@ public class MainActivity extends Activity {
         if(topHost!=null){
             topHost.removeAllViews();
             topHost.setPadding(
-                    homeTop?dp(8):0,
+                    homeTop?dp(12):0,
                     homeTop?dp(6):0,
-                    homeTop?dp(8):0,
+                    homeTop?dp(12):0,
                     homeTop?dp(1):0
             );
         }
@@ -6037,7 +6037,7 @@ public class MainActivity extends Activity {
         if(at<0)return src;
         android.text.SpannableString marked=new android.text.SpannableString(src);
         int end=Math.min(src.length(),at+q.length());
-        marked.setSpan(new android.text.style.ForegroundColorSpan(C_SAGE),at,end,
+        marked.setSpan(new android.text.style.ForegroundColorSpan(dark?Color.rgb(164,201,180):C_SAGE),at,end,
                 android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         marked.setSpan(new android.text.style.StyleSpan(Typeface.BOLD),at,end,
                 android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -7915,7 +7915,7 @@ public class MainActivity extends Activity {
     }
 
     private TextView settingsOption(String label,boolean selected,Runnable action){
-        TextView option=text((selected?"✓  ":"   ")+label,14.5f,selected?C_SAGE:ink(),selected);
+        TextView option=text((selected?"✓  ":"   ")+label,14.5f,selected?(dark?Color.rgb(164,201,180):C_SAGE):ink(),selected);
         option.setGravity(Gravity.CENTER_VERTICAL);
         option.setPadding(dp(12),0,dp(12),0);
         option.setMinHeight(dp(46));
