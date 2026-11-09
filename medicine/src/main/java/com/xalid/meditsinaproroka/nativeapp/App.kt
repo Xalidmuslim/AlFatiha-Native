@@ -83,8 +83,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun MedicinaApp(book: BookData, store: AppStore) {
-    var current by remember { mutableStateOf<Route>(Route.Home) }
+fun MedicinaApp(book: BookData, store: AppStore, initialChapterId: String? = null) {
+    // Public, validated deep link from the host app search. Never open unknown IDs.
+    var current by remember {
+        mutableStateOf<Route>(
+            if (initialChapterId != null && book.chapters.any { it.id == initialChapterId })
+                Route.Reader(initialChapterId)
+            else Route.Home
+        )
+    }
     val backStack = remember { mutableStateListOf<Route>() }
     val screenStateHolder = rememberSaveableStateHolder()
     var searchQuery by remember { mutableStateOf("") }
