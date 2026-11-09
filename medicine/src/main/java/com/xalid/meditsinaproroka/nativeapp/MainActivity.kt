@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
         )
         configureActivityTransitions()
 
+        val requestedChapterId = intent?.getStringExtra("medicine_chapter_id")
         val appContext = applicationContext
         val launchTheme = if (
             getSharedPreferences("alfatiha_native", MODE_PRIVATE).getBoolean("dark", false)
@@ -115,7 +116,7 @@ class MainActivity : ComponentActivity() {
                         val loaded = state
                         if (loaded != null) {
                             loaded.bookResult.fold(
-                                onSuccess = { book -> MedicinaApp(book = book, store = loaded.store) },
+                                onSuccess = { book -> MedicinaApp(book = book, store = loaded.store, initialChapterId = requestedChapterId) },
                                 onFailure = { BookLoadErrorScreen() },
                             )
                         }
