@@ -4339,9 +4339,12 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void openMedicine(){
+    private void openMedicine(){openMedicineChapter(null);}
+
+    private void openMedicineChapter(String chapterId){
         try{
             Intent i=new Intent(this,com.xalid.meditsinaproroka.nativeapp.MainActivity.class);
+            if(chapterId!=null&&!chapterId.isEmpty())i.putExtra("medicine_chapter_id",chapterId);
             android.app.ActivityOptions options=
                     android.app.ActivityOptions.makeCustomAnimation(
                             this,
@@ -5941,7 +5944,7 @@ public class MainActivity extends Activity {
             case"minorShirkCourse":renderMinorShirkCourse(parseInt(e.arg),true);break;
             case"minorShirkDaily":renderMinorShirkDaily(parseInt(e.arg),true);break;
             case"hadithQudsi":renderHadithQudsiDetail(parseInt(e.arg),true);break;
-            case"medicineChapter":openMedicine();break;
+            case"medicineChapter":openMedicineChapter(e.arg);break;
             default:renderHome(true);
         }
     }
@@ -5989,23 +5992,56 @@ public class MainActivity extends Activity {
         medicineIndexThread.start();
     }
 
+    private CharSequence searchHighlight(String value,String query){
+        String src=value==null?"":value;
+        String lower=src.toLowerCase(java.util.Locale.ROOT).replace('ё','е');
+        String q=query.toLowerCase(java.util.Locale.ROOT).replace('ё','е').trim();
+        if(q.isEmpty())return src;
+        int at=lower.indexOf(q);
+        if(at<0)return src;
+        android.text.SpannableString marked=new android.text.SpannableString(src);
+        int end=Math.min(src.length(),at+q.length());
+        marked.setSpan(new android.text.style.ForegroundColorSpan(C_SAGE),at,end,
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        marked.setSpan(new android.text.style.StyleSpan(Typeface.BOLD),at,end,
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return marked;
+    }
+
     private void renderSearchMatches(LinearLayout results,String query,ArrayList<ContentSearchEntry> index){
         results.removeAllViews();
         String q=query==null?"":query.trim();
         if(q.length()<2){
-            LinearLayout hint=newSurface(blueSoft(),18,14,1);hint.addView(text("Введите минимум 2 буквы. Поиск работает по заголовкам и содержанию, а не только по названию раздела.",14,muted(),false));results.addView(hint);
+            TextView hint=text("Введите не менее двух символов. Поиск работает по заголовкам и тексту разделов.",13.5f,muted(),false);
+            results.addView(hint);
             return;
         }
         int shown=0;
         for(ContentSearchEntry e:index){
             if(!e.matches(q))continue;
-            LinearLayout item=newSurface(panel(),18,14,2);
-            item.addView(text(e.title,16.5f,ink(),true));item.addView(text(e.subtitle,12.8f,muted(),false));
+            LinearLayout item=newSurface(panel(),14,12,0);
+            TextView title=text(e.title,15.5f,ink(),true);
+            title.setText(searchHighlight(e.title,q));
+            item.addView(title);
+            item.addView(text(e.subtitle,12.5f,muted(),false));
+            String snippet=e.snippet(q);
+            if(!snippet.isEmpty()){
+                TextView excerpt=text("",13.4f,ink(),false);
+                excerpt.setText(searchHighlight(snippet,q));
+                excerpt.setMaxLines(3);
+                excerpt.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                item.addView(excerpt);
+            }
             item.setOnClickListener(v->openSearchEntry(e));
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(5),0,dp(5));results.addView(item,lp);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(0,dp(4),0,dp(4));
+            results.addView(item,lp);
             if(++shown>=24)break;
         }
-        if(shown==0){LinearLayout empty=newSurface(sandSoft(),18,14,1);empty.addView(text("Ничего не найдено. Попробуйте другое слово или более короткую форму.",14,muted(),false));results.addView(empty);}
+        if(shown==0){
+            TextView empty=text("Ничего не найдено. Попробуйте другую форму слова.",14,muted(),false);
+            results.addView(empty);
+        }
     }
 
     private void renderPrayerGlossary(boolean push){
@@ -7836,13 +7872,106 @@ public class MainActivity extends Activity {
         final Dialog d=new Dialog(this);LinearLayout shell=newSurface(dark?Color.rgb(34,41,37):panel(),24,16,7);shell.addView(text("Сбросить прогресс?",21,ink(),true));shell.addView(text("Ответы, ошибки, интервальная очередь и история экзаменов будут удалены. Закладки, сохранённые смыслы, открытые уроки и настройки останутся.",14,muted(),false));Button reset=action("Сбросить",C_BAD);Button cancel=outline("Отмена");shell.addView(reset,new LinearLayout.LayoutParams(-1,dp(50)));shell.addView(cancel,new LinearLayout.LayoutParams(-1,dp(46)));cancel.setOnClickListener(v->d.dismiss());reset.setOnClickListener(v->{SharedPreferences.Editor e=prefs.edit();for(String key:new HashSet<>(prefs.getAll().keySet())){if(key.equals("answered_ids")||key.equals("wrong_ids")||key.equals("corrected_ids")||key.equals("answered_total")||key.equals("correct_total")||key.equals("last_quiz_mode")||key.equals("last_mode")||key.equals("mind_mistakes_answered")||key.equals("mind_mistakes_wrong")||key.equals("mind_life_answered")||key.equals("mind_life_wrong")||key.equals("analytics_scenario_migration_v1")||key.startsWith("idx_")||key.startsWith("answered_")||key.startsWith("correct_")||key.startsWith("ka_")||key.startsWith("review_")||key.startsWith("attempt_")||key.startsWith("first_attempt_")||key.startsWith("last_attempt_")||key.startsWith("exam_")||key.startsWith("quiz_result_")||key.startsWith("flow_result_"))e.remove(key);}e.apply();d.dismiss();renderProfile(false);});d.setContentView(shell);d.show();Window w=d.getWindow();if(w!=null){w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));w.setLayout((int)(getResources().getDisplayMetrics().widthPixels*.9f),-2);}
     }
 
+    private void settingsHeading(String title){
+        TextView label=text(title,16.5f,ink(),true);
+        label.setPadding(0,dp(12),0,dp(6));
+        add(label);
+    }
+
+    private TextView settingsOption(String label,boolean selected,Runnable action){
+        TextView option=text((selected?"✓  ":"   ")+label,14.5f,selected?C_SAGE:ink(),selected);
+        option.setGravity(Gravity.CENTER_VERTICAL);
+        option.setPadding(dp(12),0,dp(12),0);
+        option.setMinHeight(dp(46));
+        option.setBackground(solidBg(selected?sageSoft():panel(),14,0));
+        option.setOnClickListener(v->action.run());
+        return option;
+    }
+
     private void renderSettings(boolean push){
-        clear("settings","",push);currentSection="settings";appTop();header("Настройки","Изменения применяются сразу в этом окне.");
-        LinearLayout f=card(panel());f.addView(text("Размер текста",18,ink(),true));LinearLayout row=new LinearLayout(this);
-        float[] zs={.9f,1f,1.15f,1.28f};String[] zn={"S","M","L","XL"};for(int i=0;i<zs.length;i++){float z=zs[i];Button b=outline(zn[i]);if(Math.abs(fontScale-z)<.02f)b.setBackground(surfaceBg(sageSoft(),sageSoft(),16,C_SAGE));b.setOnClickListener(v->{fontScale=z;prefs.edit().putFloat("fontScale",z).apply();renderSettings(false);});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(52),1);if(i>0)lp.setMargins(dp(6),0,0,0);row.addView(b,lp);}f.addView(row);
-        LinearLayout font=card(blueSoft());font.addView(text("Стиль шрифта",18,ink(),true));String[][] modes={{"modern","Современный"},{"classic","Классический"},{"compact","Компактный"}};for(String[] m:modes){Button b=outline((fontMode.equals(m[0])?"✓  ":"")+m[1]);b.setOnClickListener(v->{fontMode=m[0];prefs.edit().putString("fontMode",fontMode).apply();renderSettings(false);});font.addView(b,new LinearLayout.LayoutParams(-1,dp(50)));}
-        LinearLayout t=card(sageSoft());t.addView(text("Оформление",18,ink(),true));t.addView(text(dark?"Сейчас включена тёмная тема":"Сейчас включена светлая матовая тема",14,muted(),false));Button theme=action(dark?"Переключить на светлую":"Переключить на тёмную",dark?C_BLUE:C_SAGE);theme.setOnClickListener(v->{dark=!dark;prefs.edit().putBoolean("dark",dark).apply();buildShell();renderSettings(false);});t.addView(theme);
-        LinearLayout preview=card(panel());preview.addView(kicker("ПРЕДПРОСМОТР",C_BLUE));preview.addView(text("Аль-Фатиха — смысл, который должен дойти до сердца.",17,ink(),true));preview.addView(text("Размер, стиль и тема применяются сразу ко всему нативному приложению.",14,muted(),false));
+        clear("settings","",push);
+        currentSection="settings";
+        appTop();
+        header("Настройки","Текст, оформление и анимации");
+
+        settingsHeading("Размер текста");
+        LinearLayout sizes=new LinearLayout(this);
+        float[] scales={.9f,1f,1.15f,1.28f};
+        String[] scaleNames={"S","M","L","XL"};
+        for(int i=0;i<scales.length;i++){
+            final float scale=scales[i];
+            TextView choice=settingsOption(scaleNames[i],Math.abs(fontScale-scale)<.02f,()->{
+                fontScale=scale;
+                prefs.edit().putFloat("fontScale",scale).apply();
+                renderSettings(false);
+            });
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(46),1);
+            if(i>0)lp.setMargins(dp(6),0,0,0);
+            sizes.addView(choice,lp);
+        }
+        page.addView(sizes);
+
+        settingsHeading("Стиль текста");
+        String[][] modes={{"modern","Современный"},{"classic","Классический"},{"compact","Компактный"}};
+        for(String[] mode:modes){
+            TextView item=settingsOption(mode[1],fontMode.equals(mode[0]),()->{
+                fontMode=mode[0];
+                prefs.edit().putString("fontMode",fontMode).apply();
+                renderSettings(false);
+            });
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(46));
+            lp.setMargins(0,0,0,dp(4));
+            page.addView(item,lp);
+        }
+
+        settingsHeading("Межстрочный интервал чтения");
+        LinearLayout spacing=new LinearLayout(this);
+        float[] intervals={1.09f,1.25f,1.40f};
+        String[] names={"Обычный","Средний","Широкий"};
+        for(int i=0;i<intervals.length;i++){
+            final float interval=intervals[i];
+            TextView option=settingsOption(names[i],Math.abs(readingLineSpacing-interval)<.02f,()->{
+                readingLineSpacing=interval;
+                prefs.edit().putFloat("reader_line_spacing",interval).apply();
+                renderSettings(false);
+            });
+            option.setTextSize(sz(12.6f));
+            option.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(46),1);
+            if(i>0)lp.setMargins(dp(6),0,0,0);
+            spacing.addView(option,lp);
+        }
+        page.addView(spacing);
+
+        settingsHeading("Анимации");
+        String[][] motionOptions={{"full","Полные"},{"minimal","Минимальные"},{"off","Отключены"}};
+        for(String[] opt:motionOptions){
+            TextView choice=settingsOption(opt[1],motionMode.equals(opt[0]),()->{
+                motionMode=opt[0];
+                prefs.edit().putString("motion_mode",motionMode).apply();
+                renderSettings(false);
+            });
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(46));
+            lp.setMargins(0,0,0,dp(4));
+            page.addView(choice,lp);
+        }
+        add(text("Системное отключение анимаций Android также соблюдается.",12.5f,muted(),false));
+
+        settingsHeading("Оформление");
+        TextView theme=settingsOption(dark?"Светлая матовая тема":"Тёмная тема",false,()->{
+            dark=!dark;
+            prefs.edit().putBoolean("dark",dark).apply();
+            buildShell();
+            renderSettings(false);
+        });
+        page.addView(theme,new LinearLayout.LayoutParams(-1,dp(48)));
+
+        if(isReadingRoute(prefs.getString("last_reader_route",""))){
+            settingsHeading("Чтение");
+            TextView resume=settingsOption("Вернуться к последнему чтению",false,this::resumeLastReader);
+            page.addView(resume,new LinearLayout.LayoutParams(-1,dp(48)));
+            add(text("Восстанавливает раздел и сохранённую позицию прокрутки.",12.5f,muted(),false));
+        }
     }
 
     private void renderMenu(boolean push){
