@@ -53,6 +53,9 @@ public class MainActivity extends Activity {
     private float fontScale = 1f;
     private boolean dark = false;
     private String fontMode = "modern";
+    private String motionMode = "full";
+    private float readingLineSpacing = 1.09f;
+    private boolean readingFocus = false;
     private final HashMap<String, JSONArray> cache = new HashMap<>();
     private String currentSection = "home";
     private int homeTileHeightDp=150;
@@ -123,6 +126,8 @@ public class MainActivity extends Activity {
         fontScale=prefs.getFloat("fontScale",1f);
         dark=prefs.getBoolean("dark",false);
         fontMode=prefs.getString("fontMode","modern");
+        motionMode=prefs.getString("motion_mode","full");
+        readingLineSpacing=prefs.getFloat("reader_line_spacing",1.09f);
         migrateScenarioProgress();
         analytics().ensureLegacyErrorsScheduled();
 
@@ -143,6 +148,41 @@ public class MainActivity extends Activity {
             app.xalidmuslim.azkar.AzkarWarmup.preload(getApplicationContext());
             com.xalid.meditsinaproroka.nativeapp.MedicineRuntimeWarmup.preload(getApplicationContext());
         });
+    }
+
+    @Override protected void onPause(){
+        rememberReaderPosition();
+        super.onPause();
+    }
+
+    private boolean isReadingRoute(String type){
+        return Arrays.asList("mindLesson","mindSlow","mindStages","mindReadingTraining",
+                "mindMistakes","mindLife","prayerSecretLesson","prayerGlossaryEntry",
+                "prayerError","minorShirkCourse","minorShirkDaily","hadithQudsiDetail",
+                "intro").contains(type);
+    }
+
+    private void rememberReaderPosition(){
+        if(current==null||!isReadingRoute(current.type)||scroll==null)return;
+        prefs.edit().putString("last_reader_route",current.type)
+                .putString("last_reader_arg",current.arg)
+                .putInt("last_reader_scroll",scroll.getScrollY()).apply();
+    }
+
+    private void toggleReadingFocus(){
+        if(current==null||!isReadingRoute(current.type))return;
+        readingFocus=!readingFocus;
+        bottom.setVisibility(readingFocus?View.GONE:View.VISIBLE);
+        appTop(); // Keep page and ScrollView attached: scroll position is unchanged.
+    }
+
+    private void resumeLastReader(){
+        String route=prefs.getString("last_reader_route","");
+        if(!isReadingRoute(route)){toast("Нет сохранённого места чтения");return;}
+        String arg=prefs.getString("last_reader_arg","");
+        int y=prefs.getInt("last_reader_scroll",0);
+        restore(new Screen(route,arg));
+        scroll.post(()->scroll.scrollTo(0,Math.max(0,y)));
     }
 
     @Override protected void onNewIntent(Intent intent){
@@ -262,7 +302,12 @@ public class MainActivity extends Activity {
     }
 
     private boolean morphAnimationsEnabled(){
-        return Build.VERSION.SDK_INT<26 || ValueAnimator.areAnimatorsEnabled();
+        return !"off".equals(motionMode)
+                && (Build.VERSION.SDK_INT<26 || ValueAnimator.areAnimatorsEnabled());
+    }
+
+    private boolean motionIsFull(){
+        return "full".equals(motionMode) && morphAnimationsEnabled();
     }
 
     private int morphNavDestination(String sectionType){
@@ -281,7 +326,7 @@ public class MainActivity extends Activity {
         boolean motion=animate&&morphAnimationsEnabled();
         if(motion){
             morphNavAnimator=ValueAnimator.ofFloat(morphNavBackground.position,target);
-            morphNavAnimator.setDuration(265);
+            morphNavAnimator.setDuration(motionIsFull()?235:120);
             morphNavAnimator.setInterpolator(new android.view.animation.PathInterpolator(
                     .20f,0f,.10f,1f));
             morphNavAnimator.addUpdateListener(value->
@@ -302,15 +347,15 @@ public class MainActivity extends Activity {
             label.setTextColor(tint);
             icon.animate().cancel();
             if(motion){
-                icon.animate().scaleX(selected?1.10f:1f)
-                        .scaleY(selected?1.10f:1f)
+                icon.animate().scaleX(selected?1.04f:1f)
+                        .scaleY(selected?1.04f:1f)
                         .translationY(selected?-dp(2):0)
-                        .setDuration(225)
+                        .setDuration(motionIsFull()?215:120)
                         .setInterpolator(new android.view.animation.DecelerateInterpolator())
                         .start();
             }else{
-                icon.setScaleX(selected?1.10f:1f);
-                icon.setScaleY(selected?1.10f:1f);
+                icon.setScaleX(selected?1.04f:1f);
+                icon.setScaleY(selected?1.04f:1f);
                 icon.setTranslationY(selected?-dp(2):0);
             }
         }
@@ -375,7 +420,7 @@ public class MainActivity extends Activity {
         scroll.setBackgroundColor(bg());
         page=new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(8),dp(4),dp(8),dp(24));
+        page.setPadding(dp(12),dp(4),dp(12),dp(24));
         scroll.addView(page,new ScrollView.LayoutParams(-1,-2));
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
 
@@ -479,9 +524,9 @@ public class MainActivity extends Activity {
                 new androidx.dynamicanimation.animation.SpringAnimation(
                         view,androidx.dynamicanimation.animation.DynamicAnimation.SCALE_Y);
         springX.setSpring(new androidx.dynamicanimation.animation.SpringForce(1f)
-                .setStiffness(390f).setDampingRatio(.43f));
+                .setStiffness(420f).setDampingRatio(.72f));
         springY.setSpring(new androidx.dynamicanimation.animation.SpringForce(1f)
-                .setStiffness(390f).setDampingRatio(.43f));
+                .setStiffness(420f).setDampingRatio(.72f));
         view.setOnTouchListener((v,event)->{
             if(!v.isEnabled()||!v.hasOnClickListeners()||!morphAnimationsEnabled())
                 return false;
@@ -491,8 +536,8 @@ public class MainActivity extends Activity {
                     springY.cancel();
                     v.animate().cancel();
                     v.animate().setStartDelay(0)
-                            .scaleX(.88f).scaleY(.88f)
-                            .setDuration(125)
+                            .scaleX(.97f).scaleY(.97f)
+                            .setDuration(motionIsFull()?100:65)
                             .setInterpolator(new android.view.animation.DecelerateInterpolator())
                             .start();
                     break;
@@ -521,14 +566,14 @@ public class MainActivity extends Activity {
     // Make the rebound visible before the next screen removes this card.
     private void openHomeCardWithSpring(View card,Runnable open){
         if(homeCardNavigationPending)return;
-        if(!morphAnimationsEnabled()){open.run();return;}
+        if(!motionIsFull()){open.run();return;}
         homeCardNavigationPending=true;
         final Screen source=current;
         card.postDelayed(()->{
             homeCardNavigationPending=false;
             if(current==source&&card.isAttachedToWindow()&&!isFinishing())
                 open.run();
-        },300);
+        },110); // Fast feedback without a 300ms blocking pause.
     }
 
     private void installHomeCardRipple(View card){
@@ -557,7 +602,9 @@ public class MainActivity extends Activity {
         t.setText(s==null?"":s);
         t.setTextSize(sz(size));
         t.setTextColor(color);
-        t.setLineSpacing(dp(2),1.09f);
+        t.setLineSpacing(dp(2),
+                current!=null&&isReadingRoute(current.type)&&size>=13
+                        ?readingLineSpacing:1.09f);
         t.setTypeface(tf(bold));
         t.setIncludeFontPadding(false);
         t.setPadding(0,dp(4),0,dp(4));
@@ -572,8 +619,8 @@ public class MainActivity extends Activity {
         c.setOrientation(LinearLayout.VERTICAL);
         c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
         int end=dark?color:blend(color,Color.WHITE,0.22f);
-        c.setBackground(surfaceBg(color,end,radius,line()));
-        c.setElevation(dp(elevation));
+        c.setBackground(surfaceBg(color,end,radius,0));
+        c.setElevation(dp(Math.min(elevation,1f)));
         return c;
     }
 
@@ -582,16 +629,15 @@ public class MainActivity extends Activity {
         c.setOrientation(LinearLayout.VERTICAL);
         c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
         int end=dark?blend(color,Color.BLACK,.015f):blend(color,Color.WHITE,.035f);
-        int stroke=dark?Color.rgb(58,67,62):Color.rgb(230,221,208);
-        c.setBackground(surfaceBg(color,end,radius,stroke));
-        c.setElevation(dp(1));
+        c.setBackground(surfaceBg(color,end,radius,0));
+        c.setElevation(0f);
         return c;
     }
 
     private LinearLayout card(int color){
-        LinearLayout c=newSurface(color,24,18,4);
+        LinearLayout c=newSurface(color,18,14,0);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
-        lp.setMargins(0,dp(7),0,dp(7));
+        lp.setMargins(0,dp(8),0,dp(8));
         page.addView(c,lp);
         return c;
     }
@@ -1141,7 +1187,10 @@ public class MainActivity extends Activity {
             current.scrollY=scroll==null?0:scroll.getScrollY();
             history.push(current);
         }
+        rememberReaderPosition();
         current=new Screen(type,arg);
+        if(!isReadingRoute(type))readingFocus=false;
+        if(bottom!=null)bottom.setVisibility(readingFocus?View.GONE:View.VISIBLE);
         homeCardNavigationPending=false;
         animateMorphNavTo(morphNavDestination(type),true);
         if(topHost!=null)topHost.removeAllViews();
@@ -1167,7 +1216,7 @@ public class MainActivity extends Activity {
                 if(current!=arriving)return;
                 page.animate().alpha(1f).translationX(0f).translationY(0f)
                         .scaleX(1f).scaleY(1f)
-                        .setDuration(softHomeTransition?275:205)
+                        .setDuration(motionIsFull()?(softHomeTransition?235:205):130)
                         .setInterpolator(softHomeTransition
                                 ?new android.view.animation.PathInterpolator(.22f,0f,.12f,1f)
                                 :new android.view.animation.DecelerateInterpolator())
@@ -1321,6 +1370,20 @@ public class MainActivity extends Activity {
         final boolean homeTop="home".equals(current.type);
 
         LinearLayout host=topHost!=null?topHost:page;
+        if(readingFocus && isReadingRoute(current.type)){
+            if(topHost!=null){
+                topHost.removeAllViews();
+                topHost.setPadding(dp(12),0,dp(12),0);
+            }
+            LinearLayout compact=new LinearLayout(this);
+            compact.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
+            Button show=chromeMiniButton("↙");
+            show.setContentDescription("Показать панели чтения");
+            show.setOnClickListener(v->toggleReadingFocus());
+            compact.addView(show);
+            host.addView(compact,new LinearLayout.LayoutParams(-1,dp(40)));
+            return;
+        }
         if(topHost!=null){
             topHost.removeAllViews();
             topHost.setPadding(
@@ -1450,6 +1513,12 @@ public class MainActivity extends Activity {
         });
         top.addView(theme);
 
+        if(isReadingRoute(current.type)){
+            Button focus=chromeMiniButton("⤢");
+            focus.setContentDescription("Режим сосредоточенного чтения");
+            focus.setOnClickListener(v->toggleReadingFocus());
+            top.addView(focus);
+        }
         Button aa=chromeMiniButton("Aa");
         aa.setContentDescription("Настройки текста");
         aa.setOnClickListener(v->renderSettings(true));
@@ -1810,7 +1879,7 @@ public class MainActivity extends Activity {
 
         @Override protected void onAttachedToWindow(){
             super.onAttachedToWindow();
-            if(animateOnAttach && morphAnimationsEnabled()){
+            if(animateOnAttach && motionIsFull()){
                 progress=0f;
                 postDelayed(startCallback,90);
             }else{
@@ -1899,23 +1968,23 @@ public class MainActivity extends Activity {
 
         // Home is intentionally a one-screen dashboard. Scale only its chrome
         // to the available phone height; course/reader typography is untouched.
-        page.setPadding(dp(8),dp(1),dp(8),dp(4));
+        page.setPadding(dp(12),dp(1),dp(12),dp(4));
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
         int screenH=getResources().getConfiguration().screenHeightDp;
         final int heroH;
         final int resumeH;
         if(screenH<=700){
-            heroH=180; resumeH=0; homeTileHeightDp=112; homeTileIconDp=46;
-            homeTileTitleSp=12.6f; homeTileSubSp=10.0f;
+            heroH=164; resumeH=0; homeTileHeightDp=122; homeTileIconDp=46;
+            homeTileTitleSp=14.0f; homeTileSubSp=12.0f;
         }else if(screenH<=760){
-            heroH=198; resumeH=0; homeTileHeightDp=120; homeTileIconDp=48;
-            homeTileTitleSp=13.0f; homeTileSubSp=10.4f;
+            heroH=184; resumeH=0; homeTileHeightDp=128; homeTileIconDp=48;
+            homeTileTitleSp=14.4f; homeTileSubSp=12.0f;
         }else{
             // Restore the approved visual scale: icons and typography must not
             // shrink just to force the dashboard into a single viewport.
-            heroH=222; resumeH=0; homeTileHeightDp=128; homeTileIconDp=52;
-            homeTileTitleSp=13.4f; homeTileSubSp=10.9f;
+            heroH=207; resumeH=0; homeTileHeightDp=136; homeTileIconDp=52;
+            homeTileTitleSp=15.0f; homeTileSubSp=12.4f;
         }
 
         int pct=primaryLearningProgress();
@@ -1928,10 +1997,7 @@ public class MainActivity extends Activity {
                 25,0));
         hero.setElevation(dp(2));
         hero.setClipToOutline(true);
-        hero.setForeground(solidBg(
-                Color.TRANSPARENT,
-                25,
-                dark?Color.rgb(58,67,62):Color.rgb(236,230,220)));
+        hero.setForeground(null); // No decorative frame around the approved artwork.
         hero.setContentDescription("Продолжить обучение");
         hero.setOnClickListener(v->openHomeCardWithSpring(hero,this::continuePrimaryLearning));
         installHomeCardPressMotion(hero);
@@ -2099,7 +2165,7 @@ public class MainActivity extends Activity {
         quizResume.setOrientation(LinearLayout.HORIZONTAL);
         quizResume.setGravity(Gravity.CENTER_VERTICAL);
         quizResume.setPadding(dp(12),dp(6),dp(9),dp(6));
-        quizResume.setElevation(dp(2));
+        quizResume.setElevation(0f);
         int quizResumeTone=dark?Color.rgb(40,47,43):Color.rgb(251,247,240);
         int quizResumeEnd=dark
                 ?blend(quizResumeTone,Color.BLACK,.03f)
@@ -2108,24 +2174,23 @@ public class MainActivity extends Activity {
                 quizResumeTone,
                 quizResumeEnd,
                 20,
-                dark?Color.rgb(61,70,65):Color.rgb(228,218,204)
+                0
         ));
-        quizResume.setOnClickListener(v->openHomeCardWithSpring(quizResume,this::continueLastQuiz));
+        int reviewDue=analytics().reviewNowCount();
+        quizResume.setOnClickListener(v->openHomeCardWithSpring(quizResume,
+                reviewDue>0?()->renderReviewToday(true):this::continueLastQuiz));
 
         LinearLayout qrTop=new LinearLayout(this);
         qrTop.setOrientation(LinearLayout.HORIZONTAL);
         qrTop.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout qrText=new LinearLayout(this);
         qrText.setOrientation(LinearLayout.VERTICAL);
-        qrText.addView(homeText("Продолжить викторину",13.5f,ink(),true));
-        qrText.addView(homeText(lastQuizTitle()+" · "+quizDone+" из "+quizTotal,11.0f,muted(),false));
+        qrText.addView(homeText(reviewDue>0?"Повторить сегодня · "+reviewDue:"Продолжить викторину",14.0f,ink(),true));
+        qrText.addView(homeText(reviewDue>0?"Материал по расписанию и ошибки":lastQuizTitle()+" · "+quizDone+" из "+quizTotal,12.0f,muted(),false));
         qrTop.addView(qrText,new LinearLayout.LayoutParams(0,-2,1));
         TextView qrArrow=homeText("›",20,ink(),false);
         qrArrow.setGravity(Gravity.CENTER);
-        qrArrow.setBackground(surfaceBg(
-                dark?Color.rgb(45,52,48):Color.rgb(249,245,238),
-                dark?Color.rgb(41,48,44):Color.rgb(245,239,230),
-                18,dark?line():Color.rgb(230,221,208)));
+        qrArrow.setBackgroundColor(Color.TRANSPARENT);
         qrTop.addView(qrArrow,new LinearLayout.LayoutParams(dp(34),dp(34)));
         quizResume.addView(qrTop,new LinearLayout.LayoutParams(0,-1,1));
 
@@ -2221,7 +2286,7 @@ public class MainActivity extends Activity {
         int cardTone=tone;
         final boolean medicineTile=title!=null && title.startsWith("Медицина");
 
-        int tilePad=homeTileHeightDp<=112?7:homeTileHeightDp<=120?8:9;
+        int tilePad=homeTileHeightDp<=128?10:12;
         LinearLayout c=homeSurface(cardTone,20,tilePad,1);
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
@@ -2230,9 +2295,7 @@ public class MainActivity extends Activity {
         int featureEnd=dark
                 ?blend(cardTone,Color.BLACK,.028f)
                 :blend(cardTone,Color.WHITE,.085f);
-        int featureStroke=dark
-                ?Color.rgb(59,67,63)
-                :Color.rgb(226,217,204);
+        int featureStroke=0; // No inner ornamental outline.
         c.setBackground(surfaceBg(cardTone,featureEnd,20,featureStroke));
 
         // Header row: identical geometry on all six cards.
@@ -2255,16 +2318,11 @@ public class MainActivity extends Activity {
 
         TextView arrow=homeText("›",19.2f,ink(),false);
         arrow.setGravity(Gravity.CENTER);
-        arrow.setBackground(surfaceBg(
-                dark?Color.rgb(44,51,47):Color.rgb(250,247,241),
-                dark?Color.rgb(41,48,44):Color.rgb(247,242,234),
-                17,
-                dark?line():Color.rgb(229,221,210)
-        ));
+        arrow.setBackgroundColor(Color.TRANSPARENT);
         arrow.setElevation(0f);
 
         top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
-        top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(32)));
+        top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(40)));
         c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
         // Flexible air belongs between icon row and text, never between title
@@ -2279,7 +2337,7 @@ public class MainActivity extends Activity {
                 || "Азкары".equals(title)
                 || "Викторины".equals(title)
                 || "Хадисы-кудси".equals(title);
-        if(liftSingleLineTile)textBlock.setTranslationY(-dp(8));
+        // Equal baselines; no ad-hoc text offsets on individual tiles.
 
         float titleSp=medicineTile
                 ?Math.max(12.2f,homeTileTitleSp-.10f)
