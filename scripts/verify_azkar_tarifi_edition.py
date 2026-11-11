@@ -39,7 +39,16 @@ assert by_you.index("وَإِلَيْكَ النُّشُورُ") < by_you.index(
 assert by_you.index("وَإِلَيْكَ الْمَصِيرُ") > by_you.index("eveningVariant")
 assert "PeriodNight" in screen and '"☾ Ночь"' in screen
 assert 'AzkarPeriod.Night -> "Ночные"' in screen
-verses=re.findall(r'^\s*"(.+?)",?$',quran,re.MULTILINE)
+verses=re.findall(r'^\s*"(.+?)",\s*
+assert len(verses)==30, f"Al-Mulk needs exactly 30 verses, got {len(verses)}"
+assert verses[0].startswith("تَبَ") and verses[-1].endswith("مَّعِينٍۭ")
+assert "Read" not in quran and all(len(v)>20 for v in verses)
+assert 'disputed = true' in next(x for x in items if 'id = "hasbi-seven"' in x)
+assert 'disputed = true' in next(x for x in items if 'id = "blessing-gratitude"' in x)
+assert 'disputed = true' in next(x for x in items if 'id = "night-ikhlas"' in x)
+assert 'disputed = true' in next(x for x in items if 'id = "night-mulk"' in x)
+print("Azkar Tarifi collation contracts: OK (22 stable ids, 18 morning, 16 evening, 3 night)")
+,quran,re.MULTILINE)
 assert len(verses)==30, f"Al-Mulk needs exactly 30 verses, got {len(verses)}"
 assert verses[0].startswith("تَبَ") and verses[-1].endswith("مَّعِينٍۭ")
 assert "Read" not in quran and all(len(v)>20 for v in verses)
