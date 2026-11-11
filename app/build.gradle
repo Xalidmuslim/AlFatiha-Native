@@ -187,6 +187,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        amalTextReviewCompare {
+            // Literary text review A/B install; never overwrites installed release/progress.
+            initWith tarifiAzkarCompare
+            applicationIdSuffix '.amalreview1111'
+            versionNameSuffix '-amal-text-review'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
