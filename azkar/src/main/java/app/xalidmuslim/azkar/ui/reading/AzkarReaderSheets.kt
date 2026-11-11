@@ -746,7 +746,7 @@ private fun AzkarSourceInfoSheet(onDismiss: () -> Unit) {
                 style = AzkarThemeValues.typography.sheetSubtitle.copy(color = colors.muted),
             )
             BasicText(
-                text = "Русский текст — смысловой перевод. Для суры «Аль-Мульк» показаны все 30 аятов на арабском языке и краткое описание содержания, не построчный перевод.",
+                text = "Русский текст — самостоятельный литературный смысловой перевод, не перепечатка издания «Амал». Для суры «Аль-Мульк» приведены все 30 аятов и 30 русских переводов. Полная постраничная сверка с 48-страничным печатным изданием пока не завершена.",
                 style = AzkarThemeValues.typography.sheetSubtitle.copy(color = colors.muted),
             )
         }
