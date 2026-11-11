@@ -1,0 +1,84 @@
+name: Compass Tarifi Azkar R8 APK
+
+on:
+  push:
+    branches: [codex/azkar-tarifi-collation-20261111]
+  workflow_dispatch:
+
+concurrency:
+  group: compass-tarifi-azkar-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android API 36
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Tarifi, UX and book regression checks
+        run: |
+          set -e
+          python3 scripts/verify_azkar_tarifi_edition.py
+          python3 scripts/verify_compass_unified_ux.py
+          python3 scripts/verify_compass_sand_spring.py
+          python3 scripts/verify_compass_premium_home.py
+          python3 scripts/verify_compass_soft_home.py
+          python3 scripts/verify_compass_full_morph.py
+          python3 scripts/verify_compass_morph.py
+          python3 scripts/verify_medicine_entry.py
+          python3 scripts/verify_medicine_scroll_layer.py
+          python3 scripts/verify_content.py
+      - name: Azkar unit tests, app lint, R8 package
+        run: ./gradlew :azkar:testDebugUnitTest :app:lintDebug :app:assembleTarifiAzkarCompare --no-daemon --stacktrace
+      - name: Verify APK and bundled content
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/tarifiAzkarCompare/app-tarifiAzkarCompare.apk
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F 'app.alfatiha.tafsir.tarifiazkar1111'
+          unzip -l "$APK" | grep -F 'assets/fonts/Neucha.ttf'
+          unzip -l "$APK" | grep -F 'assets/book.json'
+          sha256sum "$APK"
+      - name: Upload separate APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Compass-Heart-Tarifi-Azkar-20261111
+          path: app/build/outputs/apk/tarifiAzkarCompare/app-tarifiAzkarCompare.apk
+          retention-days: 30
+          if-no-files-found: error
+      - name: Publish tested standalone APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=compass-heart-tarifi-azkar-20261111
+          APK="$RUNNER_TEMP/Compass-Heart-Tarifi-Azkar-20261111.apk"
+          cp app/build/outputs/apk/tarifiAzkarCompare/app-tarifiAzkarCompare.apk "$APK"
+          test -s "$APK"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Компас сердца — дополненные азкары ат-Тарифи" \
+              --notes "Отдельная тестовая Android APK: 22 записи в каталоге, 18 утренних, 16 вечерних, 3 ночных; добавлены недостающие зикры с источниками и пометками спорных передач; полный арабский текст суры 67 из 30 аятов, раздельные ночные чтения, исправлены варианты النشور / المصير. Существующая версия, книги и данные пользователя не заменяются. Требуется реальная проверка на устройстве и сверка огласовок с печатным изданием." \
+              --prerelease
+          fi
