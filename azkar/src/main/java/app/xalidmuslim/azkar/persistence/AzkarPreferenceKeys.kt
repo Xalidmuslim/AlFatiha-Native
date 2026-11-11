@@ -25,10 +25,12 @@ internal object AzkarPreferenceKeys {
     val LastPeriod = stringPreferencesKey("reader_last_period")
     val LastMorningItem = stringPreferencesKey("reader_last_morning_item")
     val LastEveningItem = stringPreferencesKey("reader_last_evening_item")
+    val LastNightItem = stringPreferencesKey("reader_last_night_item")
 
     fun lastItem(period: AzkarPeriod) = when (period) {
         AzkarPeriod.Morning -> LastMorningItem
         AzkarPeriod.Evening -> LastEveningItem
+        AzkarPeriod.Night -> LastNightItem
     }
 
     fun progress(date: LocalDate, stableDhikrId: String) =

@@ -94,6 +94,7 @@ internal object AzkarReadingTestTags {
     const val PeriodTabs = "azkar-period-tabs"
     const val PeriodMorning = "azkar-period-morning"
     const val PeriodEvening = "azkar-period-evening"
+    const val PeriodNight = "azkar-period-night"
     const val Progress = "azkar-progress"
     const val Toolbar = "azkar-toolbar"
     const val Card = "azkar-card"
@@ -273,7 +274,7 @@ internal fun AzkarHeader(
                     ),
                 )
                 BasicText(
-                    text = "Утро и вечер · ат-Тарифи",
+                    text = "Утро · вечер · ночь",
                     modifier = Modifier.padding(top = AzkarSpacing.brandSubtitleTop),
                     style = AzkarThemeValues.typography.sourceNote.copy(
                         color = colors.muted,
@@ -398,10 +399,13 @@ internal fun AzkarPeriodTabs(
             .testTag(AzkarReadingTestTags.PeriodTabs),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val tabWidth = (maxWidth - AzkarSpacing.periodGap) / 2
+            val tabWidth = (maxWidth - AzkarSpacing.periodGap * 2) / 3
             val indicatorX by animateDpAsState(
-                targetValue = if (period == AzkarPeriod.Morning) 0.dp
-                    else tabWidth + AzkarSpacing.periodGap,
+                targetValue = when (period) {
+                    AzkarPeriod.Morning -> 0.dp
+                    AzkarPeriod.Evening -> tabWidth + AzkarSpacing.periodGap
+                    AzkarPeriod.Night -> (tabWidth + AzkarSpacing.periodGap) * 2
+                },
                 animationSpec = tween(
                     durationMillis = AzkarMotion.stateTransitionDurationMillis,
                     easing = AzkarMotion.sheetEasing,
@@ -436,6 +440,14 @@ internal fun AzkarPeriodTabs(
                         .weight(1f)
                         .testTag(AzkarReadingTestTags.PeriodEvening),
                     onClick = { onPeriodChange(AzkarPeriod.Evening) },
+                )
+                AzkarPeriodButton(
+                    text = "☾ Ночь",
+                    active = period == AzkarPeriod.Night,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(AzkarReadingTestTags.PeriodNight),
+                    onClick = { onPeriodChange(AzkarPeriod.Night) },
                 )
             }
         }
@@ -533,7 +545,11 @@ internal fun AzkarProgressCard(
 @Composable
 private fun buildProgressLabel(state: AzkarGoldenReadingUiState): AnnotatedString {
     val colors = AzkarThemeValues.colors
-    val prefix = if (state.period == AzkarPeriod.Morning) "Утренние" else "Вечерние"
+    val prefix = when (state.period) {
+        AzkarPeriod.Morning -> "Утренние"
+        AzkarPeriod.Evening -> "Вечерние"
+        AzkarPeriod.Night -> "Ночные"
+    }
     val remaining = (state.total - state.completedItems).coerceAtLeast(0)
     return buildAnnotatedString {
         append(if (remaining > 0) "Продолжить · " else "Выполнено · ")
