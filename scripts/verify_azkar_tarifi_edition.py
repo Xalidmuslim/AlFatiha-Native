@@ -41,7 +41,8 @@ assert by_you.index("وَإِلَيْكَ النُّشُورُ") < by_you.index(
 assert by_you.index("وَإِلَيْكَ الْمَصِيرُ") > by_you.index("eveningVariant")
 assert "PeriodNight" in screen and '"☾ Ночь"' in screen
 assert 'AzkarPeriod.Night -> "Ночные"' in screen
-verses=re.findall(r'^\s*"(.+?)",\s*$',quran,re.MULTILINE)
+arabic_only=quran.split("val alMulkVerses:")[1].split("val alMulkRussianVerses:")[0]
+verses=re.findall(r'^\s*"(.+?)",\s*$',arabic_only,re.MULTILINE)
 assert len(verses)==30, f"Al-Mulk needs exactly 30 verses, got {len(verses)}"
 assert verses[0].startswith("تَبَ") and verses[-1].endswith("مَّعِينٍۭ")
 assert "Read" not in quran and all(len(v)>20 for v in verses)
