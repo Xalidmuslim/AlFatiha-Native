@@ -49,4 +49,5 @@ assert 'disputed = true' in next(x for x in items if 'id = "hasbi-seven"' in x)
 assert 'disputed = true' in next(x for x in items if 'id = "blessing-gratitude"' in x)
 assert 'disputed = true' in next(x for x in items if 'id = "night-ikhlas"' in x)
 assert 'disputed = true' in next(x for x in items if 'id = "night-mulk"' in x)
-assert len(re.findall(r'^\s*"[^"\n]+",\s*$',quran,re.MULTILINE))==60, "Need 30 Arabic and 30 literary Russian verses"\nprint("Azkar edition audit: 22 stable IDs; 18 morning; 17 evening; 3 night; 30 Arabic/30 Russian verses")\n
+assert len(re.findall(r'^\s*"[^"\n]+",\s*$',quran,re.MULTILINE))==60, "Need 30 Arabic and 30 literary Russian verses"
+print("Azkar edition audit: 22 stable IDs; 18 morning; 17 evening; 3 night; 30 Arabic/30 Russian verses")
