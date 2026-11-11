@@ -179,6 +179,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        tarifiAzkarCompare {
+            // Independently installable collation build. No production signing or data migration.
+            initWith unifiedUXCompare
+            applicationIdSuffix '.tarifiazkar1111'
+            versionNameSuffix '-tarifi-azkar-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
