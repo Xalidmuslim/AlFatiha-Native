@@ -77,6 +77,31 @@ internal object AzkarNightQuran {
         "Скажи: «Что вы думаете: если ваша вода уйдёт глубоко в землю, кто принесёт вам чистую проточную воду?»",
     )
 
+    /**
+     * Verse-specific rendering data. Arabic and Russian are paired by their
+     * canonical array indices rather than by splitting formatted full texts.
+     * The source and aggregate strings are kept intact for copy/share actions.
+     */
+    data class AlMulkVerse(
+        val number: Int,
+        val arabic: String,
+        val translation: String,
+    )
+
+    val alMulkPairs: List<AlMulkVerse> by lazy {
+        require(alMulkVerses.size == 30) { "Al-Mulk must contain exactly 30 ayat" }
+        require(alMulkRussianVerses.size == alMulkVerses.size) {
+            "Every Al-Mulk ayah requires exactly one Russian translation"
+        }
+        alMulkVerses.indices.map { index ->
+            AlMulkVerse(
+                number = index + 1,
+                arabic = alMulkVerses[index],
+                translation = alMulkRussianVerses[index],
+            )
+        }
+    }
+
     val alMulkRussian: String = alMulkRussianVerses.mapIndexed { index, verse ->
         "$verse ﴿${index + 1}﴾"
     }.joinToString("\n\n")
