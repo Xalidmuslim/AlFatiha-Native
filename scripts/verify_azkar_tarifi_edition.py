@@ -19,6 +19,8 @@ base = {"sayyid-istighfar","tahlil-ten","tahlil-hundred","tasbih-hundred","kingd
         "muawwidhat","creation-count","fitrah","perfect-words","baqarah-last-two"}
 assert base.issubset(ids), "Every original progress/ID must be preserved"
 assert "Night" in period, "Night is a third, distinct reading period"
+assert sum("periods = bothPeriods()" in x or "periods = setOf(AzkarPeriod.Morning)" in x for x in items) == 18
+assert sum("periods = bothPeriods()" in x or "periods = setOf(AzkarPeriod.Evening)" in x for x in items) == 17
 for tag, count, periods in [
     ("health-three",3,["Morning","Evening"]),
     ("hasbi-seven",7,["Morning","Evening"]),
@@ -47,12 +49,4 @@ assert 'disputed = true' in next(x for x in items if 'id = "hasbi-seven"' in x)
 assert 'disputed = true' in next(x for x in items if 'id = "blessing-gratitude"' in x)
 assert 'disputed = true' in next(x for x in items if 'id = "night-ikhlas"' in x)
 assert 'disputed = true' in next(x for x in items if 'id = "night-mulk"' in x)
-print("Azkar Tarifi collation contracts: OK (22 stable ids, 18 morning, 16 evening, 3 night)")
-assert len(verses)==30, f"Al-Mulk needs exactly 30 verses, got {len(verses)}"
-assert verses[0].startswith("تَبَ") and verses[-1].endswith("مَّعِينٍۭ")
-assert "Read" not in quran and all(len(v)>20 for v in verses)
-assert 'disputed = true' in next(x for x in items if 'id = "hasbi-seven"' in x)
-assert 'disputed = true' in next(x for x in items if 'id = "blessing-gratitude"' in x)
-assert 'disputed = true' in next(x for x in items if 'id = "night-ikhlas"' in x)
-assert 'disputed = true' in next(x for x in items if 'id = "night-mulk"' in x)
-print("Azkar Tarifi collation contracts: OK (22 stable ids, 18 morning, 16 evening, 3 night)")
+assert len(re.findall(r'^\s*"[^"\n]+",\s*$',quran,re.MULTILINE))==60, "Need 30 Arabic and 30 literary Russian verses"\nprint("Azkar edition audit: 22 stable IDs; 18 morning; 17 evening; 3 night; 30 Arabic/30 Russian verses")\n
