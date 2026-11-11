@@ -46,12 +46,15 @@ object AzkarGoldenReadingFixtures {
         currentCount = 1,
     )
 
-    val LongEvening = AzkarGoldenReadingUiState(
+    val LongNight = AzkarGoldenReadingUiState(
         item = BaqarahLastTwo,
-        period = AzkarPeriod.Evening,
-        position = 13,
-        total = 13,
+        period = AzkarPeriod.Night,
+        position = 1,
+        total = 3,
         completedItems = 0,
         currentCount = 0,
     )
+
+    @Deprecated("Use LongNight; kept for existing previews")
+    val LongEvening = LongNight
 }
