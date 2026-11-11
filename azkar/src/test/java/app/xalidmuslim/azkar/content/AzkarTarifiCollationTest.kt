@@ -12,7 +12,7 @@ class AzkarTarifiCollationTest {
         assertEquals(22, ids.size)
         assertEquals(22, ids.distinct().size)
         assertEquals(18, AzkarCatalog.itemsFor(AzkarPeriod.Morning).size)
-        assertEquals(16, AzkarCatalog.itemsFor(AzkarPeriod.Evening).size)
+        assertEquals(17, AzkarCatalog.itemsFor(AzkarPeriod.Evening).size)
         assertEquals(3, AzkarCatalog.itemsFor(AzkarPeriod.Night).size)
         val previouslyPublished = setOf(
             "sayyid-istighfar","tahlil-ten","tahlil-hundred","tasbih-hundred",
