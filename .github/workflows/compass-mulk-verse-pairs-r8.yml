@@ -1,0 +1,86 @@
+name: Compass Al-Mulk Verse-by-Verse R8 APK
+
+on:
+  push:
+    branches: [codex/azkar-mulk-verse-pairs-20261111]
+  workflow_dispatch:
+
+concurrency:
+  group: compass-mulk-verse-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android API 36
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Verify Al-Mulk paired ayat and previous regressions
+        run: |
+          set -e
+          python3 scripts/verify_azkar_tarifi_edition.py
+          python3 scripts/verify_azkar_amal_text_review.py
+          python3 scripts/verify_azkar_mulk_verse_layout.py
+          python3 scripts/verify_compass_unified_ux.py
+          python3 scripts/verify_compass_sand_spring.py
+          python3 scripts/verify_compass_premium_home.py
+          python3 scripts/verify_compass_soft_home.py
+          python3 scripts/verify_compass_full_morph.py
+          python3 scripts/verify_compass_morph.py
+          python3 scripts/verify_medicine_entry.py
+          python3 scripts/verify_medicine_scroll_layer.py
+          python3 scripts/verify_content.py
+      - name: JUnit tests, Android lint and R8 verse-by-verse APK
+        run: ./gradlew :azkar:testDebugUnitTest :app:lintDebug :app:assembleMulkVerseCompare --no-daemon --stacktrace
+      - name: Verify APK and bundled content
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/mulkVerseCompare/app-mulkVerseCompare.apk
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F 'app.alfatiha.tafsir.mulkverse1111'
+          unzip -l "$APK" | grep -F 'assets/fonts/Neucha.ttf'
+          unzip -l "$APK" | grep -F 'assets/book.json'
+          sha256sum "$APK"
+      - name: Upload separate APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Compass-Heart-Al-Mulk-Verse-By-Verse-20261111
+          path: app/build/outputs/apk/mulkVerseCompare/app-mulkVerseCompare.apk
+          retention-days: 30
+          if-no-files-found: error
+      - name: Publish tested standalone APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=compass-heart-al-mulk-verse-by-verse-20261111
+          APK="$RUNNER_TEMP/Compass-Heart-Al-Mulk-Verse-By-Verse-20261111.apk"
+          cp app/build/outputs/apk/mulkVerseCompare/app-mulkVerseCompare.apk "$APK"
+          test -s "$APK"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Компас сердца — Аль-Мульк с переводом после каждого аята" \
+              --notes "Отдельная тестовая APK: в суре Аль-Мульк каждый из 30 арабских аятов сопровождается соответствующим русским литературным переводом непосредственно под ним, с номером и мягким разделителем; нет повторного общего перевода. Режимы карточек и списка, настройка скрытия перевода, поиск, данные книг, счётчики и закладки сохранены. Для сверки всех огласовок с печатной книгой Амал 2021 требуются внутренние страницы; APK не тестировалась на физическом телефоне." \
+              --prerelease
+          fi

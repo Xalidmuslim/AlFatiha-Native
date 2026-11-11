@@ -195,6 +195,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        mulkVerseCompare {
+            // A/B verse-by-verse Al-Mulk preview, with independent local data.
+            initWith amalTextReviewCompare
+            applicationIdSuffix '.mulkverse1111'
+            versionNameSuffix '-mulk-verse-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 

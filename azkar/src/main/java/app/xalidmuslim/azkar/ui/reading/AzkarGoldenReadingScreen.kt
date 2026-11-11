@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.xalidmuslim.azkar.R
+import app.xalidmuslim.azkar.content.AzkarNightQuran
 import app.xalidmuslim.azkar.ui.designsystem.AzkarBorders
 import app.xalidmuslim.azkar.ui.designsystem.AzkarCardSurface
 import app.xalidmuslim.azkar.ui.designsystem.AzkarConfirmDialog
@@ -101,6 +102,7 @@ internal object AzkarReadingTestTags {
     const val Disputed = "azkar-disputed"
     const val Arabic = "azkar-arabic"
     const val Translation = "azkar-translation"
+    const val MulkVersePrefix = "azkar-mulk-verse-"
     const val Source = "azkar-source"
     const val Note = "azkar-note"
     const val Explain = "azkar-explain"
@@ -778,6 +780,8 @@ internal fun AzkarDhikrCard(
                     item = item,
                     showTranslation = showTranslation,
                 )
+            } else if (item.id == "night-mulk") {
+                AzkarMulkVerseText(showTranslation = showTranslation)
             } else {
                 BasicText(
                     text = azkarArabicDisplayText(
@@ -863,7 +867,7 @@ internal fun AzkarDhikrCard(
                 }
             }
 
-            if (showTranslation && item.id != "muawwidhat") {
+            if (showTranslation && item.id != "muawwidhat" && item.id != "night-mulk") {
                 BasicText(
                     text = item.translation,
                     modifier = Modifier
@@ -945,6 +949,80 @@ internal fun AzkarDhikrCard(
                     .padding(top = AzkarSpacing.counterTop)
                     .testTag(AzkarReadingTestTags.Counter),
             )
+        }
+    }
+}
+
+/**
+ * Surah al-Mulk is rendered as 30 consecutively numbered ayat. Each Arabic
+ * verse is followed immediately by its own Russian translation. This remains
+ * inside the original reader's scroll container (no nested LazyColumn), so
+ * card/list modes, scroll restoration, settings and counter all keep working.
+ */
+@Composable
+private fun AzkarMulkVerseText(showTranslation: Boolean) {
+    val colors = AzkarThemeValues.colors
+    val pairs = AzkarNightQuran.alMulkPairs
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = AzkarSpacing.arabicTop, bottom = AzkarSpacing.arabicBottom),
+    ) {
+        AzkarNightQuran.alMulkPairs.forEachIndexed { index, verse ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (index > 0) Modifier.topRule(colors.border, dashed = false)
+                        else Modifier,
+                    )
+                    .padding(
+                        top = if (index == 0) 0.dp else 18.dp,
+                        bottom = if (index == pairs.lastIndex) 0.dp else 18.dp,
+                    )
+                    .testTag(AzkarReadingTestTags.MulkVersePrefix + verse.number),
+            ) {
+                BasicText(
+                    text = verse.number.toString(),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    style = AzkarThemeValues.typography.cardNumber.copy(
+                        color = colors.muted,
+                    ),
+                )
+                BasicText(
+                    text = azkarArabicDisplayText(
+                        text = verse.arabic,
+                        bodySizeSp = AzkarThemeValues.typography.arabicBody.fontSize.value,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = if (showTranslation) 12.dp else 0.dp)
+                        .testTag(
+                            if (index == 0) AzkarReadingTestTags.Arabic
+                            else "${AzkarReadingTestTags.Arabic}-${verse.number}",
+                        ),
+                    style = AzkarThemeValues.typography.arabicBody.copy(
+                        color = colors.foreground,
+                        textAlign = TextAlign.Right,
+                    ),
+                )
+                if (showTranslation) {
+                    BasicText(
+                        text = verse.translation,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(
+                                if (index == 0) AzkarReadingTestTags.Translation
+                                else "${AzkarReadingTestTags.Translation}-${verse.number}",
+                            ),
+                        style = AzkarThemeValues.typography.translation.copy(
+                            color = colors.foreground,
+                            textAlign = TextAlign.Start,
+                        ),
+                    )
+                }
+            }
         }
     }
 }
