@@ -10,9 +10,9 @@ content = (root/"azkar/src/main/java/app/xalidmuslim/azkar/content/AzkarCatalog.
 period = (root/"azkar/src/main/java/app/xalidmuslim/azkar/content/AzkarPeriod.kt").read_text()
 quran = (root/"azkar/src/main/java/app/xalidmuslim/azkar/content/AzkarNightQuran.kt").read_text()
 screen = (root/"azkar/src/main/java/app/xalidmuslim/azkar/ui/reading/AzkarGoldenReadingScreen.kt").read_text()
-items = re.split(r"(?=        AzkarContentItem\\()", content)[1:]
+items = re.split(r"(?=        AzkarContentItem\()", content)[1:]
 assert len(items)==22, f"Expected 22 distinct items after collation, got {len(items)}"
-ids = re.findall(r'\\bid = "([^"]+)"', content)
+ids = re.findall(r'\bid = "([^"]+)"', content)
 assert len(ids)==len(set(ids))==22, "Stable IDs must be unique and never renamed"
 base = {"sayyid-istighfar","tahlil-ten","tahlil-hundred","tasbih-hundred","kingdom",
         "by-you","bismillah-protection","afiyah","pleased","hayy-qayyum","fatir",
