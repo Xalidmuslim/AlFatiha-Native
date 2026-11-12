@@ -203,6 +203,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        azkarInsightsCompare {
+            // Independent UI+content review, does not alter any installed app or data.
+            initWith mulkVerseCompare
+            applicationIdSuffix '.azkarinsights1112'
+            versionNameSuffix '-insights-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
