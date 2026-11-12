@@ -7981,10 +7981,31 @@ public class MainActivity extends Activity {
     }
 
     private String navigatorQuestionLabel(KnowledgeAnalytics.QuestionRef q){
-        String source=q.title==null?"":q.title.replace('\n',' ').trim()
+        // Use the actual question context. Generic prompts such as
+        // «Какой смысл этот хадис раскрывает?» convey no topic on their own.
+        JSONObject source=quizArray(q.mode).optJSONObject(q.index);
+        if(source!=null){
+            if("hadith".equals(q.mode)){
+                String hadith=source.optString("hadith").replace('\n',' ').trim();
+                if(!hadith.isEmpty())return shortText("Хадис: "+hadith,86);
+            }
+            if("match".equals(q.mode)){
+                JSONArray left=source.optJSONArray("left");
+                if(left!=null&&left.length()>0){
+                    String first=left.optString(0);
+                    String second=left.length()>1?left.optString(1):"";
+                    return shortText(first+(second.isEmpty()?"":" · "+second),86);
+                }
+            }
+            if("mind_mistakes".equals(q.mode)||"mind_life".equals(q.mode)){
+                String title=source.optString("title").trim();
+                if(!title.isEmpty())return shortText(title,86);
+            }
+        }
+        String question=q.title==null?"":q.title.replace('\n',' ').trim()
                 .replaceAll("\\s+"," ");
-        if(source.isEmpty())return "Вопрос по теме "+KnowledgeAnalytics.areaTitle(q.area);
-        return shortText(source,86);
+        if(question.isEmpty())return "Вопрос по теме "+KnowledgeAnalytics.areaTitle(q.area);
+        return shortText(question,86);
     }
 
     private String taskQuestionStatus(KnowledgeAnalytics.QuestionRef q,KnowledgeAnalytics model){
