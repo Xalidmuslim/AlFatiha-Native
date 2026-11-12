@@ -58,9 +58,7 @@ class MainActivity : ComponentActivity() {
         val requestedChapterId = intent?.getStringExtra("medicine_chapter_id")
         val requestedQuery = intent?.getStringExtra("medicine_search_query")
         val appContext = applicationContext
-        val launchTheme = if (
-            getSharedPreferences("alfatiha_native", MODE_PRIVATE).getBoolean("dark", false)
-        ) "dark" else "light"
+        val launchTheme = resolvedCompassTheme(this)
 
         // The standalone Activity's IO coroutine performs the single cold load.
         // Avoid racing it with separate preload threads on every cold launch.
