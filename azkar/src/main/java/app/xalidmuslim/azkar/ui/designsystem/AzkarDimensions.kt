@@ -157,18 +157,15 @@ data class AzkarShadowLayer(
 @Immutable
 data class AzkarElevationScheme(val card: List<AzkarShadowLayer>)
 
-private fun rgba(red: Int, green: Int, blue: Int, alpha: Float) = Color(
-    red = red / 255f, green = green / 255f, blue = blue / 255f, alpha = alpha,
-)
-
+/**
+ * Flat matte surfaces use border and tone contrast, not cast drop shadows.
+ * Keep these named values for all existing call sites in the reading UI.
+ */
 object AzkarElevation {
-    val LightCard = listOf(
-        AzkarShadowLayer(2.dp, 4.dp, rgba(24, 31, 27, 0.05f)),
-        AzkarShadowLayer(14.dp, 32.dp, rgba(24, 31, 27, 0.06f)),
-    )
-    val DarkCard = listOf(AzkarShadowLayer(6.dp, 22.dp, rgba(0, 0, 0, 0.28f)))
-    val BottomSheet = listOf(AzkarShadowLayer((-12).dp, 40.dp, rgba(0, 0, 0, 0.18f)))
-    val ActivePeriod = listOf(AzkarShadowLayer(1.dp, 4.dp, rgba(0, 0, 0, 0.06f)))
+    val LightCard = emptyList<AzkarShadowLayer>()
+    val DarkCard = emptyList<AzkarShadowLayer>()
+    val BottomSheet = emptyList<AzkarShadowLayer>()
+    val ActivePeriod = emptyList<AzkarShadowLayer>()
     val Light = AzkarElevationScheme(LightCard)
     val Dark = AzkarElevationScheme(DarkCard)
 }
