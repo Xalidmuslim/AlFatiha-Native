@@ -435,7 +435,7 @@ public class MainActivity extends Activity {
                         18,line()),
                 dark,dp(8),dp(4),dp(6),dp(14),morphNavIndex);
         bottom.setBackground(morphNavBackground);
-        bottom.setElevation(dp(3));
+        bottom.setElevation(0f);
         LinearLayout.LayoutParams blp=new LinearLayout.LayoutParams(-1,dp(64));
         blp.setMargins(dp(8),0,dp(8),dp(8));
         root.addView(bottom,blp);
@@ -633,7 +633,7 @@ public class MainActivity extends Activity {
         c.setPadding(dp(padding),dp(padding),dp(padding),dp(padding));
         int end=dark?color:blend(color,Color.WHITE,0.22f);
         c.setBackground(surfaceBg(color,end,radius,0));
-        c.setElevation(dp(Math.min(elevation,1f)));
+        c.setElevation(0f);
         return c;
     }
 
@@ -663,12 +663,12 @@ public class MainActivity extends Activity {
     }
 
     private Button action(String label,int color){
-        Button b=new Button(this);
+        Button b=new Button(this);b.setStateListAnimator(null);
         b.setText(label); b.setTextSize(sz(16)); b.setTextColor(Color.WHITE); b.setAllCaps(false);
         b.setTypeface(tf(false)); b.setGravity(Gravity.CENTER);
         b.setPadding(dp(14),0,dp(14),0);
         b.setBackground(surfaceBg(color,blend(color,Color.BLACK,.08f),18,0));
-        b.setElevation(dp(3));
+        b.setElevation(0f);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(56));
         lp.setMargins(0,dp(10),0,0); b.setLayoutParams(lp);
         installPressMotion(b,.975f);
@@ -676,12 +676,12 @@ public class MainActivity extends Activity {
     }
 
     private Button outline(String label){
-        Button b=new Button(this);
+        Button b=new Button(this);b.setStateListAnimator(null);
         b.setText(label); b.setTextSize(sz(15)); b.setTextColor(ink()); b.setAllCaps(false);
         b.setTypeface(tf(false)); b.setGravity(Gravity.CENTER_VERTICAL|Gravity.CENTER_HORIZONTAL);
         b.setPadding(dp(12),0,dp(12),0);
         b.setBackground(surfaceBg(dark?Color.rgb(43,50,46):Color.rgb(251,249,244),dark?Color.rgb(39,46,42):Color.rgb(247,244,237),16,line()));
-        b.setElevation(dp(1));
+        b.setElevation(0f);
         installPressMotion(b,.98f);
         return b;
     }
@@ -1274,7 +1274,7 @@ public class MainActivity extends Activity {
     }
 
     private Button homeAction(String label,int color){
-        Button b=new Button(this);
+        Button b=new Button(this);b.setStateListAnimator(null);
         b.setText(label);
         b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp(14.2f));
         b.setTextColor(Color.WHITE);
@@ -1284,13 +1284,13 @@ public class MainActivity extends Activity {
         b.setPadding(dp(14),0,dp(14),0);
         b.setMinHeight(0); b.setMinimumHeight(0);
         b.setBackground(surfaceBg(color,blend(color,Color.BLACK,.06f),19,0));
-        b.setElevation(dp(2));
+        b.setElevation(0f);
         installPressMotion(b,.965f);
         return b;
     }
 
     private Button chromeMiniButton(String label){
-        Button b=new Button(this);
+        Button b=new Button(this);b.setStateListAnimator(null);
         b.setText(label);
         b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,dp("Aa".equals(label)?15:19));
         b.setTextColor(ink());
@@ -1304,7 +1304,7 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(43,50,46):Color.rgb(251,249,244),
                 dark?Color.rgb(39,46,42):Color.rgb(247,244,237),
                 15,line()));
-        b.setElevation(dp(1));
+        b.setElevation(0f);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(38),dp(38));
         lp.setMargins(dp(4),0,0,0);
         b.setLayoutParams(lp);
@@ -1583,7 +1583,7 @@ public class MainActivity extends Activity {
     private TextView arrowChip(){
         TextView a=text("→",19,muted(),false);a.setGravity(Gravity.CENTER);
         a.setBackground(surfaceBg(dark?Color.rgb(44,51,47):Color.rgb(244,245,241),dark?Color.rgb(40,47,43):Color.rgb(239,242,238),15,line()));
-        a.setElevation(dp(1)); return a;
+        a.setElevation(0f); return a;
     }
 
     private TextView cardHead(LinearLayout card,String tag,int tagColor,String title){
@@ -2009,7 +2009,7 @@ public class MainActivity extends Activity {
                 dark?Color.rgb(39,45,41):Color.rgb(248,243,234),
                 dark?Color.rgb(35,41,38):Color.rgb(252,248,241),
                 25,0));
-        hero.setElevation(dp(2));
+        hero.setElevation(0f);
         hero.setClipToOutline(true);
         hero.setForeground(null); // No decorative frame around the approved artwork.
         hero.setContentDescription("Продолжить обучение");
@@ -2300,11 +2300,14 @@ public class MainActivity extends Activity {
         int cardTone=tone;
         final boolean medicineTile=title!=null && title.startsWith("Медицина");
 
-        int tilePad=homeTileHeightDp<=128?10:12;
+        int tilePad=homeTileHeightDp<=128?8:9;
         LinearLayout c=homeSurface(cardTone,20,tilePad,1);
+        // Tighten only vertical chrome so two title lines + two subtitle lines
+        // never push the last row below the fixed dashboard tile height.
+        c.setPadding(dp(tilePad),dp(7),dp(tilePad),dp(7));
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
-        c.setElevation(dp(1));
+        c.setElevation(0f);
 
         int featureEnd=dark
                 ?blend(cardTone,Color.BLACK,.028f)
@@ -2339,19 +2342,15 @@ public class MainActivity extends Activity {
         top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(40)));
         c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
-        // Flexible air belongs between icon row and text, never between title
-        // and subtitle. This keeps all descriptions on one visual baseline.
-        c.addView(new Space(this),new LinearLayout.LayoutParams(1,0,1f));
+        // Reserve the same heading band for every tile. A weighted spacer used
+        // to push one-line titles (minor shirk / quizzes / azkar) downwards.
+        c.addView(new Space(this),new LinearLayout.LayoutParams(1,dp(2)));
 
         LinearLayout textBlock=new LinearLayout(this);
         textBlock.setOrientation(LinearLayout.VERTICAL);
-        textBlock.setGravity(Gravity.BOTTOM|Gravity.LEFT);
-        final boolean liftSingleLineTile=
-                "Малый ширк".equals(title)
-                || "Азкары".equals(title)
-                || "Викторины".equals(title)
-                || "Хадисы-кудси".equals(title);
-        // Equal baselines; no ad-hoc text offsets on individual tiles.
+        textBlock.setGravity(Gravity.TOP|Gravity.LEFT);
+        // Titles start on the same line; subtitles follow a two-line heading
+        // slot, even when a title consists of a single short word.
 
         float titleSp=medicineTile
                 ?Math.max(12.2f,homeTileTitleSp-.10f)
@@ -2377,7 +2376,7 @@ public class MainActivity extends Activity {
             t.setText(styledTitle);
         }
 
-        t.setMinLines(1);
+        t.setMinLines(2);
         t.setMaxLines(2);
         t.setEllipsize(null);
         t.setGravity(Gravity.LEFT);
@@ -6797,9 +6796,7 @@ public class MainActivity extends Activity {
                         )
                 );
 
-                cell.setElevation(
-                        dp(current?4:1)
-                );
+                cell.setElevation(0f);
 
                 return cell;
             }
@@ -7022,9 +7019,7 @@ public class MainActivity extends Activity {
                 )
         );
 
-        b.setElevation(
-                dp(active?3:1)
-        );
+        b.setElevation(0f);
     }
 
     private String modeTitle(String m){switch(m){case"classic":return"Классическая викторина";case"alfatiha_medium":return"Аль-Фатиха · средний";case"multi":return"Два правильных";case"match":return"Сопоставление";case"hadith":return"Хадис → смысл";case"free":return"Без вариантов";case"expert":return"Эксперт";case"prayer_medium":return"Тайны молитвы · средний";case"prayer_hard":return"Тайны молитвы · сложный";case"mind_quick":return"Проверка понимания";case"mind_exam":return"Итоговый экзамен";case"mind_mistakes":return"Ошибки осознанного чтения";case"mind_life":return"Жизненные ситуации";}return"Викторина";}
@@ -7049,7 +7044,7 @@ public class MainActivity extends Activity {
 
     private ChoiceView choice(int i,String label,boolean multi){
         ChoiceView cv=new ChoiceView();cv.index=i;
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.HORIZONTAL);root.setGravity(Gravity.CENTER_VERTICAL);root.setPadding(dp(12),dp(12),dp(14),dp(12));root.setElevation(dp(2));
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.HORIZONTAL);root.setGravity(Gravity.CENTER_VERTICAL);root.setPadding(dp(12),dp(12),dp(14),dp(12));root.setElevation(0f);
         TextView marker=text(String.valueOf(i+1),15,i%2==0?C_BLUE:C_SAGE,true);marker.setGravity(Gravity.CENTER);marker.setBackground(solidBg(dark?Color.rgb(48,55,51):blend(choiceTone(i),Color.WHITE,.28f),14,line()));root.addView(marker,new LinearLayout.LayoutParams(dp(48),dp(48)));
         TextView tv=text(label,15.5f,ink(),false);tv.setPadding(dp(14),0,0,0);root.addView(tv,new LinearLayout.LayoutParams(0,-2,1));
         cv.root=root;cv.marker=marker;cv.label=tv;renderChoice(cv,false,false,false);return cv;
@@ -7060,7 +7055,7 @@ public class MainActivity extends Activity {
         if(selected){stroke=cv.index%2==0?C_BLUE:C_SAGE;fill=dark?blend(stroke,Color.BLACK,.55f):blend(stroke,Color.WHITE,.82f);markFill=stroke;markText=Color.WHITE;}
         if(correct){stroke=C_GOOD;fill=dark?Color.rgb(37,63,50):C_GOOD_BG;markFill=C_GOOD;markText=Color.WHITE;}
         if(wrong){stroke=C_BAD;fill=dark?Color.rgb(68,42,42):C_BAD_BG;markFill=C_BAD;markText=Color.WHITE;}
-        cv.root.setBackground(surfaceBg(fill,dark?fill:blend(fill,Color.WHITE,.13f),22,stroke));cv.root.setElevation(dp(selected||correct||wrong?5:2));
+        cv.root.setBackground(surfaceBg(fill,dark?fill:blend(fill,Color.WHITE,.13f),22,stroke));cv.root.setElevation(0f);
         cv.marker.setBackground(solidBg(markFill,14,selected||correct||wrong?stroke:line()));cv.marker.setTextColor(markText);cv.marker.setText(correct?"✓":wrong?"×":String.valueOf(cv.index+1));cv.label.setTypeface(tf(selected||correct));
     }
 
