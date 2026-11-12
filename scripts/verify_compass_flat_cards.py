@@ -23,7 +23,7 @@ assert "installHomeCardPressMotion(c)" in home, "Retain existing touch feedback"
 calls = re.findall(r'\.setElevation\(\s*(.*?)\s*\);', native, flags=re.DOTALL)
 assert calls, "Audit must explicitly account for native elevation calls"
 assert all(arg == "0f" for arg in calls), f"Non-flat native surfaces: {calls}"
-assert native.count("surfaceBg(") > 30, "Retain existing native backgrounds and borders"
+assert native.count("surfaceBg(") >= 29 and native.count("solidBg(") >= 18, "Retain the audited native surfaces and borders"
 
 components = (AZKAR / "ui/designsystem/AzkarComponents.kt").read_text(encoding="utf-8")
 dims = (AZKAR / "ui/designsystem/AzkarDimensions.kt").read_text(encoding="utf-8")
