@@ -7931,9 +7931,17 @@ public class MainActivity extends Activity {
             JSONObject item=data.optJSONObject(i);
             if(item==null)continue;
             KnowledgeAnalytics.QuestionRef ref=knowledgeCatalog().byState(qid(mode,item));
-            if(ref!=null)references.add(new KnowledgeAnalytics.QuestionRef(
-                    ref.canonicalId,qid(mode,item),mode,i,
-                    analyticsQuestionTitle(mode,item),ref.area,ref.errorType));
+            if(ref!=null){
+                KnowledgeAnalytics.QuestionRef entry=new KnowledgeAnalytics.QuestionRef(
+                        ref.canonicalId,qid(mode,item),mode,i,
+                        analyticsQuestionTitle(mode,item),ref.area,ref.errorType);
+                // Preserve canonical state aliases (e.g. the same question in
+                // «Проверка понимания» and «Итоговый экзамен»).
+                // Navigation still targets the exact mode chosen by the user.
+                entry.stateIds.clear();
+                entry.stateIds.addAll(ref.stateIds);
+                references.add(entry);
+            }
         }
         counts=taskNavigatorCounts(model,references);
         addNavigatorFilters(filter,counts,f->renderTaskModeQuestions(mode,f,false));
