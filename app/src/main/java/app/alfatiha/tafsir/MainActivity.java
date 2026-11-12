@@ -57,6 +57,8 @@ public class MainActivity extends Activity {
     private float readingLineSpacing = 1.09f;
     private boolean readingFocus = false;
     private final HashMap<String, JSONArray> cache = new HashMap<>();
+    // Restore the amount of paged questions after opening one and pressing Back.
+    private final HashMap<String,Integer> taskNavigatorVisibleCounts = new HashMap<>();
     private String currentSection = "home";
     private int homeTileHeightDp=150;
     private int homeTileIconDp=60;
@@ -7969,15 +7971,19 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams moreLp=new LinearLayout.LayoutParams(-1,dp(45));
         moreLp.setMargins(0,dp(10),0,dp(8));
         page.addView(more,moreLp);
+        final String pageKey=mode+":"+filter;
+        final int restoreCount=Math.max(24,taskNavigatorVisibleCounts.getOrDefault(pageKey,24));
         final int[] next={0};
         Runnable append=()->{
             next[0]=appendTaskQuestionCards(holder,visible,mode,next[0],24,model);
+            taskNavigatorVisibleCounts.put(pageKey,next[0]);
             int remaining=visible.size()-next[0];
             more.setText("Показать ещё · "+remaining);
             more.setVisibility(remaining>0?View.VISIBLE:View.GONE);
         };
         more.setOnClickListener(v->append.run());
-        append.run();
+        // This is reconstructed before restore(Screen) posts the saved scrollY.
+        do { append.run(); } while(next[0]<Math.min(visible.size(),restoreCount));
     }
 
     private String navigatorQuestionLabel(KnowledgeAnalytics.QuestionRef q){
