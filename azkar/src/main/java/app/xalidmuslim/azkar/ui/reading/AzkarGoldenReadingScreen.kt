@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -463,13 +464,14 @@ private fun AzkarDropletIndicator(
 ) {
     val colors = AzkarThemeValues.colors
     val distance = abs(selectedIndex - position).coerceIn(0f, 1f)
+    val stepPx = with(LocalDensity.current) { step.toPx() }
     Box(
         modifier = Modifier
-            .offset(x = step * position)
             .width(width)
             .defaultMinSize(minHeight = AzkarDimensions.periodButtonMinHeight)
             .graphicsLayer {
-                // Brief stretch-and-recover morph: liquid droplet, compositor only.
+                // No per-frame remeasure: move and stretch the blob on the compositor.
+                translationX = stepPx * position
                 scaleX = 1f + .085f * distance
                 scaleY = 1f - .06f * distance
             }
