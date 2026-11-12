@@ -22,7 +22,7 @@ assert section.count('AzkarInsightSection(')==3, 'Only three compact accordions 
 assert 'fixedHeight = true' not in section
 assert 'rememberSaveable(resetKey, title)' in sheets
 assert 'renderPersonalReadingHub' in host
-assert 'if("home".equals(type))' in host
+assert 'if("home".equals(type) || "personalReadingHub".equals(type))' in host
 assert 'ПОЛЕЗНЫЕ МАТЕРИАЛЫ' in host
 assert 'profileCompactMeter' in host
 assert 'profileRing' in host
