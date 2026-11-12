@@ -203,11 +203,12 @@ public class MainActivity extends Activity {
         if(morphNavIndex==3 && current!=null)
             animateMorphNavTo(morphNavDestination(current.type),false);
         String currentMode=readThemeMode();
+        String previousMode=themeMode;
         boolean previousDark=dark;
         themeMode=currentMode;
         dark=resolveThemeDark();
         synchronizeLegacyThemePreference();
-        if(previousDark!=dark){
+        if(previousDark!=dark || !previousMode.equals(themeMode)){
             Screen s=current;
             int y=scroll==null?0:scroll.getScrollY();
             buildShell();
@@ -257,6 +258,17 @@ public class MainActivity extends Activity {
     private void synchronizeLegacyThemePreference(){
         if(prefs.contains("theme_mode")
                 && prefs.getBoolean("dark",!dark)==dark)return;
+        prefs.edit().putString("theme_mode",themeMode)
+                .putBoolean("dark",dark).apply();
+    }
+
+    // All manual theme changes, whether from Settings or the top toolbar,
+    // select an explicit global mode and atomically update its legacy mirror.
+    private void chooseThemeMode(String selectedMode){
+        if(!"system".equals(selectedMode) && !"light".equals(selectedMode)
+                && !"dark".equals(selectedMode))return;
+        themeMode=selectedMode;
+        dark=resolveThemeDark();
         prefs.edit().putString("theme_mode",themeMode)
                 .putBoolean("dark",dark).apply();
     }
@@ -1554,8 +1566,7 @@ public class MainActivity extends Activity {
         theme.setOnClickListener(v->{
             Screen screen=current;
             screen.scrollY=scroll==null?0:scroll.getScrollY();
-            dark=!dark;
-            prefs.edit().putBoolean("dark",dark).apply();
+            chooseThemeMode(dark?"light":"dark");
             buildShell();
             restore(screen);
             current.scrollY=screen.scrollY;
@@ -8484,10 +8495,7 @@ public class MainActivity extends Activity {
         };
         for(String[] option:themeOptions){
             TextView choice=settingsOption(option[1],themeMode.equals(option[0]),()->{
-                themeMode=option[0];
-                dark=resolveThemeDark();
-                prefs.edit().putString("theme_mode",themeMode)
-                        .putBoolean("dark",dark).apply();
+                chooseThemeMode(option[0]);
                 buildShell();
                 renderSettings(false);
             });
