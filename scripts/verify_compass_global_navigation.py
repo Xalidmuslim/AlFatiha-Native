@@ -32,7 +32,7 @@ required = [
 assert 'КУРСЫ И КНИГИ' not in nav, "Do not duplicate home course tiles in navigation"
 for name in ("Осознанное чтение Аль-Фатихи", "Тайны молитвы",
              "Малый ширк", "Хадисы-кудси", "Азкары", "Медицина Пророка"):
-    assert 'personalReadingShortcut("' + name not in nav, f"Redundant course tile: {name}"
+    assert 'personalReadingShortcut("' + name + '",' not in nav, f"Redundant course tile: {name}"
 for label in required:
     assert 'personalReadingShortcut("' + label in nav, f"Missing navigator entry: {label}"
 for forbidden in ("Сохранённые смыслы", "Сохранённое по малому ширку"):
