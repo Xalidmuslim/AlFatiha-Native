@@ -92,6 +92,19 @@ data class AzkarReaderEntry(
     val currentCount: Int = 0,
 )
 
+private fun readHostAzkarThemeMode(
+    prefs: android.content.SharedPreferences,
+): AzkarThemeMode = when (prefs.getString("theme_mode", null)) {
+    "system" -> AzkarThemeMode.System
+    "dark" -> AzkarThemeMode.Dark
+    "light" -> AzkarThemeMode.Light
+    else -> if (prefs.contains("dark")) {
+        if (prefs.getBoolean("dark", false)) AzkarThemeMode.Dark else AzkarThemeMode.Light
+    } else {
+        AzkarThemeMode.System
+    }
+}
+
 @Composable
 fun AzkarReaderScreen(
     entries: List<AzkarReaderEntry>,
@@ -171,17 +184,17 @@ fun AzkarReaderScreen(
             android.content.Context.MODE_PRIVATE,
         )
     }
-    var sharedDark by remember(globalUiPreferences) {
-        mutableStateOf(globalUiPreferences.getBoolean("dark", false))
+    var sharedThemeMode by remember(globalUiPreferences) {
+        mutableStateOf(readHostAzkarThemeMode(globalUiPreferences))
     }
 
-    // Keep the Azkar module attached to the same theme switch as the host app
-    // even when this Activity stays alive while another section changes theme.
+    // Render the global theme on the first Compose frame, before DataStore
+    // hydrates. This prevents a dark flash inside an otherwise light app.
     DisposableEffect(globalUiPreferences) {
         val listener =
             android.content.SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-                if (key == "dark") {
-                    sharedDark = prefs.getBoolean("dark", false)
+                if (key == "theme_mode" || key == "dark") {
+                    sharedThemeMode = readHostAzkarThemeMode(prefs)
                 }
             }
         globalUiPreferences.registerOnSharedPreferenceChangeListener(listener)
@@ -190,33 +203,31 @@ fun AzkarReaderScreen(
         }
     }
 
-    LaunchedEffect(readerUi.isHydrated, sharedDark) {
-        if (readerUi.isHydrated) {
-            val sharedMode =
-                if (sharedDark) AzkarThemeMode.Dark else AzkarThemeMode.Light
-            if (settings.themeMode != sharedMode) {
-                resolvedUiController.updateSettings {
-                    it.copy(themeMode = sharedMode)
-                }
+    LaunchedEffect(readerUi.isHydrated, sharedThemeMode) {
+        if (readerUi.isHydrated && settings.themeMode != sharedThemeMode) {
+            resolvedUiController.updateSettings {
+                it.copy(themeMode = sharedThemeMode)
             }
         }
     }
 
     val systemDarkTheme = isSystemInDarkTheme()
-    val isDarkTheme = when (settings.themeMode) {
+    val isDarkTheme = when (sharedThemeMode) {
         AzkarThemeMode.Dark -> true
         AzkarThemeMode.Light -> false
         AzkarThemeMode.System -> systemDarkTheme
     }
     val toggleTheme: () -> Unit = {
-        val nextDark = !sharedDark
-        sharedDark = nextDark
-        globalUiPreferences.edit().putBoolean("dark", nextDark).apply()
+        // Explicit reader toggle switches the whole app to manual mode.
+        val nextDark = !isDarkTheme
+        val nextMode = if (nextDark) AzkarThemeMode.Dark else AzkarThemeMode.Light
+        sharedThemeMode = nextMode
+        globalUiPreferences.edit()
+            .putString("theme_mode", if (nextDark) "dark" else "light")
+            .putBoolean("dark", nextDark)
+            .apply()
         resolvedUiController.updateSettings {
-            it.copy(
-                themeMode =
-                    if (nextDark) AzkarThemeMode.Dark else AzkarThemeMode.Light,
-            )
+            it.copy(themeMode = nextMode)
         }
     }
 
@@ -534,7 +545,7 @@ fun AzkarReaderScreen(
     }
 
     AzkarTheme(
-        themeMode = settings.themeMode,
+        themeMode = sharedThemeMode,
         russianFontFamily = settings.russianFontFamily,
         arabicFontFamily = settings.arabicFontFamily,
         arabicSizeSp = settings.arabicSizeSp,
