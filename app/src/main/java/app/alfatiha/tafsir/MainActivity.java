@@ -2302,6 +2302,9 @@ public class MainActivity extends Activity {
 
         int tilePad=homeTileHeightDp<=128?8:9;
         LinearLayout c=homeSurface(cardTone,20,tilePad,1);
+        // Tighten only vertical chrome so two title lines + two subtitle lines
+        // never push the last row below the fixed dashboard tile height.
+        c.setPadding(dp(tilePad),dp(7),dp(tilePad),dp(7));
         c.setMinimumHeight(dp(homeTileHeightDp));
         c.setGravity(Gravity.TOP);
         c.setElevation(0f);
