@@ -1,6 +1,7 @@
 package com.xalid.meditsinaproroka.nativeapp
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -52,7 +53,24 @@ data class Highlight(
 )
 data class HistoryEntry(val chapterId: String, val anchor: String?, val openedAt: Long)
 
+// A reader theme is derived from the Compass preference; Medicine never
+// chooses an independent default or writes a theme during hydration.
+internal fun resolvedCompassTheme(context: Context): String {
+    val sharedPrefs = context.getSharedPreferences("alfatiha_native", Context.MODE_PRIVATE)
+    val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+    val systemTheme = if (nightMode == Configuration.UI_MODE_NIGHT_YES) "dark" else "light"
+    return when (sharedPrefs.getString("theme_mode", null)) {
+        "dark" -> "dark"
+        "light" -> "light"
+        "system" -> systemTheme
+        else -> if (sharedPrefs.contains("dark")) {
+            if (sharedPrefs.getBoolean("dark", false)) "dark" else "light"
+        } else systemTheme
+    }
+}
+
 class AppStore(context: Context) {
+    private val appContext = context.applicationContext
     private val prefs = context.getSharedPreferences("medicina_native", Context.MODE_PRIVATE)
     private val sharedPrefs = context.getSharedPreferences("alfatiha_native", Context.MODE_PRIVATE)
 
@@ -88,16 +106,27 @@ class AppStore(context: Context) {
     }
 
     fun updateSettings(transform: (ReaderSettings) -> ReaderSettings) {
-        val next = transform(settings)
+        val previous = settings
+        val next = transform(previous)
         settings = next
         persistSettings()
-        if (next.theme == "dark" || next.theme == "light") {
-            sharedPrefs.edit().putBoolean("dark", next.theme == "dark").apply()
+        // Font, spacing, and reader settings must not cancel Auto mode.
+        // Only a deliberate theme change updates Compass-owned preferences.
+        if (next.theme != previous.theme && next.theme in setOf("dark", "light", "system")) {
+            val effectiveDark = if (next.theme == "system") {
+                resolvedSystemThemeIsDark()
+            } else next.theme == "dark"
+            sharedPrefs.edit().putString("theme_mode", next.theme)
+                .putBoolean("dark", effectiveDark).apply()
         }
     }
 
+    private fun resolvedSystemThemeIsDark(): Boolean =
+        (appContext.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+
     fun syncSharedTheme() {
-        val sharedTheme = if (sharedPrefs.getBoolean("dark", false)) "dark" else "light"
+        val sharedTheme = resolvedCompassTheme(appContext)
         if (settings.theme != sharedTheme) {
             settings = settings.copy(theme = sharedTheme)
             persistSettings()
@@ -105,10 +134,12 @@ class AppStore(context: Context) {
     }
 
     fun toggleSharedTheme() {
-        val next = if (sharedPrefs.getBoolean("dark", false)) "light" else "dark"
+        val next = if (resolvedCompassTheme(appContext) == "dark") "light" else "dark"
         settings = settings.copy(theme = next)
         persistSettings()
-        sharedPrefs.edit().putBoolean("dark", next == "dark").apply()
+        // Explicit manual choice in Medicine applies to Compass and Azkar too.
+        sharedPrefs.edit().putString("theme_mode", next)
+            .putBoolean("dark", next == "dark").apply()
     }
 
     fun setLastPosition(chapterId: String, blockIndex: Int) {
@@ -219,7 +250,7 @@ class AppStore(context: Context) {
     }
 
     private fun loadSettings(): ReaderSettings {
-        val sharedTheme = if (sharedPrefs.getBoolean("dark", false)) "dark" else "light"
+        val sharedTheme = resolvedCompassTheme(appContext)
         val raw = prefs.getString("settings", null) ?: return ReaderSettings(theme = sharedTheme)
         return runCatching {
             JSONObject(raw).let {
