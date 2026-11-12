@@ -8203,6 +8203,13 @@ public class MainActivity extends Activity {
         dlp.setMargins(dp(8),0,0,0);
         actions.addView(detailsButton,dlp);
         page.addView(actions);
+        // Accessible without scrolling through all the coverage meters.
+        Button taskNavigator=outline("Разделы викторин  ·  выбрать режим");
+        taskNavigator.setOnClickListener(v->renderTaskNavigator(0,true));
+        LinearLayout.LayoutParams navigatorLp=new LinearLayout.LayoutParams(-1,dp(46));
+        navigatorLp.setMargins(0,dp(7),0,0);
+        page.addView(taskNavigator,navigatorLp);
+
 
         KnowledgeAnalytics.AreaStats weakArea=s.weakArea;
         if(weakArea!=null&&weakArea.wrong>0){
@@ -8236,9 +8243,6 @@ public class MainActivity extends Activity {
             areas.addView(text("Начните обучение, чтобы увидеть диаграмму по разделам.",13,muted(),false));
         }
 
-        Button taskNavigator=outline("Разделы викторин");
-        taskNavigator.setOnClickListener(v->renderTaskNavigator(0,true));
-        page.addView(taskNavigator,new LinearLayout.LayoutParams(-1,dp(46)));
         Button reset=outline("Сбросить прогресс");
         reset.setTextColor(muted());
         reset.setTextSize(sz(12.5f));
