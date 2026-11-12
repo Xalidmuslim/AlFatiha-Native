@@ -50,11 +50,9 @@ for kt in MEDICINE.glob("*.kt"):
     source = kt.read_text(encoding="utf-8")
     assert ".shadow(" not in source, f"Medicine custom shadow: {kt.name}"
     assert "setShadowLayer(" not in source, f"Medicine custom painted shadow: {kt.name}"
-    for val in re.findall(r'shadowElevation\s*=\s*([^,
-)]+)', source):
+    for val in re.findall(r'shadowElevation\s*=\s*([^,\n)]+)', source):
         assert val.strip() == "0.dp", f"Medicine surface elevation still nonzero: {kt.name} {val}"
-    for val in re.findall(r'defaultElevation\s*=\s*([^,
-)]+)', source):
+    for val in re.findall(r'defaultElevation\s*=\s*([^,\n)]+)', source):
         assert val.strip() == "0.dp", f"Medicine card elevation still nonzero: {kt.name} {val}"
 
 print(f"Flat surfaces OK: six vertically centered, baseline-aligned home cards, {len(calls)} native elevation calls set to zero, Azkar/Medicine shadows off")
