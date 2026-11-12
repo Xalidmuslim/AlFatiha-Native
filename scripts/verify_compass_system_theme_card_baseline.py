@@ -19,7 +19,7 @@ assert 'UI_MODE_NIGHT_MASK' in host, "Android night mode must be consulted"
 assert 'themeMode=readThemeMode()' in host, "Host onCreate/onResume must read configured mode"
 assert 'putString("theme_mode",themeMode)' in settings, "Theme setting must persist"
 assert 'putBoolean("dark",dark)' in host, "Keep older modules relying on the legacy bool in sync"
-assert 'c.setGravity(Gravity.TOP);' in home, "All tiles should share an identical icon/title baseline"
+assert 'c.setGravity(Gravity.CENTER_VERTICAL);' in home, "Tile content must be vertically centered"\nassert 'textBlock.setGravity(Gravity.TOP|Gravity.START);' in home, "Shared title baseline is required"\nassert 'textBlock.setMinimumHeight(dp(homeTileHeightDp<=128?54:62));' in home, "Card text regions must have matching heights"
 assert 't.setMinLines(1);' in home and 't.setMaxLines(2);' in home
 assert 'new LinearLayout.LayoutParams(-1,dp(homeTileIconDp))' in home
 assert 'subLp.setMargins(0,dp(2),0,0)' in home, "Title and subtitle should stay together"
