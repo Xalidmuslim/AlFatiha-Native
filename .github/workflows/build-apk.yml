@@ -40,7 +40,7 @@ jobs:
           python3 scripts/verify_content.py
           python3 scripts/verify_compass_global_navigation.py
           python3 scripts/verify_compass_flat_cards.py
-          python3 scripts/verify_compass_system_theme_card_baseline.py
+          python3 scripts/verify_compass_system_theme_card_baseline.py\n          python3 scripts/verify_compass_nav_prune_center.py
           python3 scripts/verify_quiz_mode_navigator.py
       - name: Verify Medicine startup readiness
         run: python3 scripts/verify_medicine_entry.py
