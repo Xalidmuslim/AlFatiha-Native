@@ -7847,37 +7847,175 @@ public class MainActivity extends Activity {
         KnowledgeAnalytics.Summary s=analytics().summary();LinearLayout global=card(panel());global.addView(kicker("ОБЩИЙ ПРОФИЛЬ",C_SAGE));global.addView(text("Рейтинг знаний · "+s.rating+"/100",20,ink(),true));global.addView(text("Проверено "+s.answered+" из "+s.total+" · ещё не проверено "+Math.max(0,s.total-s.answered),13.5f,muted(),false));global.addView(text("Точность "+s.accuracy+"% · в повторение из этой попытки: "+Math.max(0,newErrors),13.5f,muted(),false));global.addView(text(s.weakArea==null?"Слабая область: данных пока мало":"Слабая область: "+s.weakArea.title+" · "+s.weakArea.accuracy()+"%",13.5f,muted(),false));
     }
 
+    /**
+     * One compact dashboard, rather than several nested cards, derived only from
+     * persisted KnowledgeAnalytics data. A sparse sample never displays a false
+     * precision claim; coverage and accuracy are explicitly distinguished.
+     */
     private void renderProfile(boolean push){
-        clearActiveFlow();clear("profile","",push);currentSection="profile";appTop();
-        header("Прогресс обучения","Что уже пройдено, где остаются слабые места и как меняется результат по материалам приложения.");
-        KnowledgeAnalytics model=analytics();KnowledgeAnalytics.Summary s=model.summary();final int rating=s.rating;
-        LinearLayout hero=card(panel());hero.addView(kicker("ОСВОЕНИЕ МАТЕРИАЛА",C_SAGE));TextView level=text(s.level,28,ink(),true);level.setGravity(Gravity.CENTER);hero.addView(level);
+        clearActiveFlow();
+        clear("profile","",push);
+        currentSection="profile";
+        appTop();
+        header("Прогресс","Рейтинг, охват, точность и дальнейшее повторение.");
+
+        KnowledgeAnalytics model=analytics();
+        KnowledgeAnalytics.Summary s=model.summary();
+        LinearLayout summary=card(panel());
+        summary.setPadding(dp(12),dp(12),dp(12),dp(12));
+        LinearLayout first=new LinearLayout(this);
+        first.setOrientation(LinearLayout.HORIZONTAL);
+        first.setGravity(Gravity.CENTER_VERTICAL);
+
+        first.addView(profileRing(s.rating),new LinearLayout.LayoutParams(dp(110),dp(110)));
+        LinearLayout details=new LinearLayout(this);
+        details.setOrientation(LinearLayout.VERTICAL);
+        details.setPadding(dp(12),0,0,0);
+        details.addView(text(s.level,19,ink(),true));
+        details.addView(text("Рейтинг знаний · "+s.rating+" из 100",12.5f,muted(),false));
+        details.addView(text(s.answered+" проверено из "+s.total+" заданий",12.5f,muted(),false));
+        profileCompactMeter(details,"Охват базы",s.coverage,C_BLUE);
+        profileCompactMeter(details,"Точность ответов",s.answered>=20?s.accuracy:-1,C_SAGE);
+        first.addView(details,new LinearLayout.LayoutParams(0,-2,1));
+        summary.addView(first);
+
+        LinearLayout metrics=new LinearLayout(this);
+        metrics.setGravity(Gravity.CENTER_VERTICAL);
+        metrics.setPadding(0,dp(8),0,dp(4));
+        profileCompactMetric(metrics,"Ошибки",String.valueOf(s.wrong));
+        profileCompactMetric(metrics,"Исправлено",String.valueOf(s.corrected));
+        profileCompactMetric(metrics,"Повторить",String.valueOf(model.reviewNowCount()));
+        summary.addView(metrics,new LinearLayout.LayoutParams(-1,-2));
+
+        if(s.nextLevel!=null&&!s.nextLevel.isEmpty()){
+            TextView next=text("Следующий уровень: "+s.nextLevel,12.5f,muted(),false);
+            next.setPadding(0,dp(7),0,0);
+            summary.addView(next);
+        }
+
+        LinearLayout actions=new LinearLayout(this);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        Button repeat=outline("Повторить · "+model.reviewNowCount());
+        repeat.setOnClickListener(v->renderRepeatHub(true));
+        actions.addView(repeat,new LinearLayout.LayoutParams(0,dp(46),1));
+        Button detailsButton=outline("Аналитика");
+        detailsButton.setOnClickListener(v->renderDetailedAnalytics(true));
+        LinearLayout.LayoutParams dlp=new LinearLayout.LayoutParams(0,dp(46),1);
+        dlp.setMargins(dp(8),0,0,0);
+        actions.addView(detailsButton,dlp);
+        page.addView(actions);
+
+        KnowledgeAnalytics.AreaStats weakArea=s.weakArea;
+        if(weakArea!=null&&weakArea.wrong>0){
+            LinearLayout weak=card(sandSoft());
+            weak.addView(text("Внимание · "+weakArea.title,15.5f,ink(),true));
+            weak.addView(text(weakArea.wrong+" текущих ошибок · точность "+weakArea.accuracy()+"%",12.5f,muted(),false));
+            Button fix=outline("Разобрать ошибки");
+            fix.setOnClickListener(v->startAreaErrors(weakArea.key));
+            weak.addView(fix,new LinearLayout.LayoutParams(-1,dp(43)));
+        }
+
+        TextView sections=text("Освоение по разделам",18,ink(),true);
+        sections.setPadding(0,dp(10),0,dp(4));
+        page.addView(sections);
+        LinearLayout areas=card(panel());
+        areas.setPadding(dp(12),dp(8),dp(12),dp(10));
+        for(KnowledgeAnalytics.AreaStats a:model.areaStats().values()){
+            LinearLayout item=new LinearLayout(this);
+            item.setOrientation(LinearLayout.VERTICAL);
+            item.setPadding(0,dp(6),0,dp(7));
+            int value=a.enoughData()?a.accuracy():a.coverage();
+            String detail=a.enoughData()?"Точность · "+a.answered+" заданий":"Охват · "+a.answered+" из "+a.total;
+            TextView label=text(a.title,14.5f,ink(),true);
+            item.addView(label);
+            profileCompactMeter(item,detail,value,a.enoughData()?C_SAGE:C_BLUE);
+            item.setContentDescription(a.title+". "+detail+". "+value+" процентов. Открыть задания");
+            item.setOnClickListener(v->continueArea(a.key));
+            areas.addView(item);
+        }
+        if(model.areaStats().isEmpty()){
+            areas.addView(text("Начните обучение, чтобы увидеть диаграмму по разделам.",13,muted(),false));
+        }
+
+        Button taskNavigator=outline("Навигатор всех заданий");
+        taskNavigator.setOnClickListener(v->renderTaskNavigator(0,true));
+        page.addView(taskNavigator,new LinearLayout.LayoutParams(-1,dp(46)));
+        Button reset=outline("Сбросить прогресс");
+        reset.setTextColor(muted());
+        reset.setTextSize(sz(12.5f));
+        reset.setOnClickListener(v->showResetProgressDialog());
+        page.addView(reset,new LinearLayout.LayoutParams(-1,dp(42)));
+    }
+
+    private View profileRing(int rating){
+        final int score=Math.max(0,Math.min(100,rating));
         View ring=new View(this){
-            @Override protected void onDraw(android.graphics.Canvas canvas){
+            float drawnScore=motionIsFull()?0f:score;
+            ValueAnimator animator;
+            @Override protected void onAttachedToWindow(){
+                super.onAttachedToWindow();
+                if(motionIsFull()&&score>0){
+                    animator=ValueAnimator.ofFloat(0f,score);
+                    animator.setDuration(340);
+                    animator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+                    animator.addUpdateListener(a->{drawnScore=(Float)a.getAnimatedValue();invalidate();});
+                    animator.start();
+                }
+            }
+            @Override protected void onDetachedFromWindow(){
+                if(animator!=null){animator.cancel();animator=null;}
+                super.onDetachedFromWindow();
+            }
+            @Override protected void onDraw(Canvas canvas){
                 super.onDraw(canvas);
-                android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-                float cx=getWidth()/2f,cy=getHeight()/2f,r=Math.min(cx,cy)-dp(13);
-                paint.setStyle(android.graphics.Paint.Style.STROKE);paint.setStrokeWidth(dp(10));paint.setColor(line());
-                canvas.drawCircle(cx,cy,r,paint);
-                paint.setColor(dark?blend(C_SAGE,Color.WHITE,.35f):C_SAGE);paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
-                canvas.drawArc(new android.graphics.RectF(cx-r,cy-r,cx+r,cy+r),-90,rating*3.6f,false,paint);
-                paint.setStyle(android.graphics.Paint.Style.FILL);paint.setColor(ink());paint.setTextAlign(android.graphics.Paint.Align.CENTER);
-                paint.setTextSize(dp(36));paint.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
-                canvas.drawText(rating+"/100",cx,cy-(paint.ascent()+paint.descent())/2,paint);
+                Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+                float cx=getWidth()/2f,cy=getHeight()/2f,r=Math.max(1f,Math.min(cx,cy)-dp(10));
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(dp(8));
+                p.setColor(line());
+                canvas.drawCircle(cx,cy,r,p);
+                p.setStrokeCap(Paint.Cap.ROUND);
+                p.setColor(dark?blend(C_SAGE,Color.WHITE,.35f):C_SAGE);
+                canvas.drawArc(new RectF(cx-r,cy-r,cx+r,cy+r),-90,drawnScore*3.6f,false,p);
+                p.setStyle(Paint.Style.FILL);
+                p.setTextAlign(Paint.Align.CENTER);
+                p.setColor(ink());
+                p.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+                p.setTextSize(dp(29));
+                canvas.drawText(score+"",cx,cy-(p.ascent()+p.descent())/2, p);
             }
         };
-        ring.setContentDescription("Результат по материалам приложения: "+rating+" из 100");LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(dp(158),dp(158));rp.gravity=Gravity.CENTER_HORIZONTAL;hero.addView(ring,rp);
-        TextView acc=text("Точность "+s.accuracy+"% · охват "+s.coverage+"%",16,muted(),false);acc.setGravity(Gravity.CENTER);hero.addView(acc);
-        LinearLayout metrics=card(sageSoft());profileMetricRow(metrics,"Проверено",s.answered+" / "+s.total,"Текущие ошибки",String.valueOf(s.wrong));profileMetricRow(metrics,"Исправлено",String.valueOf(s.corrected),"Повторить сейчас",String.valueOf(model.reviewNowCount()));profileMetricRow(metrics,"Экзамены",String.valueOf(s.examCount),"Интервальная очередь",String.valueOf(s.due));
-        LinearLayout next=card(blueSoft());next.addView(kicker("СЛЕДУЮЩИЙ УРОВЕНЬ",C_BLUE));next.addView(text(s.nextLevel,19,ink(),true));next.addView(text(s.nextLevelHint,13.8f,muted(),false));
-        LinearLayout weak=card(sandSoft());weak.addView(kicker("СЛАБАЯ ОБЛАСТЬ",Color.rgb(145,104,42)));
-        if(s.weakArea==null){weak.addView(text("Данных пока мало",19,ink(),true));weak.addView(text("Для устойчивого вывода нужно минимум "+KnowledgeAnalytics.MIN_AREA_SAMPLE+" разных заданий внутри одной области.",13.5f,muted(),false));}
-        else{KnowledgeAnalytics.AreaStats w=s.weakArea;weak.addView(text(w.title,20,ink(),true));weak.addView(text(w.accuracy()+"% по "+w.answered+" проверенным заданиям · ошибок "+w.wrong,14,muted(),false));weak.addView(text(w.description,13.5f,muted(),false));LinearLayout actions=new LinearLayout(this);Button errors=outline("Повторить ошибки · "+w.wrong);errors.setOnClickListener(v->startAreaErrors(w.key));actions.addView(errors,new LinearLayout.LayoutParams(0,dp(50),1));Button cont=outline("Продолжить тему");cont.setOnClickListener(v->continueArea(w.key));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(50),1);lp.setMargins(dp(7),0,0,0);actions.addView(cont,lp);weak.addView(actions);}
-        header("Разделы материала","Процент показывается только после достаточного количества ответов. До этого сохраняется охват и число ошибок.");
-        for(KnowledgeAnalytics.AreaStats area:model.areaStats().values())addAreaCard(area,true);
-        Map<String,Integer> types=model.errorTypeCounts();if(!types.isEmpty()){LinearLayout errors=card(panel());errors.addView(text("Типы ошибок",20,ink(),true));ArrayList<Map.Entry<String,Integer>> list=new ArrayList<>(types.entrySet());list.sort((a,b)->Integer.compare(b.getValue(),a.getValue()));for(Map.Entry<String,Integer> e:list)errors.addView(text("• "+KnowledgeAnalytics.errorTypeTitle(e.getKey())+" — "+e.getValue(),14,ink(),false));}
-        LinearLayout actions=card(lavSoft());actions.addView(text("Данные и настройки",18,ink(),true));Button detail=action("Подробная аналитика",C_BLUE);detail.setOnClickListener(v->renderDetailedAnalytics(true));actions.addView(detail);Button navigator=outline("Навигатор всех заданий");navigator.setOnClickListener(v->renderTaskNavigator(0,true));actions.addView(navigator,new LinearLayout.LayoutParams(-1,dp(50)));Button settings=outline("Настройки");settings.setOnClickListener(v->renderSettings(true));actions.addView(settings,new LinearLayout.LayoutParams(-1,dp(50)));
-        Button reset=outline("Сбросить прогресс");reset.setTextColor(muted());reset.setTextSize(sz(13));reset.setOnClickListener(v->showResetProgressDialog());page.addView(reset);
+        ring.setContentDescription("Рейтинг знаний: "+score+" из 100");
+        return ring;
+    }
+
+    private void profileCompactMeter(LinearLayout parent,String label,int percent,int color){
+        LinearLayout row=new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        TextView name=text(label,11.7f,muted(),false);
+        row.addView(name,new LinearLayout.LayoutParams(0,-2,1));
+        TextView value=text(percent<0?"Пока мало ответов":percent+"%",11.7f,percent<0?muted():ink(),true);
+        row.addView(value);
+        parent.addView(row);
+        if(percent>=0){
+            ProgressBar meter=progressBar(Math.min(100,Math.max(0,percent)),color);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(5));
+            lp.setMargins(0,dp(4),0,dp(5));
+            parent.addView(meter,lp);
+        }
+    }
+
+    private void profileCompactMetric(LinearLayout parent,String label,String value){
+        LinearLayout slot=new LinearLayout(this);
+        slot.setOrientation(LinearLayout.VERTICAL);
+        slot.setGravity(Gravity.CENTER);
+        TextView n=text(value,19f,ink(),true);
+        n.setGravity(Gravity.CENTER);
+        slot.addView(n);
+        TextView caption=text(label,11.3f,muted(),false);
+        caption.setGravity(Gravity.CENTER);
+        slot.addView(caption);
+        parent.addView(slot,new LinearLayout.LayoutParams(0,-2,1));
     }
 
     private void profileMetricRow(LinearLayout parent,String a,String av,String b,String bv){
