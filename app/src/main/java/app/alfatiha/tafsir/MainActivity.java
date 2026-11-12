@@ -467,7 +467,7 @@ public class MainActivity extends Activity {
         LinearLayout item=(LinearLayout)cell;
         if(item.getChildCount()<2||!(item.getChildAt(1) instanceof TextView))return;
         String label=("home".equals(type)||"personalReadingHub".equals(type))
-                ?"Моё":("analytics".equals(type)||"profile".equals(type)
+                ?"Навигация":("analytics".equals(type)||"profile".equals(type)
                 ||"taskNavigator".equals(type)||"taskModeQuestions".equals(type)
                 ||"knowledgeSnapshot".equals(type))?"Задания":"Содержание";
         ((TextView)item.getChildAt(1)).setText(label);
@@ -2310,7 +2310,9 @@ public class MainActivity extends Activity {
         // never push the last row below the fixed dashboard tile height.
         c.setPadding(dp(tilePad),dp(7),dp(tilePad),dp(7));
         c.setMinimumHeight(dp(homeTileHeightDp));
-        c.setGravity(Gravity.TOP);
+        // Center the icon/title/subtitle group together instead of top-aligning
+        // a reserved two-line title band on every dashboard tile.
+        c.setGravity(Gravity.CENTER_VERTICAL);
         c.setElevation(0f);
 
         int featureEnd=dark
@@ -2346,15 +2348,14 @@ public class MainActivity extends Activity {
         top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(40)));
         c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
-        // Reserve the same heading band for every tile. A weighted spacer used
-        // to push one-line titles (minor shirk / quizzes / azkar) downwards.
+        // A narrow, consistent separation keeps the block visually grouped.
         c.addView(new Space(this),new LinearLayout.LayoutParams(1,dp(2)));
 
         LinearLayout textBlock=new LinearLayout(this);
         textBlock.setOrientation(LinearLayout.VERTICAL);
-        textBlock.setGravity(Gravity.TOP|Gravity.LEFT);
-        // Titles start on the same line; subtitles follow a two-line heading
-        // slot, even when a title consists of a single short word.
+        textBlock.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
+        // Natural title height: short headings use one line; longer ones can
+        // use two without creating an empty band before the subtitle.
 
         float titleSp=medicineTile
                 ?Math.max(12.2f,homeTileTitleSp-.10f)
@@ -2380,7 +2381,7 @@ public class MainActivity extends Activity {
             t.setText(styledTitle);
         }
 
-        t.setMinLines(2);
+        t.setMinLines(1);
         t.setMaxLines(2);
         t.setEllipsize(null);
         t.setGravity(Gravity.LEFT);
@@ -2398,7 +2399,7 @@ public class MainActivity extends Activity {
 
         LinearLayout.LayoutParams subLp=
                 new LinearLayout.LayoutParams(-1,-2);
-        subLp.setMargins(0,dp(3),0,0);
+        subLp.setMargins(0,dp(2),0,0);
         textBlock.addView(st,subLp);
 
         c.addView(textBlock,new LinearLayout.LayoutParams(-1,-2));
@@ -8461,49 +8462,120 @@ public class MainActivity extends Activity {
         showSectionsDialog();
     }
 
+    // Compact rows are used only in the navigation catalog. Keep courses'
+    // original cards and reader typography unchanged.
     private void personalReadingShortcut(String title,String subtitle,Runnable click){
-        LinearLayout item=card(panel());
+        LinearLayout item=newSurface(panel(),16,10,0);
         item.setOrientation(LinearLayout.HORIZONTAL);
         item.setGravity(Gravity.CENTER_VERTICAL);
+        item.setPadding(dp(12),dp(8),dp(8),dp(8));
+        item.setBackground(surfaceBg(panel(),
+                dark?panel():blend(panel(),Color.WHITE,.055f),16,0));
         LinearLayout texts=new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
-        texts.addView(text(title,16.0f,ink(),true));
-        texts.addView(text(subtitle,12.5f,muted(),false));
+        texts.setGravity(Gravity.CENTER_VERTICAL);
+        TextView name=text(title,15.3f,ink(),true);
+        name.setMinLines(1);
+        name.setMaxLines(2);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        texts.addView(name);
+        TextView sub=text(subtitle,12.2f,muted(),false);
+        sub.setMaxLines(2);
+        sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams subLp=new LinearLayout.LayoutParams(-1,-2);
+        subLp.setMargins(0,dp(2),0,0);
+        texts.addView(sub,subLp);
         item.addView(texts,new LinearLayout.LayoutParams(0,-2,1));
-        TextView arrow=text("›",23,C_SAGE,false);
+        TextView arrow=text("›",22,C_SAGE,false);
         arrow.setGravity(Gravity.CENTER);
-        item.addView(arrow,new LinearLayout.LayoutParams(dp(35),dp(44)));
-        item.setMinimumHeight(dp(70));
+        item.addView(arrow,new LinearLayout.LayoutParams(dp(28),dp(36)));
+        item.setMinimumHeight(dp(62));
         item.setContentDescription(title+". "+subtitle);
         item.setOnClickListener(v->click.run());
-        installPressMotion(item,.98f);
+        installPressMotion(item,.985f);
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+        lp.setMargins(0,dp(5),0,0);
+        page.addView(item,lp);
     }
 
-    /** Home contents used to mirror the six home tiles. This is a useful
-     * personal navigator instead; subject-specific contents still work. */
+    /**
+     * The Home navigation tab gives direct access to every course family and
+     * major practice workflow. Saved-material views remain available in their
+     * courses, but are not promoted as the purpose of this global navigator.
+     */
     private void renderPersonalReadingHub(boolean push){
         clearActiveFlow();
         clear("personalReadingHub","",push);
         currentSection="home";
         appTop();
-        header("Мои материалы","Продолжение, сохранённое и запланированное повторение без повторения главного экрана.");
-        page.addView(kicker("ПОЛЕЗНЫЕ МАТЕРИАЛЫ",C_SAGE));
-        if(isReadingRoute(prefs.getString("last_reader_route",""))){
-            personalReadingShortcut("Продолжить чтение",
-                "Вернуться к сохранённому месту и положению текста",this::resumeLastReader);
-        }
-        int saved=prefs.getStringSet("material_bookmarks",new HashSet<>()).size();
-        personalReadingShortcut("Сохранённые смыслы",
-                saved+" материалов курса Аль-Фатиха",()->renderSavedMaterials(true));
-        int shirkSaved=prefs.getStringSet("minor_shirk_bookmarks",new HashSet<>()).size();
-        personalReadingShortcut("Сохранённое по малому ширку",
-                shirkSaved+" важных тем и ситуаций",()->renderMinorShirkSaved(true));
-        int due=analytics().reviewNowCount();
-        personalReadingShortcut("Повторить знания",
-                due>0?due+" заданий доступны для повторения":"Очередь повторения и работа над ошибками",
+        header("Навигация",
+                "Выберите курс, тренажёр, задание или инструмент. "
+                +"Переходы открывают существующие разделы и сохраняют их прогресс.");
+
+        page.addView(kicker("ТРЕНАЖЁР И ЗАДАНИЯ",C_SAGE));
+        personalReadingShortcut("Тренажёр викторин",
+                "Режимы и вопросы по конкретным темам",
+                ()->renderTaskNavigator(0,true));
+        personalReadingShortcut("Все викторины",
+                "Аль-Фатиха, Тайны молитвы, малый ширк",
+                ()->renderQuizCenter(true));
+        personalReadingShortcut("Экзамены",
+                "Итоговые проверки понимания",
+                ()->renderExamCenter(true));
+        personalReadingShortcut("Повторение",
+                "Ошибки и задания для закрепления",
                 ()->renderRepeatHub(true));
-        personalReadingShortcut("Открыть задания по темам",
-                "Каталог проверок с фильтрами",()->renderTaskNavigator(0,true));
+
+        page.addView(kicker("КУРСЫ И КНИГИ",C_BLUE));
+        personalReadingShortcut("Осознанное чтение Аль-Фатихи",
+                "Уроки, разбор аятов и понимание смысла",
+                ()->renderMindHub(true));
+        personalReadingShortcut("Тайны молитвы",
+                "Разделы о словах, действиях и состоянии сердца",
+                ()->renderPrayerSecretsHub(true));
+        personalReadingShortcut("Малый ширк",
+                "Курс, разбор случаев и проверка понимания",
+                ()->renderMinorShirkHub(true));
+        personalReadingShortcut("Хадисы-кудси",
+                "Достоверные хадисы и разъяснения",
+                ()->renderHadithQudsiHub(true));
+        personalReadingShortcut("Азкары",
+                "Утренние, вечерние и другие поминания",
+                this::openAzkar);
+        personalReadingShortcut("Медицина Пророка ﷺ",
+                "Книга Ибн аль-Каййима",
+                this::openMedicine);
+
+        page.addView(kicker("ПРАКТИЧЕСКИЕ РАЗДЕЛЫ",C_SAGE));
+        personalReadingShortcut("Тренировка чтения",
+                "Пошаговые задания по Аль-Фатихе",
+                ()->renderMindReadingTraining(1,0,true));
+        personalReadingShortcut("Практические ситуации",
+                "Применение изученного в повседневной жизни",
+                ()->renderMindApplicationsHub(true));
+        personalReadingShortcut("Связи аятов",
+                "Как смыслы Аль-Фатихи связаны друг с другом",
+                ()->renderMindConnections(true));
+        personalReadingShortcut("Словарь молитвы",
+                "Слова молитвы, значения и разъяснения",
+                ()->renderPrayerGlossary(true));
+        personalReadingShortcut("Ошибки в молитве",
+                "Разбор ошибок и правильного понимания",
+                ()->renderPrayerErrorsHub(true));
+        personalReadingShortcut("Малый ширк · жизненные ситуации",
+                "Практические примеры и разбор",
+                ()->renderMinorShirkDailyList(true));
+        personalReadingShortcut("Малый ширк · словарь",
+                "Понятия и их объяснения",
+                ()->renderMinorShirkGlossary(true));
+
+        page.addView(kicker("ПОИСК И ПРОГРЕСС",C_BLUE));
+        personalReadingShortcut("Поиск по материалам",
+                "Найти нужную тему и открыть её сразу",
+                ()->renderSearch(true));
+        personalReadingShortcut("Прогресс и аналитика",
+                "Результаты заданий, экзаменов и динамика",
+                ()->renderProfile(true));
     }
 
     private void openContents(){
