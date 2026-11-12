@@ -57,6 +57,8 @@ public class MainActivity extends Activity {
     private float readingLineSpacing = 1.09f;
     private boolean readingFocus = false;
     private final HashMap<String, JSONArray> cache = new HashMap<>();
+    // Restore the amount of paged questions after opening one and pressing Back.
+    private final HashMap<String,Integer> taskNavigatorVisibleCounts = new HashMap<>();
     private String currentSection = "home";
     private int homeTileHeightDp=150;
     private int homeTileIconDp=60;
@@ -465,7 +467,9 @@ public class MainActivity extends Activity {
         LinearLayout item=(LinearLayout)cell;
         if(item.getChildCount()<2||!(item.getChildAt(1) instanceof TextView))return;
         String label=("home".equals(type)||"personalReadingHub".equals(type))
-                ?"Моё":"Содержание";
+                ?"Моё":("analytics".equals(type)||"profile".equals(type)
+                ||"taskNavigator".equals(type)||"taskModeQuestions".equals(type)
+                ||"knowledgeSnapshot".equals(type))?"Задания":"Содержание";
         ((TextView)item.getChildAt(1)).setText(label);
         item.setContentDescription(label);
     }
@@ -7670,6 +7674,14 @@ public class MainActivity extends Activity {
 
     private static final String[] QUIZ_MODES={"classic","alfatiha_medium","multi","match","hadith","free","expert","prayer_medium","prayer_hard","mind_quick","mind_exam"};
 
+    // The navigator shows the real modes, including scenario modes, without
+    // renaming their saved state IDs or changing the canonical analytics total.
+    private static final String[] NAVIGATOR_QUIZ_MODES={
+            "classic","alfatiha_medium","multi","match","hadith","free","expert",
+            "prayer_medium","prayer_hard","mind_quick","mind_exam",
+            "mind_mistakes","mind_life"
+    };
+
     private int nextUnanswered(String mode){
         JSONArray data=quizArray(mode);
         Set<String> answered=prefs.getStringSet("answered_ids",new HashSet<>());
@@ -7769,27 +7781,311 @@ public class MainActivity extends Activity {
         Button full=action("Открыть полный профиль",C_SAGE);full.setOnClickListener(v->renderProfile(true));page.addView(full);
     }
 
-    private void renderTaskNavigator(int filter,boolean push){
-        clearActiveFlow();KnowledgeAnalytics model=analytics();KnowledgeAnalytics.Summary s=model.summary();
-        clear("taskNavigator",String.valueOf(filter),push);currentSection="profile";appTop();
-        header("Навигатор всех заданий","Один каталог для викторины и объективно оцениваемых заданий курса. Повторяющиеся вопросы между проверкой и экзаменом не удваиваются.");
-        ArrayList<KnowledgeAnalytics.QuestionRef> all=new ArrayList<>(knowledgeCatalog().all());
-        int[] counts=new int[6];counts[0]=all.size();
-        for(KnowledgeAnalytics.QuestionRef q:all){if(model.isAnswered(q))counts[1]++;else counts[2]++;if(model.isWrong(q))counts[3]++;if(model.isCorrected(q))counts[4]++;if(model.isBookmarked(q))counts[5]++;}
+
+    /** Filter against canonical KnowledgeAnalytics keys. Some quizzes reuse a
+     * question in two modes; that is intentional and must not inflate progress. */
+    private boolean matchesNavigatorFilter(
+            KnowledgeAnalytics model,KnowledgeAnalytics.QuestionRef q,int filter){
+        if(q==null)return false;
+        switch(filter){
+            case 1:return model.isAnswered(q);
+            case 2:return !model.isAnswered(q);
+            case 3:return model.isWrong(q);
+            case 4:return model.isCorrected(q);
+            case 5:return model.isBookmarked(q);
+            default:return true;
+        }
+    }
+
+    private int[] taskNavigatorCounts(KnowledgeAnalytics model,
+                                     Collection<KnowledgeAnalytics.QuestionRef> questions){
+        int[] counts=new int[6];counts[0]=questions.size();
+        for(KnowledgeAnalytics.QuestionRef q:questions){
+            if(model.isAnswered(q))counts[1]++;else counts[2]++;
+            if(model.isWrong(q))counts[3]++;
+            if(model.isCorrected(q))counts[4]++;
+            if(model.isBookmarked(q))counts[5]++;
+        }
+        return counts;
+    }
+
+    private void addNavigatorFilters(int filter,int[] counts,java.util.function.IntConsumer navigate){
         String[] names={"Все","Пройдено","Не пройдено","Ошибки","Исправлено","Закладки"};
         for(int row=0;row<2;row++){
-            LinearLayout tabs=new LinearLayout(this);tabs.setOrientation(LinearLayout.HORIZONTAL);
-            for(int j=0;j<3;j++){int ix=row*3+j;Button b=outline(names[ix]+" · "+counts[ix]);b.setTextSize(sz(11.2f));styleOverviewTab(b,filter==ix,ix==3?C_BAD:ix==4?Color.rgb(145,104,42):C_SAGE);final int target=ix;b.setOnClickListener(v->renderTaskNavigator(target,false));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(46),1);if(j>0)lp.setMargins(dp(5),0,0,0);tabs.addView(b,lp);}LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,-2);tlp.setMargins(0,row==0?0:dp(5),0,0);page.addView(tabs,tlp);
+            LinearLayout tabs=new LinearLayout(this);
+            tabs.setOrientation(LinearLayout.HORIZONTAL);
+            for(int j=0;j<3;j++){
+                int ix=row*3+j;
+                Button button=outline(names[ix]+" · "+counts[ix]);
+                button.setTextSize(sz(11.2f));
+                styleOverviewTab(button,filter==ix,
+                        ix==3?C_BAD:ix==4?Color.rgb(145,104,42):C_SAGE);
+                final int target=ix;
+                button.setOnClickListener(v->navigate.accept(target));
+                LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(46),1);
+                if(j>0)lp.setMargins(dp(5),0,0,0);
+                tabs.addView(button,lp);
+            }
+            LinearLayout.LayoutParams tlp=new LinearLayout.LayoutParams(-1,-2);
+            tlp.setMargins(0,row==0?0:dp(5),0,0);
+            page.addView(tabs,tlp);
         }
-        LinearLayout summary=card(panel());summary.addView(text("Показано "+counts[filter]+" · всего "+s.total,16,ink(),true));summary.addView(text("✓ верно  ·  × ошибка  ·  ↻ исправлено  ·  ☆ закладка  ·  ○ не отвечено",12.2f,muted(),false));
-        LinkedHashMap<String,ArrayList<KnowledgeAnalytics.QuestionRef>> groups=new LinkedHashMap<>();
-        for(KnowledgeAnalytics.QuestionRef q:all){boolean show=filter==0||filter==1&&model.isAnswered(q)||filter==2&&!model.isAnswered(q)||filter==3&&model.isWrong(q)||filter==4&&model.isCorrected(q)||filter==5&&model.isBookmarked(q);if(!show)continue;groups.computeIfAbsent(q.mode,k->new ArrayList<>()).add(q);}
-        if(groups.isEmpty()){LinearLayout empty=card(sageSoft());empty.addView(text("В этом фильтре пока ничего нет",18,ink(),true));return;}
-        for(Map.Entry<String,ArrayList<KnowledgeAnalytics.QuestionRef>> entry:groups.entrySet()){
-            LinearLayout section=card(panel());section.addView(text(modeTitle(entry.getKey())+" · "+entry.getValue().size(),17,ink(),true));
-            ArrayList<KnowledgeAnalytics.QuestionRef> list=entry.getValue();
-            for(int start=0;start<list.size();start+=5){LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);for(int col=0;col<5;col++){int at=start+col;if(at>=list.size()){row.addView(new Space(this),new LinearLayout.LayoutParams(0,dp(58),1));continue;}KnowledgeAnalytics.QuestionRef q=list.get(at);TextView cell=taskCell(q,model);cell.setOnClickListener(v->openQuestion(q,true));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(58),1);if(col>0)lp.setMargins(dp(5),0,0,0);row.addView(cell,lp);}LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(-1,-2);rlp.setMargins(0,dp(5),0,0);section.addView(row,rlp);}
+    }
+
+    /**
+     * This replaces the former 555-number tile wall with a short list of
+     * explicit quiz modes. A single tap opens a specific mode's named questions.
+     */
+    private void renderTaskNavigator(int filter,boolean push){
+        if(filter<0||filter>5)filter=0;
+        clearActiveFlow();
+        KnowledgeAnalytics model=analytics();
+        int[] counts=taskNavigatorCounts(model,knowledgeCatalog().all());
+        clear("taskNavigator",String.valueOf(filter),push);
+        currentSection="profile";appTop();
+        header("Навигатор викторин",
+                "Сначала выберите режим, затем вопрос по его краткой теме. "
+                +"Общие задания разных режимов учитываются в прогрессе один раз.");
+        final int selectedFilter=filter;
+        addNavigatorFilters(filter,counts,f->renderTaskNavigator(f,false));
+
+        LinearLayout summary=card(panel());
+        summary.addView(text("В этом фильтре · "+counts[filter]+" из "+counts[0]
+                +" уникальных заданий",15,ink(),true));
+        summary.addView(text("✓ пройдено  ·  × ошибка  ·  ↻ исправлено  ·  ☆ закладка",
+                12.1f,muted(),false));
+
+        page.addView(kicker("РЕЖИМЫ ВИКТОРИН",C_SAGE));
+        int shownModes=0;
+        for(int i=0;i<NAVIGATOR_QUIZ_MODES.length;i++){
+            String mode=NAVIGATOR_QUIZ_MODES[i];
+            JSONArray data=quizArray(mode);
+            if(data.length()==0)continue;
+            if(i==0)page.addView(text("Аль-Фатиха",17,ink(),true));
+            else if(i==7)page.addView(text("Тайны молитвы",17,ink(),true));
+            else if(i==9)page.addView(text("Осознанное чтение",17,ink(),true));
+
+            int available=0,answered=0;
+            for(int j=0;j<data.length();j++){
+                JSONObject question=data.optJSONObject(j);
+                if(question==null)continue;
+                KnowledgeAnalytics.QuestionRef ref=knowledgeCatalog().byState(qid(mode,question));
+                if(ref!=null&&model.isAnswered(ref))answered++;
+                if(matchesNavigatorFilter(model,ref,filter))available++;
+            }
+            final int matched=available;
+            LinearLayout tile=newSurface(panel(),16,10,0);
+            tile.setBackground(surfaceBg(panel(),
+                    dark?panel():blend(panel(),Color.WHITE,.045f),16,line()));
+            tile.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout top=new LinearLayout(this);
+            top.setOrientation(LinearLayout.HORIZONTAL);
+            top.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout labels=new LinearLayout(this);
+            labels.setOrientation(LinearLayout.VERTICAL);
+            TextView name=text(modeTitle(mode),15.3f,ink(),true);
+            name.setPadding(0,0,0,0);name.setMaxLines(2);
+            labels.addView(name);
+            TextView subtitle=text(matched+" в фильтре · "+data.length()
+                    +" всего · пройдено "+answered,11.6f,muted(),false);
+            labels.addView(subtitle);
+            top.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
+            TextView arrow=text("›",22,matched>0?ink():muted(),false);
+            arrow.setGravity(Gravity.CENTER);
+            top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(42)));
+            tile.addView(top);
+            tile.setMinimumHeight(dp(66));
+            tile.setContentDescription(modeTitle(mode)+". "+matched+" заданий в фильтре. Открыть вопросы");
+            tile.setOnClickListener(v->renderTaskModeQuestions(mode,selectedFilter,true));
+            installPressMotion(tile,.985f);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(0,dp(6),0,0);
+            page.addView(tile,lp);
+            shownModes++;
         }
+        if(shownModes==0)page.addView(text("Нет доступных режимов викторины.",14,muted(),false));
+    }
+
+    /**
+     * The selected mode has numbered mini-cards with real question topics.
+     * Only 24 cards are inflated at once to avoid long ScrollView layout work.
+     */
+    private void renderTaskModeQuestions(String mode,int filter,boolean push){
+        if(!Arrays.asList(NAVIGATOR_QUIZ_MODES).contains(mode)){
+            renderTaskNavigator(filter,false);
+            return;
+        }
+        if(filter<0||filter>5)filter=0;
+        clearActiveFlow();
+        clear("taskModeQuestions",mode+":"+filter,push);
+        currentSection="profile";appTop();
+        KnowledgeAnalytics model=analytics();
+        JSONArray data=quizArray(mode);
+        final int selectedFilter=filter;
+        header(modeTitle(mode),"Выберите вопрос по теме. Ответы, ошибки и закладки сохраняются.");
+        Button back=outline("‹  Все режимы");
+        back.setOnClickListener(v->renderTaskNavigator(selectedFilter,true));
+        page.addView(back,new LinearLayout.LayoutParams(-1,dp(43)));
+
+        int[] counts=new int[6];
+        ArrayList<KnowledgeAnalytics.QuestionRef> references=new ArrayList<>();
+        for(int i=0;i<data.length();i++){
+            JSONObject item=data.optJSONObject(i);
+            if(item==null)continue;
+            KnowledgeAnalytics.QuestionRef ref=knowledgeCatalog().byState(qid(mode,item));
+            if(ref!=null){
+                KnowledgeAnalytics.QuestionRef entry=new KnowledgeAnalytics.QuestionRef(
+                        ref.canonicalId,qid(mode,item),mode,i,
+                        analyticsQuestionTitle(mode,item),ref.area,ref.errorType);
+                // Preserve canonical state aliases (e.g. the same question in
+                // «Проверка понимания» and «Итоговый экзамен»).
+                // Navigation still targets the exact mode chosen by the user.
+                entry.stateIds.clear();
+                entry.stateIds.addAll(ref.stateIds);
+                references.add(entry);
+            }
+        }
+        counts=taskNavigatorCounts(model,references);
+        addNavigatorFilters(filter,counts,f->renderTaskModeQuestions(mode,f,false));
+
+        ArrayList<KnowledgeAnalytics.QuestionRef> visible=new ArrayList<>();
+        for(KnowledgeAnalytics.QuestionRef q:references)
+            if(matchesNavigatorFilter(model,q,filter))visible.add(q);
+        LinearLayout summary=card(panel());
+        summary.addView(text("Показано "+visible.size()+" из "+references.size()
+                +" вопросов режима",15,ink(),true));
+        summary.addView(text("Номер и краткая тема вопроса · статусы: "
+                +"✓ / × / ↻ / ☆",12,muted(),false));
+
+        if(visible.isEmpty()){
+            LinearLayout empty=card(sageSoft());
+            empty.addView(text("В этом режиме нет вопросов с выбранным статусом.",
+                    14.5f,ink(),false));
+            return;
+        }
+        LinearLayout holder=new LinearLayout(this);
+        holder.setOrientation(LinearLayout.VERTICAL);
+        page.addView(holder,new LinearLayout.LayoutParams(-1,-2));
+
+        Button more=outline("Показать ещё");
+        LinearLayout.LayoutParams moreLp=new LinearLayout.LayoutParams(-1,dp(45));
+        moreLp.setMargins(0,dp(10),0,dp(8));
+        page.addView(more,moreLp);
+        final String pageKey=mode+":"+filter;
+        final int restoreCount=Math.max(24,taskNavigatorVisibleCounts.getOrDefault(pageKey,24));
+        final int[] next={0};
+        Runnable append=()->{
+            next[0]=appendTaskQuestionCards(holder,visible,mode,next[0],24,model);
+            taskNavigatorVisibleCounts.put(pageKey,next[0]);
+            int remaining=visible.size()-next[0];
+            more.setText("Показать ещё · "+remaining);
+            more.setVisibility(remaining>0?View.VISIBLE:View.GONE);
+        };
+        more.setOnClickListener(v->append.run());
+        // This is reconstructed before restore(Screen) posts the saved scrollY.
+        do { append.run(); } while(next[0]<Math.min(visible.size(),restoreCount));
+    }
+
+    private String navigatorQuestionLabel(KnowledgeAnalytics.QuestionRef q){
+        // Use the actual question context. Generic prompts such as
+        // «Какой смысл этот хадис раскрывает?» convey no topic on their own.
+        JSONObject source=quizArray(q.mode).optJSONObject(q.index);
+        if(source!=null){
+            if("hadith".equals(q.mode)){
+                String hadith=source.optString("hadith").replace('\n',' ').trim();
+                if(!hadith.isEmpty())return shortText("Хадис: "+hadith,86);
+            }
+            if("match".equals(q.mode)){
+                JSONArray left=source.optJSONArray("left");
+                if(left!=null&&left.length()>0){
+                    String first=left.optString(0);
+                    String second=left.length()>1?left.optString(1):"";
+                    return shortText(first+(second.isEmpty()?"":" · "+second),86);
+                }
+            }
+            if("mind_mistakes".equals(q.mode)||"mind_life".equals(q.mode)){
+                String title=source.optString("title").trim();
+                if(!title.isEmpty())return shortText(title,86);
+            }
+        }
+        String question=q.title==null?"":q.title.replace('\n',' ').trim()
+                .replaceAll("\\s+"," ");
+        if(question.isEmpty())return "Вопрос по теме "+KnowledgeAnalytics.areaTitle(q.area);
+        return shortText(question,86);
+    }
+
+    private String taskQuestionStatus(KnowledgeAnalytics.QuestionRef q,KnowledgeAnalytics model){
+        String status=model.isWrong(q)?"× Ошибка":
+                model.isCorrected(q)?"↻ Исправлено":
+                model.isAnswered(q)?"✓ Пройдено":"○ Не пройдено";
+        return model.isBookmarked(q)?status+"  ☆":status;
+    }
+
+    private void openNavigatorQuestion(String mode,int index){
+        if("mind_mistakes".equals(mode))renderMindMistakes(index,true);
+        else if("mind_life".equals(mode))renderMindLife(index,true);
+        else renderNativeQuiz(mode,index,true);
+    }
+
+    private int appendTaskQuestionCards(
+            LinearLayout holder,List<KnowledgeAnalytics.QuestionRef> list,
+            String mode,int start,int batch,KnowledgeAnalytics model){
+        int end=Math.min(list.size(),start+batch);
+        for(int i=start;i<end;i+=2){
+            LinearLayout row=new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            for(int col=0;col<2;col++){
+                int at=i+col;
+                if(at>=end){
+                    row.addView(new Space(this),new LinearLayout.LayoutParams(0,dp(112),1));
+                    continue;
+                }
+                KnowledgeAnalytics.QuestionRef q=list.get(at);
+                boolean wrong=model.isWrong(q),answered=model.isAnswered(q);
+                boolean fixed=model.isCorrected(q),saved=model.isBookmarked(q);
+                int fill=wrong?(dark?Color.rgb(62,43,42):C_BAD_BG)
+                        :fixed?sandSoft():answered?sageSoft():saved?lavSoft():panel();
+                int stroke=wrong?C_BAD:fixed?Color.rgb(145,104,42)
+                        :answered?C_SAGE:saved?Color.rgb(112,96,134):line();
+                int tone=wrong?C_BAD:answered?C_SAGE:muted();
+                LinearLayout card=newSurface(fill,15,10,0);
+                card.setMinimumHeight(dp(112));
+                card.setBackground(surfaceBg(fill,dark?fill:blend(fill,Color.WHITE,.10f),15,stroke));
+                LinearLayout top=new LinearLayout(this);
+                top.setOrientation(LinearLayout.HORIZONTAL);
+                top.setGravity(Gravity.CENTER_VERTICAL);
+                TextView no=text(String.format(Locale.ROOT,"%02d",q.index+1),
+                        12.3f,tone,true);
+                top.addView(no,new LinearLayout.LayoutParams(0,-2,1));
+                TextView state=text(wrong?"×":fixed?"↻":answered?"✓":"○",
+                        15,tone,true);
+                state.setGravity(Gravity.RIGHT);
+                top.addView(state);
+                card.addView(top);
+                TextView title=text(navigatorQuestionLabel(q),12.5f,ink(),false);
+                title.setMaxLines(3);
+                title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                title.setLineSpacing(dp(1),1.04f);
+                title.setPadding(0,dp(3),0,0);
+                card.addView(title);
+                if(saved){
+                    TextView star=text("☆ Закладка",10.8f,muted(),false);
+                    star.setPadding(0,dp(2),0,0);
+                    card.addView(star);
+                }
+                card.setContentDescription("Задание "+(q.index+1)+": "+q.title+". "+
+                        taskQuestionStatus(q,model)+". Открыть вопрос");
+                card.setOnClickListener(v->openNavigatorQuestion(mode,q.index));
+                installPressMotion(card,.98f);
+                LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);
+                if(col>0)lp.setMargins(dp(7),0,0,0);
+                row.addView(card,lp);
+            }
+            LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(-1,-2);
+            rlp.setMargins(0,dp(7),0,0);
+            holder.addView(row,rlp);
+        }
+        return end;
     }
 
     private TextView taskCell(KnowledgeAnalytics.QuestionRef q,KnowledgeAnalytics model){
@@ -7913,6 +8209,13 @@ public class MainActivity extends Activity {
         dlp.setMargins(dp(8),0,0,0);
         actions.addView(detailsButton,dlp);
         page.addView(actions);
+        // Accessible without scrolling through all the coverage meters.
+        Button taskNavigator=outline("Разделы викторин  ·  выбрать режим");
+        taskNavigator.setOnClickListener(v->renderTaskNavigator(0,true));
+        LinearLayout.LayoutParams navigatorLp=new LinearLayout.LayoutParams(-1,dp(46));
+        navigatorLp.setMargins(0,dp(7),0,0);
+        page.addView(taskNavigator,navigatorLp);
+
 
         KnowledgeAnalytics.AreaStats weakArea=s.weakArea;
         if(weakArea!=null&&weakArea.wrong>0){
@@ -7946,9 +8249,6 @@ public class MainActivity extends Activity {
             areas.addView(text("Начните обучение, чтобы увидеть диаграмму по разделам.",13,muted(),false));
         }
 
-        Button taskNavigator=outline("Навигатор всех заданий");
-        taskNavigator.setOnClickListener(v->renderTaskNavigator(0,true));
-        page.addView(taskNavigator,new LinearLayout.LayoutParams(-1,dp(46)));
         Button reset=outline("Сбросить прогресс");
         reset.setTextColor(muted());
         reset.setTextSize(sz(12.5f));
@@ -8208,6 +8508,21 @@ public class MainActivity extends Activity {
 
     private void openContents(){
         String type=current==null?"":current.type;
+        if("analytics".equals(type)||"profile".equals(type)
+                ||"knowledgeSnapshot".equals(type)){
+            renderTaskNavigator(0,true);
+            return;
+        }
+        if("taskNavigator".equals(type)){
+            if(scroll!=null)scroll.smoothScrollTo(0,0);
+            return;
+        }
+        if("taskModeQuestions".equals(type)){
+            String[] navArgs=current.arg.split(":");
+            int activeFilter=navArgs.length>1?parseInt(navArgs[1]):0;
+            renderTaskNavigator(activeFilter,true);
+            return;
+        }
         if("home".equals(type) || "personalReadingHub".equals(type)){
             if("personalReadingHub".equals(type)){
                 if(scroll!=null)scroll.smoothScrollTo(0,0);
@@ -8711,7 +9026,7 @@ public class MainActivity extends Activity {
         }else renderHome(false);
     }
 
-    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"personalReadingHub":renderPersonalReadingHub(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"hadithQudsiHub":renderHadithQudsiHub(false);break;case"hadithQudsiDetail":renderHadithQudsiDetail(Integer.parseInt(s.arg),false);break;case"minorShirkIntro":renderMinorShirkIntro(false);break;case"minorShirkGlossary":renderMinorShirkGlossary(false);break;case"minorShirkTrainer":renderMinorShirkTrainer(Integer.parseInt(s.arg),false);break;case"minorShirkSearch":renderMinorShirkSearch(false);break;case"minorShirkSaved":renderMinorShirkSaved(false);break;case"minorShirkCollection":renderMinorShirkCollection(s.arg,false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
+    private void restore(Screen s){switch(s.type){case"home":renderHome(false);break;case"personalReadingHub":renderPersonalReadingHub(false);break;case"heartCourseHub":renderHeartCourseHub(false);break;case"minorShirkHub":renderMinorShirkHub(false);break;case"hadithQudsiHub":renderHadithQudsiHub(false);break;case"hadithQudsiDetail":renderHadithQudsiDetail(Integer.parseInt(s.arg),false);break;case"minorShirkIntro":renderMinorShirkIntro(false);break;case"minorShirkGlossary":renderMinorShirkGlossary(false);break;case"minorShirkTrainer":renderMinorShirkTrainer(Integer.parseInt(s.arg),false);break;case"minorShirkSearch":renderMinorShirkSearch(false);break;case"minorShirkSaved":renderMinorShirkSaved(false);break;case"minorShirkCollection":renderMinorShirkCollection(s.arg,false);break;case"minorShirkCourseList":renderMinorShirkCourseList(false);break;case"minorShirkCourse":renderMinorShirkCourse(Integer.parseInt(s.arg),false);break;case"minorShirkDailyList":renderMinorShirkDailyList(false);break;case"minorShirkDaily":renderMinorShirkDaily(Integer.parseInt(s.arg),false);break;case"minorShirkQuiz":renderMinorShirkQuiz(Integer.parseInt(s.arg),false);break;case"minorShirkQuizResult":renderMinorShirkQuizResult(false);break;case"mindHub":renderMindHub(false);break;case"prayerSecretsHub":renderPrayerSecretsHub(false);break;case"prayerQuizHub":renderPrayerQuizHub(false);break;case"prayerIntro":renderPrayerIntro(false);break;case"prayerErrorsHub":renderPrayerErrorsHub(false);break;case"prayerError":renderPrayerError(Integer.parseInt(s.arg),false);break;case"prayerCheck":renderPrayerCheck(Integer.parseInt(s.arg),false);break;case"prayerCheckResult":renderPrayerCheckResult(false);break;case"prayerSecretLesson":renderPrayerSecretLesson(Integer.parseInt(s.arg),false);break;case"intro":renderIntro(false);break;case"mindLesson":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindConnections":renderMindConnections(false);break;case"mindHeart":renderMindLesson(Integer.parseInt(s.arg),false);break;case"mindApplications":renderMindApplicationsHub(false);break;case"mindMistakes":renderMindMistakes(Integer.parseInt(s.arg),false);break;case"mindLife":renderMindLife(Integer.parseInt(s.arg),false);break;case"mindReadingTraining":String[]p=s.arg.split(":");renderMindReadingTraining(Integer.parseInt(p[0]),Integer.parseInt(p[1]),false);break;case"search":renderSearch(false);break;case"prayerGlossary":renderPrayerGlossary(false);break;case"prayerGlossaryEntry":renderPrayerGlossaryEntry(Integer.parseInt(s.arg),false);break;case"mindResult":renderMindAssessmentResult(s.arg,false);break;case"mindSlow":renderMindSlow(Integer.parseInt(s.arg),false);break;case"mindStages":String[]m=s.arg.split(":");renderMindStages(Integer.parseInt(m[0]),Integer.parseInt(m[1]),false);break;case"quizCenter":renderQuizCenter(false);break;case"quizHub":renderQuizHub(false);break;case"quiz":String[]q=s.arg.split(":");renderNativeQuiz(q[0],Integer.parseInt(q[1]),false);break;case"quizResult":renderQuizResult(s.arg,false);break;case"repeat":renderRepeatHub(false);break;case"reviewQueue":if("today".equals(s.arg))renderReviewToday(false);else renderReviewQueue(s.arg,false);break;case"savedMaterials":renderSavedMaterials(false);break;case"examCenter":renderExamCenter(false);break;case"examHistory":renderExamHistory(false);break;case"flowResult":renderFlowResult(false);break;case"knowledgeSnapshot":renderKnowledgeSnapshot(false);break;case"taskNavigator":renderTaskNavigator(parseInt(s.arg),false);break;case"taskModeQuestions":String[] qm=s.arg.split(":");renderTaskModeQuestions(qm[0],qm.length>1?parseInt(qm[1]):0,false);break;case"analytics":renderDetailedAnalytics(false);break;case"profile":renderProfile(false);break;case"settings":renderSettings(false);break;case"menu":showSectionsDialog();break;default:renderHome(false);}}
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed(){goBack();}
