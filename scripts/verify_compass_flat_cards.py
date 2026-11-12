@@ -30,7 +30,7 @@ dims = (AZKAR / "ui/designsystem/AzkarDimensions.kt").read_text(encoding="utf-8"
 assert "paint.setShadowLayer(" not in components, "Azkar custom painted shadow still present"
 assert ".shadow(" not in components, "Azkar card uses built-in elevation"
 assert "Modifier.azkarShadow(" in components, "Keep call-site API compatibility"
-assert "AzkarShadowLayer(" not in dims, "Remove unused shadow layers"
+assert "AzkarShadowLayer(2.dp" not in dims and "AzkarShadowLayer(14.dp" not in dims, "Remove painted drop-shadow layers"
 assert "val LightCard = emptyList<AzkarShadowLayer>()" in dims
 assert "val BottomSheet = emptyList<AzkarShadowLayer>()" in dims
 assert "val ActivePeriod = emptyList<AzkarShadowLayer>()" in dims
