@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -39,6 +40,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +56,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -87,6 +90,7 @@ import app.xalidmuslim.azkar.ui.designsystem.AzkarSurface
 import app.xalidmuslim.azkar.ui.designsystem.AzkarThemeValues
 import app.xalidmuslim.azkar.ui.designsystem.azkarShadow
 import kotlin.math.roundToInt
+import kotlin.math.abs
 
 internal object AzkarReadingTestTags {
     const val Screen = "azkar-reading-screen"
@@ -96,6 +100,7 @@ internal object AzkarReadingTestTags {
     const val PeriodMorning = "azkar-period-morning"
     const val PeriodEvening = "azkar-period-evening"
     const val PeriodNight = "azkar-period-night"
+    const val PeriodDroplet = "azkar-period-droplet"
     const val Progress = "azkar-progress"
     const val Toolbar = "azkar-toolbar"
     const val Card = "azkar-card"
@@ -122,6 +127,8 @@ internal object AzkarReadingTestTags {
     const val List = "azkar-reader-list"
     const val ListCardPrefix = "azkar-list-card-"
 }
+
+internal val LocalAzkarPreviousPeriod = staticCompositionLocalOf<AzkarPeriod?> { null }
 
 
 @Composable
@@ -180,7 +187,6 @@ fun AzkarGoldenReadingScreen(
                 )
                 AzkarSourceNote(onOpenSourceInfo)
                 AzkarPeriodTabs(state.period, onPeriodChange)
-                AzkarProgressCard(state, onResetProgress)
                 AzkarReaderToolbar(
                     state = state,
                     narrow = narrow,
@@ -402,26 +408,19 @@ internal fun AzkarPeriodTabs(
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val tabWidth = (maxWidth - AzkarSpacing.periodGap * 2) / 3
-            val indicatorX by animateDpAsState(
-                targetValue = when (period) {
-                    AzkarPeriod.Morning -> 0.dp
-                    AzkarPeriod.Evening -> tabWidth + AzkarSpacing.periodGap
-                    AzkarPeriod.Night -> (tabWidth + AzkarSpacing.periodGap) * 2
-                },
-                animationSpec = tween(
-                    durationMillis = AzkarMotion.stateTransitionDurationMillis,
-                    easing = AzkarMotion.sheetEasing,
-                ),
-                label = "period-indicator",
-            )
-            Box(
-                modifier = Modifier
-                    .offset(x = indicatorX)
-                    .width(tabWidth)
-                    .defaultMinSize(minHeight = AzkarDimensions.periodButtonMinHeight)
-                    .azkarShadow(AzkarElevation.ActivePeriod, AzkarRadius.periodButton)
-                    .clip(RoundedCornerShape(AzkarRadius.periodButton))
-                    .background(colors.card),
+            val initial = LocalAzkarPreviousPeriod.current ?: period
+            val tabPosition = remember { Animatable(initial.ordinal.toFloat()) }
+            LaunchedEffect(period) {
+                tabPosition.animateTo(
+                    targetValue = period.ordinal.toFloat(),
+                    animationSpec = spring(dampingRatio = .78f, stiffness = 420f),
+                )
+            }
+            AzkarDropletIndicator(
+                width = tabWidth,
+                step = tabWidth + AzkarSpacing.periodGap,
+                position = tabPosition.value,
+                selectedIndex = period.ordinal.toFloat(),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -436,7 +435,7 @@ internal fun AzkarPeriodTabs(
                     onClick = { onPeriodChange(AzkarPeriod.Morning) },
                 )
                 AzkarPeriodButton(
-                    text = "☾ Вечер",
+                    text = "◒ Вечер",
                     active = period == AzkarPeriod.Evening,
                     modifier = Modifier
                         .weight(1f)
@@ -454,6 +453,33 @@ internal fun AzkarPeriodTabs(
             }
         }
     }
+}
+
+@Composable
+private fun AzkarDropletIndicator(
+    width: Dp,
+    step: Dp,
+    position: Float,
+    selectedIndex: Float,
+) {
+    val colors = AzkarThemeValues.colors
+    val distance = abs(selectedIndex - position).coerceIn(0f, 1f)
+    val stepPx = with(LocalDensity.current) { step.toPx() }
+    Box(
+        modifier = Modifier
+            .width(width)
+            .defaultMinSize(minHeight = AzkarDimensions.periodButtonMinHeight)
+            .graphicsLayer {
+                // No per-frame remeasure: move and stretch the blob on the compositor.
+                translationX = stepPx * position
+                scaleX = 1f + .085f * distance
+                scaleY = 1f - .06f * distance
+            }
+            .azkarShadow(AzkarElevation.ActivePeriod, AzkarRadius.periodButton)
+            .clip(RoundedCornerShape(AzkarRadius.periodButton))
+            .background(colors.card)
+            .testTag(AzkarReadingTestTags.PeriodDroplet),
+    )
 }
 
 @Composable

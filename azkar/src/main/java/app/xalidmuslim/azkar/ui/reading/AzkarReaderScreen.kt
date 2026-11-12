@@ -678,6 +678,9 @@ fun AzkarReaderScreen(
                 onResetItemProgress = { itemId ->
                     resolvedUiController.resetSingleProgress(itemId)
                 },
+                onResetPeriodProgress = {
+                    resolvedUiController.resetProgress(resolvedEntries.map { it.item.id })
+                },
                 onSelectContents = { index ->
                     when (readerUi.viewMode) {
                         AzkarReaderViewMode.Cards -> {

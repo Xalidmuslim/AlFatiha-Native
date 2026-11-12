@@ -125,6 +125,7 @@ internal fun AzkarReaderSheetHost(
     onResetSettings: () -> Unit,
     onDecrementProgress: (String, Int) -> Unit,
     onResetItemProgress: (String) -> Unit,
+    onResetPeriodProgress: () -> Unit,
     onSelectContents: (Int) -> Unit,
     onViewModeChange: (AzkarReaderViewMode) -> Unit,
     onUpdateSettings: ((AzkarReaderSettings) -> AzkarReaderSettings) -> Unit,
@@ -184,6 +185,7 @@ internal fun AzkarReaderSheetHost(
                 entries = entries,
                 activeIndex = activeIndex,
                 onDismiss = onDismiss,
+                onResetPeriodProgress = onResetPeriodProgress,
                 onSelect = onSelectContents,
             )
             AzkarReaderSheet.Explanation -> {
@@ -355,9 +357,11 @@ private fun AzkarContentsSheet(
     entries: List<AzkarReaderEntry>,
     activeIndex: Int,
     onDismiss: () -> Unit,
+    onResetPeriodProgress: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
     val colors = AzkarThemeValues.colors
+    var showResetDialog by rememberSaveable { mutableStateOf(false) }
     AzkarBottomSheet(
         title = "Содержание",
         eyebrow = "Навигация",
@@ -434,7 +438,29 @@ private fun AzkarContentsSheet(
                     )
                 }
             }
+            BasicText(
+                text = "Сбросить отмеченное за сегодня",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp, bottom = 6.dp)
+                    .clickable(role = Role.Button) { showResetDialog = true }
+                    .padding(vertical = 10.dp),
+                style = AzkarThemeValues.typography.sourceRow.copy(color = colors.muted),
+            )
         }
+    }
+    if (showResetDialog) {
+        AzkarConfirmDialog(
+            title = "Сбросить прогресс?",
+            message = "Будут сброшены отмеченные сегодня азкары этого периода. Общие с другими периодами записи тоже сбросятся.",
+            confirmText = "Сбросить",
+            onConfirm = {
+                onResetPeriodProgress()
+                showResetDialog = false
+                onDismiss()
+            },
+            onDismiss = { showResetDialog = false },
+        )
     }
 }
 
@@ -446,30 +472,22 @@ private fun AzkarExplanationSheet(
     val colors = AzkarThemeValues.colors
     val explanation = item.explanation
     val extra = AzkarExplanationEnrichment.forId(item.id)
-    val meaning = explanation?.meaning?.takeIf { it.isNotBlank() } ?: item.translation
-    val relatedReports = buildList {
-        explanation?.relatedReport?.takeIf { it.isNotBlank() }?.let(::add)
-        AzkarExplanationEnrichment.reportsForId(item.id)
-            .filter { it.isNotBlank() }
-            .let(::addAll)
+    val meaning = explanation?.meaning?.takeIf(String::isNotBlank) ?: item.translation
+    val reports = buildList {
+        explanation?.relatedReport?.takeIf(String::isNotBlank)?.let(::add)
+        addAll(AzkarExplanationEnrichment.reportsForId(item.id).filter(String::isNotBlank))
     }.distinct()
-    val deepDive = AzkarExplanationEnrichment.deepDiveForId(item.id)
-        .takeIf { it.isNotBlank() }
-    val keyMeanings = extra.keyMeanings.filter { it.isNotBlank() }
-    val heartFocus = extra.heartFocus?.takeIf { it.isNotBlank() }
-    val benefits = extra.benefits.filter { it.isNotBlank() }
-    val practicalApplication = extra.practicalApplication?.takeIf { it.isNotBlank() }
-    val itemNote = item.note?.takeIf { it.isNotBlank() }
+    val keyMeanings = extra.keyMeanings.filter(String::isNotBlank)
+    val deepDive = AzkarExplanationEnrichment.deepDiveForId(item.id).takeIf(String::isNotBlank)
+    val benefits = extra.benefits.filter(String::isNotBlank)
     val scholarNotes = buildList {
-        explanation?.scholarNotes
-            ?.filter { it.isNotBlank() }
-            ?.let(::addAll)
-        extra.scholarNotes.filter { it.isNotBlank() }.let(::addAll)
+        addAll(explanation?.scholarNotes.orEmpty().filter(String::isNotBlank))
+        addAll(extra.scholarNotes.filter(String::isNotBlank))
     }.distinct()
     val references = buildList {
-        explanation?.references?.filter { it.isNotBlank() }?.let(::addAll)
-        extra.references.filter { it.isNotBlank() }.let(::addAll)
-        item.source.takeIf { it.isNotBlank() }?.let(::add)
+        addAll(explanation?.references.orEmpty().filter(String::isNotBlank))
+        addAll(extra.references.filter(String::isNotBlank))
+        item.source.takeIf(String::isNotBlank)?.let(::add)
     }.distinct()
 
     AzkarBottomSheet(
@@ -478,7 +496,6 @@ private fun AzkarExplanationSheet(
         subtitle = null,
         maxHeightFraction = AzkarDimensions.insightSheetMaxHeightFraction,
         specificTestTag = AzkarSheetTestTags.Explanation,
-        fixedHeight = true,
         onDismiss = onDismiss,
     ) {
         Column(
@@ -493,107 +510,114 @@ private fun AzkarExplanationSheet(
                 ),
             verticalArrangement = Arrangement.spacedBy(AzkarSpacing.insightBodyGap),
         ) {
+            // The most useful explanation opens immediately. A new dhikr starts
+            // with an open first section, even if the previous one was collapsed.
             AzkarInsightSection(
-                title = "Смысл и разбор",
+                title = "Смысл и польза",
                 tone = AzkarInsightTone.Meaning,
+                resetKey = item.id,
                 initiallyExpanded = true,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     BasicText(
                         text = meaning,
-                        style = AzkarThemeValues.typography.insightBody.copy(
-                            color = colors.foreground,
-                        ),
+                        style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
                     )
                     if (keyMeanings.isNotEmpty()) {
                         BasicText(
                             text = keyMeanings.joinToString("\n\n") { "• $it" },
-                            style = AzkarThemeValues.typography.insightBody.copy(
-                                color = colors.foreground,
-                            ),
+                            style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
                         )
                     }
-                    deepDive?.let { details ->
+                    deepDive?.let {
                         BasicText(
-                            text = details,
-                            style = AzkarThemeValues.typography.insightBody.copy(
-                                color = colors.foreground,
-                            ),
+                            text = it,
+                            style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
+                        )
+                    }
+                    if (benefits.isNotEmpty()) {
+                        BasicText(
+                            text = "ПОЛЬЗА",
+                            style = AzkarThemeValues.typography.sourceRow.copy(color = colors.primary),
+                        )
+                        BasicText(
+                            text = benefits.joinToString("\n\n") { "• $it" },
+                            style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
                         )
                     }
                 }
             }
 
-            if (heartFocus != null || benefits.isNotEmpty() || practicalApplication != null) {
-                AzkarInsightSection("Размышление и польза", AzkarInsightTone.Heart) {
+            if (!extra.heartFocus.isNullOrBlank() || !extra.practicalApplication.isNullOrBlank()) {
+                AzkarInsightSection(
+                    title = "Как применять",
+                    tone = AzkarInsightTone.Practice,
+                    resetKey = item.id,
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        heartFocus?.let { focus ->
+                        extra.heartFocus?.takeIf(String::isNotBlank)?.let {
                             BasicText(
-                                text = focus,
-                                style = AzkarThemeValues.typography.insightBody.copy(
-                                    color = colors.foreground,
-                                ),
+                                text = it,
+                                style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
                             )
                         }
-                        if (benefits.isNotEmpty()) {
+                        extra.practicalApplication?.takeIf(String::isNotBlank)?.let {
                             BasicText(
-                                text = benefits.joinToString("\n\n") { "• $it" },
-                                style = AzkarThemeValues.typography.insightBody.copy(
-                                    color = colors.foreground,
-                                ),
+                                text = it,
+                                style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
                             )
                         }
-                        practicalApplication?.let { application ->
-                            BasicText(
-                                text = "Практика: $application",
-                                style = AzkarThemeValues.typography.insightBody.copy(
-                                    color = colors.foreground,
-                                ),
-                            )
-                        }
+                        BasicText(
+                            text = "Практическое размышление — пояснение к смыслу, не отдельная цитата из хадиса.",
+                            style = AzkarThemeValues.typography.insightReferences.copy(color = colors.muted),
+                        )
                     }
                 }
             }
 
-            if (relatedReports.isNotEmpty()) {
-                AzkarInsightSection("Хадисы и истории", AzkarInsightTone.Report) {
-                    BasicText(
-                        text = relatedReports.joinToString("\n\n") { "• $it" },
-                        style = AzkarThemeValues.typography.insightBody.copy(
-                            color = colors.foreground,
-                        ),
-                    )
-                }
-            }
-
-            if (scholarNotes.isNotEmpty()) {
-                AzkarInsightSection("Слова учёных", AzkarInsightTone.Scholar) {
-                    BasicText(
-                        text = scholarNotes.joinToString("\n\n") { "• $it" },
-                        style = AzkarThemeValues.typography.insightBody.copy(
-                            color = colors.foreground,
-                        ),
-                    )
-                }
-            }
-
-            if (itemNote != null || references.isNotEmpty()) {
-                AzkarInsightSection("Примечания и источники", AzkarInsightTone.Reference) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        itemNote?.let { note ->
+            if (reports.isNotEmpty() || scholarNotes.isNotEmpty()
+                || !item.note.isNullOrBlank() || references.isNotEmpty()
+            ) {
+                AzkarInsightSection(
+                    title = "Хадисы и источники",
+                    tone = AzkarInsightTone.Reference,
+                    resetKey = item.id,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                        if (reports.isNotEmpty()) {
                             BasicText(
-                                text = note,
-                                style = AzkarThemeValues.typography.insightBody.copy(
-                                    color = colors.foreground,
-                                ),
+                                text = "СООБЩЕНИЯ",
+                                style = AzkarThemeValues.typography.sourceRow.copy(color = colors.primary),
+                            )
+                            BasicText(
+                                text = reports.joinToString("\n\n") { "• $it" },
+                                style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
+                            )
+                        }
+                        if (scholarNotes.isNotEmpty()) {
+                            BasicText(
+                                text = "ОЦЕНКИ И РАЗЪЯСНЕНИЯ",
+                                style = AzkarThemeValues.typography.sourceRow.copy(color = colors.primary),
+                            )
+                            BasicText(
+                                text = scholarNotes.joinToString("\n\n") { "• $it" },
+                                style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
+                            )
+                        }
+                        item.note?.takeIf(String::isNotBlank)?.let {
+                            BasicText(
+                                text = it,
+                                style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
                             )
                         }
                         if (references.isNotEmpty()) {
                             BasicText(
+                                text = "ИСТОЧНИКИ",
+                                style = AzkarThemeValues.typography.sourceRow.copy(color = colors.primary),
+                            )
+                            BasicText(
                                 text = references.joinToString("\n"),
-                                style = AzkarThemeValues.typography.insightReferences.copy(
-                                    color = colors.muted,
-                                ),
+                                style = AzkarThemeValues.typography.insightReferences.copy(color = colors.muted),
                             )
                         }
                     }
@@ -620,11 +644,12 @@ private fun AzkarInsightSection(
     title: String,
     tone: AzkarInsightTone,
     initiallyExpanded: Boolean = false,
+    resetKey: String = "",
     content: @Composable () -> Unit,
 ) {
     val colors = AzkarThemeValues.colors
     val shape = RoundedCornerShape(AzkarRadius.insightSection)
-    var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
+    var expanded by rememberSaveable(resetKey, title) { mutableStateOf(initiallyExpanded) }
     val accent = when (tone) {
         AzkarInsightTone.Meaning -> Color(0xFFA8865E)
         AzkarInsightTone.KeyMeaning -> Color(0xFF72866F)
