@@ -457,6 +457,19 @@ public class MainActivity extends Activity {
         animateMorphNavTo(selected,false);
     }
 
+    // The home contents tab is personal, while inside a course it opens its TOC.
+    private void updateContentsTabLabel(String type){
+        if(bottom==null||bottom.getChildCount()<2)return;
+        View cell=bottom.getChildAt(1);
+        if(!(cell instanceof LinearLayout))return;
+        LinearLayout item=(LinearLayout)cell;
+        if(item.getChildCount()<2||!(item.getChildAt(1) instanceof TextView))return;
+        String label=("home".equals(type)||"personalReadingHub".equals(type))
+                ?"Моё":"Содержание";
+        ((TextView)item.getChildAt(1)).setText(label);
+        item.setContentDescription(label);
+    }
+
     private void navBtn(int iconRes,String label,int color,Runnable r){
         LinearLayout box=new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -1189,6 +1202,7 @@ public class MainActivity extends Activity {
         }
         rememberReaderPosition();
         current=new Screen(type,arg);
+        updateContentsTabLabel(type);
         if(!isReadingRoute(type))readingFocus=false;
         if(bottom!=null)bottom.setVisibility(readingFocus?View.GONE:View.VISIBLE);
         homeCardNavigationPending=false;
