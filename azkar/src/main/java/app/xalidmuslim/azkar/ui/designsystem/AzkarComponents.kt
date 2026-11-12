@@ -1,6 +1,5 @@
 package app.xalidmuslim.azkar.ui.designsystem
 
-import android.graphics.Paint as FrameworkPaint
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -27,11 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.progressBarRangeInfo
@@ -40,32 +35,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
+/**
+ * Flat UI contract: old callers still use this extension for compatibility,
+ * but card elevation no longer draws blurred fake depth into a Canvas.
+ * Readability comes from surface tone and a subtle 1.dp outline instead.
+ */
 internal fun Modifier.azkarShadow(
     layers: List<AzkarShadowLayer>,
     cornerRadius: Dp,
-): Modifier = drawBehind {
-    if (layers.isEmpty()) return@drawBehind
-    val radiusPx = cornerRadius.toPx()
-    drawIntoCanvas { canvas ->
-        val paint = FrameworkPaint()
-        layers.forEach { layer ->
-            paint.reset()
-            paint.style = FrameworkPaint.Style.FILL
-            paint.color = layer.color.toArgb()
-            paint.setShadowLayer(
-                layer.blurRadius.toPx(),
-                0f,
-                layer.offsetY.toPx(),
-                layer.color.toArgb(),
-            )
-            canvas.nativeCanvas.drawRoundRect(
-                0f, 0f, size.width, size.height,
-                radiusPx, radiusPx, paint,
-            )
-            paint.clearShadowLayer()
-        }
-    }
-}
+): Modifier = this
 
 @Composable
 fun AzkarSurface(
@@ -95,13 +73,6 @@ fun AzkarCardSurface(
 
     Box(
         modifier = modifier
-            .shadow(
-                elevation = 1.dp,
-                shape = shape,
-                clip = false,
-                ambientColor = colors.border.copy(alpha = 0.18f),
-                spotColor = colors.border.copy(alpha = 0.18f),
-            )
             .clip(shape)
             .background(cardBackground)
             .drawBehind {
