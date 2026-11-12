@@ -12,8 +12,10 @@ AZKAR = ROOT / "azkar/src/main/java/app/xalidmuslim/azkar"
 MEDICINE = ROOT / "medicine/src/main/java/com/xalid/meditsinaproroka/nativeapp"
 native = MAIN.read_text(encoding="utf-8")
 home = native.split("private LinearLayout homeFeature(", 1)[1].split("// --- Малый ширк", 1)[0]
-assert 't.setMinLines(2);' in home, "Title must reserve two lines for all six home cards"
-assert 'textBlock.setGravity(Gravity.TOP|Gravity.LEFT);' in home, "Title should be top aligned"
+assert re.search(r'^\s*t\.setMinLines\(1\);', home, re.MULTILINE), "Natural-height titles prevent empty gaps below one-line headings"
+assert 'c.setGravity(Gravity.CENTER_VERTICAL);' in home, "Icon and text group should be centered in the tile"
+assert 'textBlock.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);' in home, "Title/subtitle group should be compact"
+assert 'subLp.setMargins(0,dp(2),0,0);' in home, "Title/subtitle gap should remain consistent"
 assert 'new LinearLayout.LayoutParams(1,0,1f)' not in home, "Weighted spacer causes single-line titles to drop"
 assert 't.setMaxLines(2);' in home and 'st.setMaxLines(2);' in home
 assert "homeTileIconDp" in home and "homeTileTitleSp" in home, "Do not break responsive design"
@@ -52,4 +54,4 @@ for kt in MEDICINE.glob("*.kt"):
     for val in re.findall(r'defaultElevation\s*=\s*([^,\n)]+)', source):
         assert val.strip() == "0.dp", f"Medicine card elevation still nonzero: {kt.name} {val}"
 
-print(f"Flat surfaces OK: six shared aligned home cards, {len(calls)} native elevation calls set to zero, Azkar/Medicine shadows off")
+print(f"Flat surfaces OK: six compact centered home cards, {len(calls)} native elevation calls set to zero, Azkar/Medicine shadows off")
