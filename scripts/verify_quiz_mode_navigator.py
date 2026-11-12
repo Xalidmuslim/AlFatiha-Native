@@ -10,6 +10,9 @@ for mode in ('classic','alfatiha_medium','multi','match','hadith','free','expert
     assert '"'+mode+'"' in modes, "Missing real quiz mode "+mode
 assert 'renderTaskModeQuestions(mode,selectedFilter,true)' in nav
 assert 'for(int start=0;start<list.size();start+=5)' not in nav, "All 555 cannot be rendered in one huge overview grid"
+assert 'page.addView(actions);' in src
+profile=src.split('private void renderProfile(boolean push)',1)[1].split('private View profileRing(',1)[0]
+assert profile.index('page.addView(actions);') < profile.index('Button taskNavigator=outline("Разделы викторин') < profile.index('TextView sections=text("Освоение по разделам"'), "Mode navigator shortcut must be visible above the long progress meters"
 assert 'private void renderTaskModeQuestions(String mode,int filter,boolean push)' in src
 assert 'private int appendTaskQuestionCards(' in src
 assert 'navigatorQuestionLabel(' in src
