@@ -8071,7 +8071,7 @@ public class MainActivity extends Activity {
                         taskQuestionStatus(q,model)+". Открыть вопрос");
                 card.setOnClickListener(v->openNavigatorQuestion(mode,q.index));
                 installPressMotion(card,.98f);
-                LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(112),1);
+                LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);
                 if(col>0)lp.setMargins(dp(7),0,0,0);
                 row.addView(card,lp);
             }
