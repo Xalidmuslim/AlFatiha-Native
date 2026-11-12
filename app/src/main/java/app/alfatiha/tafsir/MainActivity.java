@@ -3059,7 +3059,7 @@ public class MainActivity extends Activity {
         LinearLayout dailyTile=minorShirkHubTile(
                 R.drawable.ic_minor_cases_modern,
                 "Ситуации",
-                daily.length()+" кейсов · сердце, причины и опасная грань",
+                daily.length()+" ситуаций · сердце, причины и опасная грань",
                 ()->renderMinorShirkDailyList(true)
         );
         addMinorShirkTwoColumnRow(
@@ -3092,7 +3092,7 @@ public class MainActivity extends Activity {
         LinearLayout trainerTile=minorShirkHubTile(
                 R.drawable.ic_minor_cases_modern,
                 "Тренажёр",
-                trainerSeen+" из "+daily.length()+" кейсов · сначала разбор, потом ответ",
+                trainerSeen+" из "+daily.length()+" ситуаций · сначала разбор, потом ответ",
                 ()->renderMinorShirkTrainer(
                         Math.min(
                                 Math.max(0,prefs.getInt("minor_shirk_trainer_idx",0)),
@@ -3819,7 +3819,7 @@ public class MainActivity extends Activity {
     private void renderMinorShirkDailyList(boolean push){
         clear("minorShirkDailyList","",push);currentSection="minorShirk";appTop();
         JSONArray a=arr("minor_shirk_daily.json");
-        header("Повседневные ситуации",a.length()+" реальных кейсов · ситуация → сердце → точная граница → правильное состояние.");
+        header("Повседневные ситуации",a.length()+" реальных ситуаций · ситуация → сердце → точная граница → правильное состояние.");
         for(int i=0;i<a.length();i++){
             JSONObject o=a.optJSONObject(i);if(o==null)continue;final int idx=i;
             LinearLayout c=card(i%2==0?blueSoft():panel());
