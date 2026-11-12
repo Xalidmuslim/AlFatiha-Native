@@ -14,7 +14,7 @@ bottom = src.split("private void updateContentsTabLabel(String type)", 1)[1].spl
 
 assert '?"Навигация":' in bottom, "Home tab must be labelled Навигация"
 assert '"Задания"' in bottom and '"Содержание"' in bottom, "Keep contextual tasks and course TOCs"
-assert 'c.setGravity(Gravity.CENTER_VERTICAL);' in home, "Dashboard tile content must be centered vertically"
+assert 'c.setGravity(Gravity.TOP);' in home, "Dashboard card titles must line up at the top"
 assert re.search(r'^\s*t\.setMinLines\(1\);', home, re.MULTILINE), "Short titles must not reserve two lines"
 assert not re.search(r'^\s*t\.setMinLines\(2\);', home, re.MULTILINE), "Avoid blank title-to-subtitle gap"
 assert 't.setMaxLines(2);' in home and 'st.setMaxLines(2);' in home, "Retain two-line overflow support"
@@ -39,4 +39,4 @@ for route in ("renderTaskNavigator(0,true)", "renderQuizCenter(true)",
     assert route in nav, f"Navigator missing route {route}"
 assert 'renderPersonalReadingHub(true)' in src.split('private void openContents()', 1)[1], "Home tab must open hub"
 
-print("Compass global navigation and centered card contracts OK")
+print("Compass global navigation and aligned card contracts OK")
