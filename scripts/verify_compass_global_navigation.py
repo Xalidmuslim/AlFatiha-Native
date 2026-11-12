@@ -14,7 +14,8 @@ bottom = src.split("private void updateContentsTabLabel(String type)", 1)[1].spl
 
 assert '?"Навигация":' in bottom, "Home tab must be labelled Навигация"
 assert '"Задания"' in bottom and '"Содержание"' in bottom, "Keep contextual tasks and course TOCs"
-assert 'c.setGravity(Gravity.CENTER_VERTICAL);' in home, "Dashboard card content must be vertically centered"\nassert 'textBlock.setMinimumHeight(dp(homeTileHeightDp<=128?54:62));' in home, "Keep title baselines aligned across varying title lengths"
+assert 'c.setGravity(Gravity.CENTER_VERTICAL);' in home, "Dashboard card content must be vertically centered"
+assert 'textBlock.setMinimumHeight(dp(homeTileHeightDp<=128?54:62));' in home, "Keep title baselines aligned across varying title lengths"
 assert re.search(r'^\s*t\.setMinLines\(1\);', home, re.MULTILINE), "Short titles must not reserve two lines"
 assert not re.search(r'^\s*t\.setMinLines\(2\);', home, re.MULTILINE), "Avoid blank title-to-subtitle gap"
 assert 't.setMaxLines(2);' in home and 'st.setMaxLines(2);' in home, "Retain two-line overflow support"
