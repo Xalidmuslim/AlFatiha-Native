@@ -46,8 +46,8 @@ jobs:
           python3 scripts/verify_quiz_mode_navigator.py
       - name: Verify Medicine startup readiness
         run: python3 scripts/verify_medicine_entry.py
-      - name: Test Azkar resume and navigation regressions
-        run: ./gradlew :azkar:testDebugUnitTest
+      - name: Test Azkar navigation and Medicine shared theme regressions
+        run: ./gradlew :azkar:testDebugUnitTest :medicine:testDebugUnitTest
       - name: Lint Android
         run: ./gradlew lintDebug
       - name: Build debug APK and release AAB
