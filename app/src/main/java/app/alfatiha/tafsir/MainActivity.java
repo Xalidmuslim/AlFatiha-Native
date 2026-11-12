@@ -2342,10 +2342,10 @@ public class MainActivity extends Activity {
         // never push the last row below the fixed dashboard tile height.
         c.setPadding(dp(tilePad),dp(7),dp(tilePad),dp(7));
         c.setMinimumHeight(dp(homeTileHeightDp));
-        // Use a fixed top baseline for all six cards. Centering the entire
-        // variable-height stack dropped one-line headings ("Малый ширк",
-        // "Викторины") below their two-line neighbors.
-        c.setGravity(Gravity.TOP);
+        // Center a stable-size content region for all six cards. The same
+        // minimum text region height keeps icons and title baselines aligned
+        // even when headings occupy one or two lines.
+        c.setGravity(Gravity.CENTER_VERTICAL);
         c.setElevation(0f);
 
         int featureEnd=dark
@@ -2386,9 +2386,11 @@ public class MainActivity extends Activity {
 
         LinearLayout textBlock=new LinearLayout(this);
         textBlock.setOrientation(LinearLayout.VERTICAL);
-        textBlock.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
-        // Natural title height: short headings use one line; longer ones can
-        // use two without creating an empty band before the subtitle.
+        textBlock.setGravity(Gravity.TOP|Gravity.START);
+        // Reserve equal vertical space below the common title baseline instead
+        // of inserting empty lines between each heading and its subtitle.
+        // For dense two-line titles, the area may grow naturally.
+        textBlock.setMinimumHeight(dp(homeTileHeightDp<=128?54:62));
 
         float titleSp=medicineTile
                 ?Math.max(12.2f,homeTileTitleSp-.10f)
@@ -8543,9 +8545,9 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * The Home navigation tab gives direct access to every course family and
-     * major practice workflow. Saved-material views remain available in their
-     * courses, but are not promoted as the purpose of this global navigator.
+     * The Home navigation tab focuses on learning actions, not duplicate
+     * course tiles. Courses remain accessible from the main dashboard.
+     * Saved items remain within their original course flows.
      */
     private void renderPersonalReadingHub(boolean push){
         clearActiveFlow();
@@ -8553,8 +8555,8 @@ public class MainActivity extends Activity {
         currentSection="home";
         appTop();
         header("Навигация",
-                "Выберите курс, тренажёр, задание или инструмент. "
-                +"Переходы открывают существующие разделы и сохраняют их прогресс.");
+                "Тренажёры, задания, упражнения, повторение и поиск по материалам. "
+                +"Курсы и книги доступны на главном экране.");
 
         page.addView(kicker("ТРЕНАЖЁР И ЗАДАНИЯ",C_SAGE));
         personalReadingShortcut("Тренажёр викторин",
@@ -8569,26 +8571,6 @@ public class MainActivity extends Activity {
         personalReadingShortcut("Повторение",
                 "Ошибки и задания для закрепления",
                 ()->renderRepeatHub(true));
-
-        page.addView(kicker("КУРСЫ И КНИГИ",C_BLUE));
-        personalReadingShortcut("Осознанное чтение Аль-Фатихи",
-                "Уроки, разбор аятов и понимание смысла",
-                ()->renderMindHub(true));
-        personalReadingShortcut("Тайны молитвы",
-                "Разделы о словах, действиях и состоянии сердца",
-                ()->renderPrayerSecretsHub(true));
-        personalReadingShortcut("Малый ширк",
-                "Курс, разбор случаев и проверка понимания",
-                ()->renderMinorShirkHub(true));
-        personalReadingShortcut("Хадисы-кудси",
-                "Достоверные хадисы и разъяснения",
-                ()->renderHadithQudsiHub(true));
-        personalReadingShortcut("Азкары",
-                "Утренние, вечерние и другие поминания",
-                this::openAzkar);
-        personalReadingShortcut("Медицина Пророка ﷺ",
-                "Книга Ибн аль-Каййима",
-                this::openMedicine);
 
         page.addView(kicker("ПРАКТИЧЕСКИЕ РАЗДЕЛЫ",C_SAGE));
         personalReadingShortcut("Тренировка чтения",
