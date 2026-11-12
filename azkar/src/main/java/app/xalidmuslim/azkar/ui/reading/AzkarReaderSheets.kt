@@ -125,6 +125,7 @@ internal fun AzkarReaderSheetHost(
     onResetSettings: () -> Unit,
     onDecrementProgress: (String, Int) -> Unit,
     onResetItemProgress: (String) -> Unit,
+    onResetPeriodProgress: () -> Unit,
     onSelectContents: (Int) -> Unit,
     onViewModeChange: (AzkarReaderViewMode) -> Unit,
     onUpdateSettings: ((AzkarReaderSettings) -> AzkarReaderSettings) -> Unit,
@@ -184,6 +185,7 @@ internal fun AzkarReaderSheetHost(
                 entries = entries,
                 activeIndex = activeIndex,
                 onDismiss = onDismiss,
+                onResetPeriodProgress = onResetPeriodProgress,
                 onSelect = onSelectContents,
             )
             AzkarReaderSheet.Explanation -> {
@@ -355,9 +357,11 @@ private fun AzkarContentsSheet(
     entries: List<AzkarReaderEntry>,
     activeIndex: Int,
     onDismiss: () -> Unit,
+    onResetPeriodProgress: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
     val colors = AzkarThemeValues.colors
+    var showResetDialog by rememberSaveable { mutableStateOf(false) }
     AzkarBottomSheet(
         title = "Содержание",
         eyebrow = "Навигация",
@@ -434,7 +438,29 @@ private fun AzkarContentsSheet(
                     )
                 }
             }
+            BasicText(
+                text = "Сбросить отмеченное за сегодня",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp, bottom = 6.dp)
+                    .clickable(role = Role.Button) { showResetDialog = true }
+                    .padding(vertical = 10.dp),
+                style = AzkarThemeValues.typography.sourceRow.copy(color = colors.muted),
+            )
         }
+    }
+    if (showResetDialog) {
+        AzkarConfirmDialog(
+            title = "Сбросить прогресс?",
+            message = "Будут сброшены отмеченные сегодня азкары этого периода. Общие с другими периодами записи тоже сбросятся.",
+            confirmText = "Сбросить",
+            onConfirm = {
+                onResetPeriodProgress()
+                showResetDialog = false
+                onDismiss()
+            },
+            onDismiss = { showResetDialog = false },
+        )
     }
 }
 
