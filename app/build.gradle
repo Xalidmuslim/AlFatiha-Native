@@ -219,6 +219,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        quizModeNavigatorCompare {
+            // Isolated quiz navigator preview: never overwrite user progress.
+            initWith flatCardsCompare
+            applicationIdSuffix '.quiznav1112'
+            versionNameSuffix '-quiz-navigator-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
