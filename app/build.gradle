@@ -211,6 +211,14 @@ android {
             signingConfig signingConfigs.debug
             matchingFallbacks = ['release']
         }
+        flatCardsCompare {
+            // A/B signed visual-QA APK; the installed version and saved data stay intact.
+            initWith azkarInsightsCompare
+            applicationIdSuffix '.flatcards1112'
+            versionNameSuffix '-flat-cards-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
 }
 
