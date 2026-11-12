@@ -23,6 +23,7 @@ assert 'openNavigatorQuestion(mode,q.index)' in src, "Question click must preser
 assert 'entry.stateIds.addAll(ref.stateIds)' in src, "Canonical analytics aliases must remain shared across modes"
 assert 'private void openNavigatorQuestion(String mode,int index)' in src
 assert 'case"taskModeQuestions":' in src, "Back navigation must restore quiz mode and filter"
+assert "taskNavigatorVisibleCounts.put(pageKey,next[0])" in src and "restoreCount" in src, "Back must reconstruct all previously loaded batches before restoring saved scroll"
 assert '"analytics".equals(type)' in src and 'renderTaskNavigator(0,true)' in src.split('private void openContents(',1)[1].split('private LinearLayout dialogSheet(',1)[0]
 assert 'showContentsDialog();' in src.split('private void openContents(',1)[1].split('private LinearLayout dialogSheet(',1)[0], "Other screens retain existing TOCs"
 assert '"Задания"' in src.split('private void updateContentsTabLabel(',1)[1].split('private void navBtn(',1)[0]
