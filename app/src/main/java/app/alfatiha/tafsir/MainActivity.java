@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
     private Screen current = new Screen("home", "");
     private float fontScale = 1f;
     private boolean dark = false;
+    private String themeMode = "system";
     private String fontMode = "modern";
     private String motionMode = "full";
     private float readingLineSpacing = 1.09f;
@@ -126,7 +127,9 @@ public class MainActivity extends Activity {
         prefs=getSharedPreferences("alfatiha_native",MODE_PRIVATE);
         sessionHeroPhrase=pickHeroPhraseForLaunch();
         fontScale=prefs.getFloat("fontScale",1f);
-        dark=prefs.getBoolean("dark",false);
+        themeMode=readThemeMode();
+        dark=resolveThemeDark();
+        synchronizeLegacyThemePreference();
         fontMode=prefs.getString("fontMode","modern");
         motionMode=prefs.getString("motion_mode","full");
         readingLineSpacing=prefs.getFloat("reader_line_spacing",1.09f);
@@ -199,11 +202,14 @@ public class MainActivity extends Activity {
         // Restore host tab state after returning from a nested Activity.
         if(morphNavIndex==3 && current!=null)
             animateMorphNavTo(morphNavDestination(current.type),false);
-        boolean sharedDark=prefs.getBoolean("dark",dark);
-        if(sharedDark!=dark){
+        String currentMode=readThemeMode();
+        boolean previousDark=dark;
+        themeMode=currentMode;
+        dark=resolveThemeDark();
+        synchronizeLegacyThemePreference();
+        if(previousDark!=dark){
             Screen s=current;
             int y=scroll==null?0:scroll.getScrollY();
-            dark=sharedDark;
             buildShell();
             restore(s);
             if(scroll!=null)scroll.post(()->scroll.scrollTo(0,y));
@@ -227,6 +233,32 @@ public class MainActivity extends Activity {
             renderHome(false);
             page.post(this::showSectionsDialog);
         }
+    }
+
+    // The string mode is the source of truth. The legacy "dark" bool remains
+    // available to embedded modules and old installs without splitting themes.
+    private String readThemeMode(){
+        String configured=prefs.getString("theme_mode",null);
+        if("system".equals(configured)||"light".equals(configured)
+                ||"dark".equals(configured))return configured;
+        if(prefs.contains("dark"))
+            return prefs.getBoolean("dark",false)?"dark":"light";
+        return "system";
+    }
+
+    private boolean resolveThemeDark(){
+        if("dark".equals(themeMode))return true;
+        if("light".equals(themeMode))return false;
+        int uiMode=getResources().getConfiguration().uiMode;
+        return (uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                ==android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    private void synchronizeLegacyThemePreference(){
+        if(prefs.contains("theme_mode")
+                && prefs.getBoolean("dark",!dark)==dark)return;
+        prefs.edit().putString("theme_mode",themeMode)
+                .putBoolean("dark",dark).apply();
     }
 
     private int bg(){return dark?Color.rgb(23,28,26):C_BG;}
@@ -2310,9 +2342,10 @@ public class MainActivity extends Activity {
         // never push the last row below the fixed dashboard tile height.
         c.setPadding(dp(tilePad),dp(7),dp(tilePad),dp(7));
         c.setMinimumHeight(dp(homeTileHeightDp));
-        // Center the icon/title/subtitle group together instead of top-aligning
-        // a reserved two-line title band on every dashboard tile.
-        c.setGravity(Gravity.CENTER_VERTICAL);
+        // Use a fixed top baseline for all six cards. Centering the entire
+        // variable-height stack dropped one-line headings ("Малый ширк",
+        // "Викторины") below their two-line neighbors.
+        c.setGravity(Gravity.TOP);
         c.setElevation(0f);
 
         int featureEnd=dark
@@ -8442,13 +8475,24 @@ public class MainActivity extends Activity {
         add(text("Системное отключение анимаций Android также соблюдается.",12.5f,muted(),false));
 
         settingsHeading("Оформление");
-        TextView theme=settingsOption(dark?"Светлая матовая тема":"Тёмная тема",false,()->{
-            dark=!dark;
-            prefs.edit().putBoolean("dark",dark).apply();
-            buildShell();
-            renderSettings(false);
-        });
-        page.addView(theme,new LinearLayout.LayoutParams(-1,dp(48)));
+        String[][] themeOptions={
+                {"system","Авто · как в системе"},
+                {"light","Светлая тема"},
+                {"dark","Тёмная тема"}
+        };
+        for(String[] option:themeOptions){
+            TextView choice=settingsOption(option[1],themeMode.equals(option[0]),()->{
+                themeMode=option[0];
+                dark=resolveThemeDark();
+                prefs.edit().putString("theme_mode",themeMode)
+                        .putBoolean("dark",dark).apply();
+                buildShell();
+                renderSettings(false);
+            });
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(46));
+            lp.setMargins(0,0,0,dp(4));
+            page.addView(choice,lp);
+        }
 
         if(isReadingRoute(prefs.getString("last_reader_route",""))){
             settingsHeading("Чтение");
