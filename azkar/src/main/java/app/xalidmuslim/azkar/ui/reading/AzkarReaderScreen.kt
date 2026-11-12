@@ -55,7 +55,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -780,7 +779,6 @@ private fun HeartPrayerBottomNav(
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
             .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
             .height(64.dp)
-            .shadow(3.dp, shape, clip = false)
             .clip(shape)
             .background(
                 brush = Brush.linearGradient(
