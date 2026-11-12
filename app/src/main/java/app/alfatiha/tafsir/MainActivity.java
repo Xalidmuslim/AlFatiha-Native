@@ -8014,8 +8014,59 @@ public class MainActivity extends Activity {
         showSectionsDialog();
     }
 
+    private void personalReadingShortcut(String title,String subtitle,Runnable click){
+        LinearLayout item=card(panel());
+        item.setOrientation(LinearLayout.HORIZONTAL);
+        item.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout texts=new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        texts.addView(text(title,16.0f,ink(),true));
+        texts.addView(text(subtitle,12.5f,muted(),false));
+        item.addView(texts,new LinearLayout.LayoutParams(0,-2,1));
+        TextView arrow=text("›",23,C_SAGE,false);
+        arrow.setGravity(Gravity.CENTER);
+        item.addView(arrow,new LinearLayout.LayoutParams(dp(35),dp(44)));
+        item.setMinimumHeight(dp(70));
+        item.setContentDescription(title+". "+subtitle);
+        item.setOnClickListener(v->click.run());
+        installPressMotion(item,.98f);
+    }
+
+    /** Home contents used to mirror the six home tiles. This is a useful
+     * personal navigator instead; subject-specific contents still work. */
+    private void renderPersonalReadingHub(boolean push){
+        clearActiveFlow();
+        clear("personalReadingHub","",push);
+        currentSection="home";
+        appTop();
+        header("Мои материалы","Продолжение, сохранённое и запланированное повторение без повторения главного экрана.");
+        page.addView(kicker("ПОЛЕЗНЫЕ МАТЕРИАЛЫ",C_SAGE));
+        if(isReadingRoute(prefs.getString("last_reader_route",""))){
+            personalReadingShortcut("Продолжить чтение",
+                "Вернуться к сохранённому месту и положению текста",this::resumeLastReader);
+        }
+        int saved=prefs.getStringSet("material_bookmarks",new HashSet<>()).size();
+        personalReadingShortcut("Сохранённые смыслы",
+                saved+" материалов курса Аль-Фатиха",()->renderSavedMaterials(true));
+        int shirkSaved=prefs.getStringSet("minor_shirk_bookmarks",new HashSet<>()).size();
+        personalReadingShortcut("Сохранённое по малому ширку",
+                shirkSaved+" важных тем и ситуаций",()->renderMinorShirkSaved(true));
+        int due=analytics().reviewNowCount();
+        personalReadingShortcut("Повторить знания",
+                due>0?due+" заданий доступны для повторения":"Очередь повторения и работа над ошибками",
+                ()->renderRepeatHub(true));
+        personalReadingShortcut("Открыть задания по темам",
+                "Каталог проверок с фильтрами",()->renderTaskNavigator(0,true));
+    }
+
     private void openContents(){
         String type=current==null?"":current.type;
+        if("home".equals(type) || "personalReadingHub".equals(type)){
+            if("personalReadingHub".equals(type)){
+                if(scroll!=null)scroll.smoothScrollTo(0,0);
+            }else renderPersonalReadingHub(true);
+            return;
+        }
 
         // Return to the contents/list of the section currently being read.
         if(type.startsWith("hadithQudsi") || "hadithQudsi".equals(currentSection)){
