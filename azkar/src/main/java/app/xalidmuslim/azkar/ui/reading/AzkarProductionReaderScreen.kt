@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -123,6 +124,8 @@ internal fun AzkarProductionReaderScreen(
     }
 
     val period = periodController.period
+    // Kept outside key(period), so the sliding droplet can start from the previous tab.
+    var previousTabPeriod by remember(periodController) { mutableStateOf(period) }
     val entries = remember(period) {
         AzkarCatalog.readingItemsFor(period).map(::AzkarReaderEntry)
     }
@@ -174,6 +177,7 @@ internal fun AzkarProductionReaderScreen(
             .fillMaxSize()
             .background(launchBackground),
     ) {
+        CompositionLocalProvider(LocalAzkarPreviousPeriod provides previousTabPeriod) {
         key(period) {
             AzkarReaderScreen(
                 entries = entries,
@@ -182,12 +186,15 @@ internal fun AzkarProductionReaderScreen(
                 uiController = uiController,
                 modifier = Modifier.fillMaxSize(),
                 onPeriodChange = { newPeriod ->
+                    val oldPeriod = periodController.period
                     if (periodController.switchTo(newPeriod)) {
+                        previousTabPeriod = oldPeriod
                         uiController.setLastPeriod(newPeriod)
                         uiController.closeSheet()
                     }
                 },
             )
+        }
         }
     }
 }
