@@ -15,7 +15,7 @@ dashboard = src.split("private void renderHome(boolean push)", 1)[1].split("priv
 assert 'page.addView(kicker("КУРСЫ И КНИГИ"' not in hub, "Remove duplicated course-and-books category"
 for title in ("Осознанное чтение Аль-Фатихи", "Тайны молитвы", "Малый ширк",
               "Хадисы-кудси", "Азкары", "Медицина Пророка"):
-    assert 'personalReadingShortcut("' + title not in hub, f"Duplicate home course entry: {title}"
+    assert 'personalReadingShortcut("' + title + '",' not in hub, f"Duplicate home course entry: {title}"
 for item in ("Тренажёр викторин", "Все викторины", "Экзамены", "Повторение",
              "Тренировка чтения", "Практические ситуации", "Поиск по материалам",
              "Прогресс и аналитика"):
