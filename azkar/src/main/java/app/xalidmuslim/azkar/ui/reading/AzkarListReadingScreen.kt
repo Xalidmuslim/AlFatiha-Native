@@ -109,7 +109,6 @@ internal fun AzkarListReadingScreen(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             AzkarSourceNote(onOpenSourceInfo)
                             AzkarPeriodTabs(period, onPeriodChange)
-                            AzkarProgressCard(summaryState, onResetProgress)
                         }
                     }
 
