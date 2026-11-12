@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,8 +20,16 @@ class MainActivity : ComponentActivity() {
         // Paint the same solid background as the reader before Compose creates
         // its first frame. Without this, some devices briefly exposed the
         // default black window surface between the host and Azkar activities.
-        val sharedDark = getSharedPreferences("alfatiha_native", MODE_PRIVATE)
-            .getBoolean("dark", false)
+        val prefs = getSharedPreferences("alfatiha_native", MODE_PRIVATE)
+        val systemDark =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        val sharedDark = when (prefs.getString("theme_mode", null)) {
+            "system" -> systemDark
+            "dark" -> true
+            "light" -> false
+            else -> if (prefs.contains("dark")) prefs.getBoolean("dark", false) else systemDark
+        }
         val launchBackgroundRes = if (sharedDark) {
             R.color.azkar_window_background_dark
         } else {
