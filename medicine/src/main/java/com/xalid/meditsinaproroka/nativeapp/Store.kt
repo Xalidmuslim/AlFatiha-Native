@@ -53,20 +53,32 @@ data class Highlight(
 )
 data class HistoryEntry(val chapterId: String, val anchor: String?, val openedAt: Long)
 
-// A reader theme is derived from the Compass preference; Medicine never
-// chooses an independent default or writes a theme during hydration.
+// Pure resolution function makes automatic/manual precedence unit-testable.
+internal fun resolveCompassThemeSelection(
+    selectedMode: String?,
+    legacyDark: Boolean?,
+    systemDark: Boolean,
+): String = when (selectedMode) {
+    "dark" -> "dark"
+    "light" -> "light"
+    "system" -> if (systemDark) "dark" else "light"
+    else -> when (legacyDark) {
+        true -> "dark"
+        false -> "light"
+        null -> if (systemDark) "dark" else "light"
+    }
+}
+
+// Medicine is a consumer of the Compass preference, never an independent
+// authority. No preference writes occur while loading cached book settings.
 internal fun resolvedCompassTheme(context: Context): String {
     val sharedPrefs = context.getSharedPreferences("alfatiha_native", Context.MODE_PRIVATE)
     val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-    val systemTheme = if (nightMode == Configuration.UI_MODE_NIGHT_YES) "dark" else "light"
-    return when (sharedPrefs.getString("theme_mode", null)) {
-        "dark" -> "dark"
-        "light" -> "light"
-        "system" -> systemTheme
-        else -> if (sharedPrefs.contains("dark")) {
-            if (sharedPrefs.getBoolean("dark", false)) "dark" else "light"
-        } else systemTheme
-    }
+    return resolveCompassThemeSelection(
+        selectedMode = sharedPrefs.getString("theme_mode", null),
+        legacyDark = if (sharedPrefs.contains("dark")) sharedPrefs.getBoolean("dark", false) else null,
+        systemDark = nightMode == Configuration.UI_MODE_NIGHT_YES,
+    )
 }
 
 class AppStore(context: Context) {
