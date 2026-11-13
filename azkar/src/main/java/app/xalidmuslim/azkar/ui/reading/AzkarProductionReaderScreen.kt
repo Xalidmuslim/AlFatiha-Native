@@ -4,12 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -43,13 +45,25 @@ class AzkarPeriodReaderController(
     )
         private set
 
-    fun switchTo(newPeriod: AzkarPeriod): Boolean {
+    // Keep separate in-session reading positions even if DataStore has not
+    // finished persisting a rapid morning/evening/night switch.
+    private val sessionIndexByPeriod = mutableMapOf<AzkarPeriod, Int>()
+    var switchGeneration by mutableIntStateOf(0)
+        private set
+
+    fun switchTo(newPeriod: AzkarPeriod, savedItemId: String? = null): Boolean {
         if (newPeriod == period) return false
+        sessionIndexByPeriod[period] = navigation.state.activeIndex
+        val count = AzkarCatalog.itemsFor(newPeriod).size
+        val restoredIndex = (
+            sessionIndexByPeriod[newPeriod] ?: initialIndex(newPeriod, savedItemId)
+        ).coerceIn(0, count - 1)
         period = newPeriod
         navigation = AzkarReaderNavigationController(
-            itemCount = AzkarCatalog.itemsFor(newPeriod).size,
-            initialIndex = 0,
+            itemCount = count,
+            initialIndex = restoredIndex,
         )
+        switchGeneration += 1
         return true
     }
 }
@@ -118,7 +132,10 @@ internal fun AzkarProductionReaderScreen(
 
     LaunchedEffect(readerUi.hasLiveSnapshot, readerUi.lastPeriod) {
         if (readerUi.hasLiveSnapshot && !restoredPeriod) {
-            periodController.switchTo(readerUi.lastPeriod)
+            periodController.switchTo(
+                readerUi.lastPeriod,
+                savedItemId = readerUi.lastItemByPeriod[readerUi.lastPeriod],
+            )
             restoredPeriod = true
         }
     }
@@ -126,6 +143,11 @@ internal fun AzkarProductionReaderScreen(
     val period = periodController.period
     // Kept outside key(period), so the sliding droplet can start from the previous tab.
     var previousTabPeriod by remember(periodController) { mutableStateOf(period) }
+    // The selector animates continuously across keyed readers, including
+    // repeated and interrupted switches in either direction.
+    val sharedTabIndicator = remember(periodController) {
+        Animatable(period.ordinal.toFloat())
+    }
     val entries = remember(period) {
         AzkarCatalog.readingItemsFor(period).map(::AzkarReaderEntry)
     }
@@ -177,20 +199,36 @@ internal fun AzkarProductionReaderScreen(
             .fillMaxSize()
             .background(launchBackground),
     ) {
-        CompositionLocalProvider(LocalAzkarPreviousPeriod provides previousTabPeriod) {
+        CompositionLocalProvider(
+            LocalAzkarPreviousPeriod provides previousTabPeriod,
+            LocalAzkarTabIndicator provides sharedTabIndicator,
+        ) {
         key(period) {
             AzkarReaderScreen(
                 entries = entries,
                 period = period,
                 controller = periodController.navigation,
+                periodSwitchGeneration = periodController.switchGeneration,
                 uiController = uiController,
                 modifier = Modifier.fillMaxSize(),
                 onPeriodChange = { newPeriod ->
                     val oldPeriod = periodController.period
-                    if (periodController.switchTo(newPeriod)) {
-                        previousTabPeriod = oldPeriod
-                        uiController.setLastPeriod(newPeriod)
-                        uiController.closeSheet()
+                    if (newPeriod != oldPeriod) {
+                        // Save before destroying the old navigation controller.
+                        // This is also critical for fast switches before a
+                        // coroutine has persisted the latest active index.
+                        AzkarCatalog.itemsFor(oldPeriod)
+                            .getOrNull(periodController.navigation.state.activeIndex)
+                            ?.let { item -> uiController.saveLastItem(oldPeriod, item.id) }
+                        if (periodController.switchTo(
+                                newPeriod,
+                                savedItemId = uiController.state.lastItemByPeriod[newPeriod],
+                            )
+                        ) {
+                            previousTabPeriod = oldPeriod
+                            uiController.setLastPeriod(newPeriod)
+                            uiController.closeSheet()
+                        }
                     }
                 },
             )
