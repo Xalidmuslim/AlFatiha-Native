@@ -14,7 +14,7 @@ head = host.split("private void appTop()",1)[1].split("private void renderHome("
 
 assert "sessionIndexByPeriod" in prod
 assert "sessionIndexByPeriod[period] = navigation.state.activeIndex" in prod
-assert "sessionIndexByPeriod[newPeriod] ?: initialIndex(newPeriod, savedItemId)" in prod
+assert "rememberedIndex ?: initialIndex(newPeriod, savedItemId)" in prod
 assert "sessionPositionRestored = rememberedIndex != null" in prod
 assert "periodController.sessionPositionRestored" in prod
 assert "uiController.saveLastItem(oldPeriod, item.id)" in prod, "Save old period before switching"
