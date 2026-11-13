@@ -32,7 +32,7 @@ for arabic in arabics:
     hashval=((hashval ^ 10)*16777619)&0xffffffff
 assert hashval==0xf143509e, f"Arabic original modified: {hashval:08x}"
 assert 'данному Тебе обещанию' not in corpus, "Distinguish Allah's promise from human promise"
-assert 'и Твоему обещанию' in corpus, "Sayyid al-Istighfar must convey the divine promise"
+assert 'верю в Твоё обещание' in corpus, "Sayyid al-Istighfar must convey faith in Allah's promise"
 assert 'в моём вероисповедании' in corpus, "Afiyah must preserve the faith-specific plea"
 assert 'Вечно Живой' in corpus, "Preserve the divine name al-Hayy accurately"
 assert 'Предоставляй меня' not in corpus, "Imperative must be a negated plea, not a positive instruction"
