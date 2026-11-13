@@ -16,7 +16,9 @@ class AzkarInsightsCompletenessTest {
                 reading != null && reading.contemplation.length >= 230)
             assertTrue(item.id + ": missing heart meaning",
                 reading != null && reading.heartResponse.length >= 110)
-            assertTrue(item.id + ": missing benefits", extra.benefits.size >= 2)
+            assertTrue(item.id + ": missing explained benefit",
+                reading != null && reading.benefitMeaning.length >= 125)
+            assertTrue(item.id + ": missing reported benefits", extra.benefits.size >= 2)
             assertTrue(item.id + ": missing source references", extra.references.isNotEmpty() || item.source.isNotBlank())
             assertTrue(item.id + ": missing deep reading", AzkarExplanationEnrichment.deepDiveForId(item.id).length >= 100)
         }
