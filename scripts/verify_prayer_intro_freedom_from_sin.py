@@ -24,7 +24,7 @@ full = " ".join(e["title"] + " " + e["text"] for e in new)
 assert all(len(e["text"]) >= 900 for e in new), "New preface cards must be substantial"
 for required in [
     "Абу Хурайр", "вор", "молитв", "29:45",
-    "9778", "2560", "Шуайб", "побуждени",
+    "9778", "2560", "Шуайб", "побужда",
     "пока", "покаяни", "Судн", "413", "864",
     "аль-Каййим", "не является цитат",
 ]:
