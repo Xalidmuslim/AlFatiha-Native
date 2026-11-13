@@ -167,6 +167,8 @@ fun AzkarReaderScreen(
     controller: AzkarReaderNavigationController,
     modifier: Modifier = Modifier,
     uiController: AzkarReaderUiController? = null,
+    periodSwitchGeneration: Int = 0,
+    preserveSessionPosition: Boolean = false,
     onPeriodChange: (AzkarPeriod) -> Unit = {},
 ) {
     require(entries.isNotEmpty()) { "Reader requires at least one entry" }
@@ -243,7 +245,11 @@ fun AzkarReaderScreen(
     val activeIndex = navigation.activeIndex.coerceIn(resolvedEntries.indices)
     val active = resolvedEntries[activeIndex]
 
-    var restoredLastItem by remember(period, controller) { mutableStateOf(false) }
+    var restoredLastItem by remember(period, controller) {
+        // A rapid tab switch already carries the latest in-memory position.
+        // Never overwrite it using an older DataStore emission.
+        mutableStateOf(preserveSessionPosition)
+    }
     LaunchedEffect(readerUi.hasLiveSnapshot, readerUi.lastPeriod, period, readerUi.lastItemByPeriod) {
         if (readerUi.hasLiveSnapshot && readerUi.lastPeriod == period && !restoredLastItem) {
             val savedId = readerUi.lastItemByPeriod[period]
@@ -442,26 +448,34 @@ fun AzkarReaderScreen(
             1f,
         ) > 0f
     }
-    var pageDirection by remember { mutableStateOf(1) }
+    val previousPeriod = LocalAzkarPreviousPeriod.current ?: period
+    var pageDirection by remember {
+        mutableStateOf(if (period.ordinal < previousPeriod.ordinal) -1 else 1)
+    }
+    val hasPageTransition = navigation.generation > 0L || periodSwitchGeneration > 0
     val pageSlidePx = with(density) { 18.dp.toPx() }
-    val initialOffset = if (navigation.generation > 0L && animationsEnabled) {
+    val initialOffset = if (hasPageTransition && animationsEnabled) {
         pageSlidePx * pageDirection
     } else {
         0f
     }
-    val initialAlpha = if (navigation.generation > 0L && animationsEnabled) {
+    val initialAlpha = if (hasPageTransition && animationsEnabled) {
         0.94f
     } else {
         1f
     }
-    val transitionOffset = remember(navigation.generation) { Animatable(initialOffset) }
-    val transitionAlpha = remember(navigation.generation) { Animatable(initialAlpha) }
-    val transitionScale = remember(navigation.generation) {
-        Animatable(if (navigation.generation > 0L && animationsEnabled) 0.992f else 1f)
+    val transitionOffset = remember(navigation.generation, periodSwitchGeneration) {
+        Animatable(initialOffset)
+    }
+    val transitionAlpha = remember(navigation.generation, periodSwitchGeneration) {
+        Animatable(initialAlpha)
+    }
+    val transitionScale = remember(navigation.generation, periodSwitchGeneration) {
+        Animatable(if (hasPageTransition && animationsEnabled) 0.992f else 1f)
     }
 
-    LaunchedEffect(navigation.generation, animationsEnabled) {
-        if (!animationsEnabled || navigation.generation == 0L) {
+    LaunchedEffect(navigation.generation, periodSwitchGeneration, animationsEnabled) {
+        if (!animationsEnabled || !hasPageTransition) {
             transitionOffset.snapTo(0f)
             transitionAlpha.snapTo(1f)
             transitionScale.snapTo(1f)
