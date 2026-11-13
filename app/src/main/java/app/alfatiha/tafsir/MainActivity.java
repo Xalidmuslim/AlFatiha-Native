@@ -2449,6 +2449,11 @@ public class MainActivity extends Activity {
         subLp.setMargins(0,dp(2),0,0);
         textBlock.addView(st,subLp);
 
+        // A one-line title plus one-line caption sits lower than the adjacent
+        // two-line caption. Lift only this text block, not the icon or card.
+        if ("Малый ширк".equals(title)) {
+            textBlock.setTranslationY(-dp(8));
+        }
         c.addView(textBlock,new LinearLayout.LayoutParams(-1,-2));
 
         c.setOnClickListener(v->openHomeCardWithSpring(c,open));
