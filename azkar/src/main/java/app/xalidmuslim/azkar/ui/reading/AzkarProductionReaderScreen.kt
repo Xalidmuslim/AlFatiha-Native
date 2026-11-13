@@ -50,14 +50,18 @@ class AzkarPeriodReaderController(
     private val sessionIndexByPeriod = mutableMapOf<AzkarPeriod, Int>()
     var switchGeneration by mutableIntStateOf(0)
         private set
+    var sessionPositionRestored by mutableStateOf(false)
+        private set
 
     fun switchTo(newPeriod: AzkarPeriod, savedItemId: String? = null): Boolean {
         if (newPeriod == period) return false
         sessionIndexByPeriod[period] = navigation.state.activeIndex
         val count = AzkarCatalog.itemsFor(newPeriod).size
+        val rememberedIndex = sessionIndexByPeriod[newPeriod]
         val restoredIndex = (
-            sessionIndexByPeriod[newPeriod] ?: initialIndex(newPeriod, savedItemId)
+            rememberedIndex ?: initialIndex(newPeriod, savedItemId)
         ).coerceIn(0, count - 1)
+        sessionPositionRestored = rememberedIndex != null
         period = newPeriod
         navigation = AzkarReaderNavigationController(
             itemCount = count,
@@ -158,7 +162,8 @@ internal fun AzkarProductionReaderScreen(
             ?.item
             ?.id
         mutableStateOf(
-            readerUi.hasLiveSnapshot && (savedId == null || savedId == activeId),
+            periodController.sessionPositionRestored ||
+                (readerUi.hasLiveSnapshot && (savedId == null || savedId == activeId)),
         )
     }
 
@@ -209,6 +214,7 @@ internal fun AzkarProductionReaderScreen(
                 period = period,
                 controller = periodController.navigation,
                 periodSwitchGeneration = periodController.switchGeneration,
+                preserveSessionPosition = periodController.sessionPositionRestored,
                 uiController = uiController,
                 modifier = Modifier.fillMaxSize(),
                 onPeriodChange = { newPeriod ->
