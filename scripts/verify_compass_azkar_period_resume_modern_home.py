@@ -7,6 +7,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 prod = (root / "azkar/src/main/java/app/xalidmuslim/azkar/ui/reading/AzkarProductionReaderScreen.kt").read_text(encoding="utf-8")
 reader = (root / "azkar/src/main/java/app/xalidmuslim/azkar/ui/reading/AzkarReaderScreen.kt").read_text(encoding="utf-8")
+list_reader = (root / "azkar/src/main/java/app/xalidmuslim/azkar/ui/reading/AzkarListReadingScreen.kt").read_text(encoding="utf-8")
 tabs = (root / "azkar/src/main/java/app/xalidmuslim/azkar/ui/reading/AzkarGoldenReadingScreen.kt").read_text(encoding="utf-8")
 host = (root / "app/src/main/java/app/alfatiha/tafsir/MainActivity.java").read_text(encoding="utf-8")
 home = host.split("private LinearLayout homeFeature(", 1)[1].split("// --- Малый ширк", 1)[0]
@@ -24,6 +25,8 @@ assert "preserveSessionPosition = periodController.sessionPositionRestored" in p
 assert "mutableStateOf(preserveSessionPosition)" in reader, "Do not overwrite recent in-memory item with older DataStore state"
 assert "hasPageTransition = navigation.generation > 0L || periodSwitchGeneration > 0" in reader
 assert "LaunchedEffect(navigation.generation, periodSwitchGeneration, animationsEnabled)" in reader
+assert "readingAreaModifier = transitionModifier" in reader, "Both list and card modes share entry motion"
+assert ".then(readingAreaModifier)" in list_reader, "Animate the list body without moving its stationary header"
 assert "LocalAzkarTabIndicator provides sharedTabIndicator" in prod
 assert "LocalAzkarTabIndicator.current ?: fallbackPosition" in tabs, "Keep one animated indicator across switched readers"
 assert 'onPeriodChange = { newPeriod ->' in prod
