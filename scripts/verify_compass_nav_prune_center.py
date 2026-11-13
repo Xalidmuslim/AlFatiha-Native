@@ -27,7 +27,7 @@ for title in ("Осознанное\\nчтение Аль-Фатихи", "Тай
 
 assert 'c.setGravity(Gravity.CENTER_VERTICAL);' in home, "Card content must be centered vertically"
 assert re.search(r'textBlock\.setMinimumHeight\(dp\(', home), "Reserve consistent layout height for text groups"
-assert 'textBlock.setGravity(Gravity.TOP|Gravity.START);' in home, "All titles must begin on the same baseline"
+assert 'textBlock.setGravity(Gravity.CENTER);' in home, "Six tile labels must be optically centered"
 assert 't.setMinLines(1);' in home and 't.setMaxLines(2);' in home
 assert 'subLp.setMargins(0,dp(2),0,0);' in home, "Title and subtitle must remain close"
 assert 'installHomeCardPressMotion(c)' in home
