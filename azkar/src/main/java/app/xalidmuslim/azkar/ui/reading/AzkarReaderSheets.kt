@@ -532,9 +532,19 @@ private fun AzkarExplanationSheet(
                             style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
                         )
                     }
+                    contemplationGuide?.benefitMeaning?.takeIf(String::isNotBlank)?.let {
+                        BasicText(
+                            text = "ДЛЯ ЧЕГО ЧИТАЮТ",
+                            style = AzkarThemeValues.typography.sourceRow.copy(color = colors.primary),
+                        )
+                        BasicText(
+                            text = it,
+                            style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
+                        )
+                    }
                     if (benefits.isNotEmpty()) {
                         BasicText(
-                            text = "ПОЛЬЗА",
+                            text = "ПОЛЬЗА В ПЕРЕДАЧАХ И РАЗЪЯСНЕНИЯХ",
                             style = AzkarThemeValues.typography.sourceRow.copy(color = colors.primary),
                         )
                         BasicText(
