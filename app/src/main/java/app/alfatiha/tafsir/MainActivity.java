@@ -1511,18 +1511,15 @@ public class MainActivity extends Activity {
 
         TextView title=chromeText(
                 chromeSectionTitle(),
-                homeTop?15.4f:16.2f,
+                homeTop?15.8f:16.2f,
                 ink(),
                 true
         );
         title.setSingleLine(true);
         title.setGravity(Gravity.BOTTOM|Gravity.LEFT);
-        title.setTypeface(
-                homeTop
-                        ?Typeface.create("serif",Typeface.BOLD)
-                        :Typeface.create("sans-serif-medium",Typeface.NORMAL)
-        );
-        title.setTextScaleX(homeTop?.93f:1f);
+        title.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        title.setTextScaleX(1f);
+        if(homeTop) title.setLetterSpacing(-.012f);
 
         titles.addView(
                 title,
@@ -2246,7 +2243,12 @@ public class MainActivity extends Activity {
         qrTop.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout qrText=new LinearLayout(this);
         qrText.setOrientation(LinearLayout.VERTICAL);
-        qrText.addView(homeText(reviewDue>0?"Повторить сегодня · "+reviewDue:"Продолжить викторину",14.0f,ink(),true));
+        TextView quizResumeTitle=homeText(
+                reviewDue>0?"Повторить сегодня · "+reviewDue:"Продолжить викторину",
+                14.0f,ink(),true);
+        quizResumeTitle.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        quizResumeTitle.setLetterSpacing(-.012f);
+        qrText.addView(quizResumeTitle);
         qrText.addView(homeText(reviewDue>0?"Материал по расписанию и ошибки":lastQuizTitle()+" · "+quizDone+" из "+quizTotal,12.0f,muted(),false));
         qrTop.addView(qrText,new LinearLayout.LayoutParams(0,-2,1));
         TextView qrArrow=homeText("›",20,ink(),false);
@@ -2366,30 +2368,27 @@ public class MainActivity extends Activity {
         c.setBackground(surfaceBg(cardTone,featureEnd,20,featureStroke));
 
         // Header row: identical geometry on all six cards.
-        LinearLayout top=new LinearLayout(this);
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.CENTER_VERTICAL);
+        // Center icons independently of the trailing chevron.
+        FrameLayout top=new FrameLayout(this);
 
         ImageView badge=new ImageView(this);
         badge.setImageResource(iconRes);
         badge.setScaleType(ImageView.ScaleType.FIT_CENTER);
         badge.setPadding(0,0,0,0);
         badge.setBackgroundColor(Color.TRANSPARENT);
-        top.addView(
-                badge,
-                new LinearLayout.LayoutParams(
-                        dp(homeTileIconDp),
-                        dp(homeTileIconDp)
-                )
-        );
+        FrameLayout.LayoutParams badgeLp=new FrameLayout.LayoutParams(
+                dp(homeTileIconDp),dp(homeTileIconDp),
+                Gravity.CENTER_HORIZONTAL|Gravity.CENTER_VERTICAL);
+        top.addView(badge,badgeLp);
 
         TextView arrow=homeText("›",19.2f,ink(),false);
         arrow.setGravity(Gravity.CENTER);
         arrow.setBackgroundColor(Color.TRANSPARENT);
         arrow.setElevation(0f);
 
-        top.addView(new Space(this),new LinearLayout.LayoutParams(0,1,1));
-        top.addView(arrow,new LinearLayout.LayoutParams(dp(32),dp(40)));
+        FrameLayout.LayoutParams arrowLp=new FrameLayout.LayoutParams(
+                dp(26),dp(40),Gravity.END|Gravity.CENTER_VERTICAL);
+        top.addView(arrow,arrowLp);
         c.addView(top,new LinearLayout.LayoutParams(-1,dp(homeTileIconDp)));
 
         // A narrow, consistent separation keeps the block visually grouped.
@@ -2397,16 +2396,17 @@ public class MainActivity extends Activity {
 
         LinearLayout textBlock=new LinearLayout(this);
         textBlock.setOrientation(LinearLayout.VERTICAL);
-        textBlock.setGravity(Gravity.TOP|Gravity.START);
-        // Reserve equal vertical space below the common title baseline instead
-        // of inserting empty lines between each heading and its subtitle.
-        // For dense two-line titles, the area may grow naturally.
+        textBlock.setGravity(Gravity.CENTER);
+        // Reserve an equal-height region for centered one- and two-line
+        // titles and subtitles, keeping each pair close together.
         textBlock.setMinimumHeight(dp(homeTileHeightDp<=128?54:62));
 
         float titleSp=medicineTile
                 ?Math.max(12.2f,homeTileTitleSp-.10f)
                 :homeTileTitleSp;
         TextView t=homeText(title,titleSp,ink(),true);
+        t.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        t.setLetterSpacing(-.012f);
 
         if(medicineTile && title!=null && title.contains("ﷺ")){
             android.text.SpannableString styledTitle=
@@ -2430,7 +2430,7 @@ public class MainActivity extends Activity {
         t.setMinLines(1);
         t.setMaxLines(2);
         t.setEllipsize(null);
-        t.setGravity(Gravity.LEFT);
+        t.setGravity(Gravity.CENTER);
         t.setLineSpacing(0,1.00f);
         t.setPadding(0,0,0,0);
         textBlock.addView(t,new LinearLayout.LayoutParams(-1,-2));
@@ -2439,7 +2439,7 @@ public class MainActivity extends Activity {
         st.setMinLines(1);
         st.setMaxLines(2);
         st.setEllipsize(null);
-        st.setGravity(Gravity.LEFT);
+        st.setGravity(Gravity.CENTER);
         st.setLineSpacing(0,1.00f);
         st.setPadding(0,0,0,0);
 
