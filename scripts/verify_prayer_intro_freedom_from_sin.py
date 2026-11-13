@@ -30,7 +30,7 @@ for required in [
 ]:
     assert required.lower() in full.lower(), required
 assert "гарантированно" not in full.lower()
-assert "автоматически" not in full.lower()
+assert "автоматически безупречен" in full.lower(), "Explicitly reject mechanical guarantees"
 assert not re.search(r"[\u0600-\u06FF]", full), "User requested no Arabic quotation or script"
 assert 'JSONArray a=arr("prayer_intro.json");' in source, "Keep existing preface renderer"
 assert 'addParagraphs(box,o.optString("text"),14.7f)' in source
