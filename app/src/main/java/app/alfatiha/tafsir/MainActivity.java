@@ -45,6 +45,8 @@ public class MainActivity extends Activity {
     private LinearLayout page, bottom, topHost;
     private MorphNavBackground morphNavBackground;
     private ValueAnimator morphNavAnimator;
+    // One pending scroll animation for any expanded native disclosure panel.
+    private ValueAnimator inlineCollapseScrollAnimator;
     private int morphNavIndex=0;
     private ScrollView scroll;
     private SharedPreferences prefs;
@@ -436,6 +438,7 @@ public class MainActivity extends Activity {
     }
 
     private void buildShell(){
+        cancelInlineCollapseScroll();
         if(morphNavAnimator!=null){morphNavAnimator.cancel();morphNavAnimator=null;}
         applyWindowChrome();
         LinearLayout root=new LinearLayout(this);
@@ -1244,6 +1247,8 @@ public class MainActivity extends Activity {
     private String answerText(JSONObject q,String mode,int correct){StringBuilder b=new StringBuilder(questionText(q,mode));JSONArray a=optionsAsArray(q,mode);if(correct>=0&&correct<a.length())b.append("\n\nПравильный ответ: ").append(correct+1).append(". ").append(a.optString(correct));String e=explanation(q,mode,correct);if(!e.isEmpty())b.append("\n\nРазбор:\n").append(e);String src=sources(q);if(!src.isEmpty())b.append("\n\nИсточник: ").append(src);return b.toString();}
 
     private void clear(String type,String arg,boolean push){
+        // No delayed inline animation may change the new screen's scroll position.
+        cancelInlineCollapseScroll();
         if(push && current!=null && (!current.type.equals(type)||!current.arg.equals(arg))){
             current.scrollY=scroll==null?0:scroll.getScrollY();
             history.push(current);
@@ -5884,8 +5889,19 @@ public class MainActivity extends Activity {
         return -1;
     }
 
+    private void cancelInlineCollapseScroll(){
+        if(inlineCollapseScrollAnimator==null)return;
+        ValueAnimator pending=inlineCollapseScrollAnimator;
+        inlineCollapseScrollAnimator=null;
+        pending.cancel();
+    }
+
     private void toggleInline(View holder,Button b,String closed,String open){
         boolean show=holder.getVisibility()!=View.VISIBLE;
+        // All disclosure panels (Hadith Qudsi, prayer, glossary, lesson and quiz)
+        // pass through here. Avoid an abrupt ScrollView clamp when long content
+        // disappears below the user's current reading position.
+        cancelInlineCollapseScroll();
         holder.animate().cancel();
 
         if(show){
@@ -5893,27 +5909,102 @@ public class MainActivity extends Activity {
             holder.setScaleY(.985f);
             holder.setTranslationY(-dp(4));
             holder.setVisibility(View.VISIBLE);
-            holder.animate()
-                    .alpha(1f)
-                    .scaleY(1f)
-                    .translationY(0f)
-                    .setDuration(155)
-                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                    .start();
+            if(morphAnimationsEnabled()){
+                holder.animate()
+                        .alpha(1f)
+                        .scaleY(1f)
+                        .translationY(0f)
+                        .setDuration(motionIsFull()?155:105)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
+            }else{
+                holder.setAlpha(1f);
+                holder.setScaleY(1f);
+                holder.setTranslationY(0f);
+            }
         }else{
-            holder.animate()
-                    .alpha(0f)
-                    .scaleY(.985f)
-                    .translationY(-dp(3))
-                    .setDuration(125)
-                    .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
-                    .withEndAction(()->{
+            final Screen closingScreen=current;
+            b.setEnabled(false);
+            final Runnable completeCollapse=()->{
+                if(current!=closingScreen || !holder.isAttachedToWindow()){
+                    b.setEnabled(true);
+                    return;
+                }
+                final Runnable hide=()->{
+                    if(current==closingScreen && holder.isAttachedToWindow()){
                         holder.setVisibility(View.GONE);
                         holder.setAlpha(1f);
                         holder.setScaleY(1f);
                         holder.setTranslationY(0f);
-                    })
-                    .start();
+                    }
+                    b.setEnabled(true);
+                };
+                if(morphAnimationsEnabled()){
+                    holder.animate()
+                            .alpha(0f)
+                            .scaleY(.985f)
+                            .translationY(-dp(3))
+                            .setDuration(motionIsFull()?145:90)
+                            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                            .withEndAction(hide)
+                            .start();
+                }else hide.run();
+            };
+
+            // Keep the heading in view, but never move down on collapse.
+            // Pre-position within the *future* page height before hiding the
+            // section. Otherwise Android clamps scrollY instantaneously.
+            if(scroll!=null && scroll.getChildCount()>0
+                    && b.isAttachedToWindow() && holder.getHeight()>0){
+                int[] buttonCoords=new int[2];
+                int[] scrollCoords=new int[2];
+                b.getLocationOnScreen(buttonCoords);
+                scroll.getLocationOnScreen(scrollCoords);
+                int startY=scroll.getScrollY();
+                int headingY=startY + buttonCoords[1] - scrollCoords[1];
+                int removedHeight=holder.getHeight();
+                ViewGroup.LayoutParams params=holder.getLayoutParams();
+                if(params instanceof ViewGroup.MarginLayoutParams){
+                    ViewGroup.MarginLayoutParams margins=(ViewGroup.MarginLayoutParams)params;
+                    removedHeight+=margins.topMargin+margins.bottomMargin;
+                }
+                int targetY=InlineDisclosureScrollTarget.whenCollapsing(
+                        startY,headingY,scroll.getChildAt(0).getHeight(),
+                        removedHeight,scroll.getHeight()-scroll.getPaddingTop()
+                                -scroll.getPaddingBottom(),dp(16));
+                if(morphAnimationsEnabled() && Math.abs(startY-targetY)>dp(3)){
+                    final ValueAnimator move=ValueAnimator.ofInt(startY,targetY);
+                    inlineCollapseScrollAnimator=move;
+                    long distance=Math.abs((long)startY-targetY);
+                    long duration=180L + distance*170L/Math.max(1,scroll.getHeight());
+                    move.setDuration(Math.min(510L,Math.max(210L,duration)));
+                    move.setInterpolator(new android.view.animation.PathInterpolator(
+                            .22f,0f,.12f,1f));
+                    move.addUpdateListener(frame->{
+                        if(current==closingScreen && holder.isAttachedToWindow()){
+                            scroll.scrollTo(0,(Integer)frame.getAnimatedValue());
+                        }
+                    });
+                    move.addListener(new android.animation.AnimatorListenerAdapter(){
+                        boolean cancelled=false;
+                        @Override public void onAnimationCancel(android.animation.Animator a){
+                            cancelled=true;
+                        }
+                        @Override public void onAnimationEnd(android.animation.Animator a){
+                            if(inlineCollapseScrollAnimator==move)
+                                inlineCollapseScrollAnimator=null;
+                            if(cancelled)b.setEnabled(true);
+                            else completeCollapse.run();
+                        }
+                    });
+                    move.start();
+                }else{
+                    // With system reduced-motion enabled, preserve the position
+                    // without manufacturing animations against user preference.
+                    if(targetY!=startY)scroll.scrollTo(0,targetY);
+                    completeCollapse.run();
+                }
+            }else completeCollapse.run();
         }
         b.setText(show?open:closed);
     }
