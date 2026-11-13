@@ -77,6 +77,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.xalidmuslim.azkar.content.AzkarExplanationEnrichment
+import app.xalidmuslim.azkar.content.AzkarContemplationGuide
 import app.xalidmuslim.azkar.ui.designsystem.ArabicFontFamily
 import app.xalidmuslim.azkar.ui.designsystem.AzkarBorders
 import app.xalidmuslim.azkar.ui.designsystem.AzkarConfirmDialog
@@ -472,12 +473,14 @@ private fun AzkarExplanationSheet(
     val colors = AzkarThemeValues.colors
     val explanation = item.explanation
     val extra = AzkarExplanationEnrichment.forId(item.id)
+    val contemplationGuide = AzkarContemplationGuide.forId(item.id)
     val meaning = explanation?.meaning?.takeIf(String::isNotBlank) ?: item.translation
     val reports = buildList {
         explanation?.relatedReport?.takeIf(String::isNotBlank)?.let(::add)
         addAll(AzkarExplanationEnrichment.reportsForId(item.id).filter(String::isNotBlank))
     }.distinct()
-    val keyMeanings = extra.keyMeanings.filter(String::isNotBlank)
+    val wordMeanings = contemplationGuide?.wordMeanings.orEmpty().filter(String::isNotBlank)
+        .ifEmpty { extra.keyMeanings.filter(String::isNotBlank) }
     val deepDive = AzkarExplanationEnrichment.deepDiveForId(item.id).takeIf(String::isNotBlank)
     val benefits = extra.benefits.filter(String::isNotBlank)
     val scholarNotes = buildList {
@@ -523,12 +526,6 @@ private fun AzkarExplanationSheet(
                         text = meaning,
                         style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
                     )
-                    if (keyMeanings.isNotEmpty()) {
-                        BasicText(
-                            text = keyMeanings.joinToString("\n\n") { "• $it" },
-                            style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
-                        )
-                    }
                     deepDive?.let {
                         BasicText(
                             text = it,
@@ -548,27 +545,45 @@ private fun AzkarExplanationSheet(
                 }
             }
 
-            if (!extra.heartFocus.isNullOrBlank() || !extra.practicalApplication.isNullOrBlank()) {
+            // Lexical explanation and contemplative reading are commentary,
+            // not a prescribed ritual, timed exercise, or hadith quotation.
+            if (wordMeanings.isNotEmpty()) {
                 AzkarInsightSection(
-                    title = "Как применять",
-                    tone = AzkarInsightTone.Practice,
+                    title = "Что означают слова",
+                    tone = AzkarInsightTone.KeyMeaning,
+                    resetKey = item.id,
+                    initiallyExpanded = true,
+                ) {
+                    BasicText(
+                        text = wordMeanings.joinToString("\n\n") { "• $it" },
+                        style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
+                    )
+                }
+            }
+
+            contemplationGuide?.let { guide ->
+                AzkarInsightSection(
+                    title = "О чём размышлять",
+                    tone = AzkarInsightTone.Meaning,
+                    resetKey = item.id,
+                ) {
+                    BasicText(
+                        text = guide.contemplation,
+                        style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
+                    )
+                }
+                AzkarInsightSection(
+                    title = "Состояние сердца",
+                    tone = AzkarInsightTone.Heart,
                     resetKey = item.id,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        extra.heartFocus?.takeIf(String::isNotBlank)?.let {
-                            BasicText(
-                                text = it,
-                                style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
-                            )
-                        }
-                        extra.practicalApplication?.takeIf(String::isNotBlank)?.let {
-                            BasicText(
-                                text = it,
-                                style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
-                            )
-                        }
                         BasicText(
-                            text = "Практическое размышление — пояснение к смыслу, не отдельная цитата из хадиса.",
+                            text = guide.heartResponse,
+                            style = AzkarThemeValues.typography.insightBody.copy(color = colors.foreground),
+                        )
+                        BasicText(
+                            text = "Это возможные плоды размышления, а не обязательная последовательность мыслей или проверка чувств. Разъяснение не является частью азкара.",
                             style = AzkarThemeValues.typography.insightReferences.copy(color = colors.muted),
                         )
                     }
@@ -635,7 +650,6 @@ private enum class AzkarInsightTone {
     Note,
     Scholar,
     Benefit,
-    Practice,
     Reference,
 }
 
@@ -658,7 +672,6 @@ private fun AzkarInsightSection(
         AzkarInsightTone.Note -> Color(0xFFA17D51)
         AzkarInsightTone.Scholar -> Color(0xFF83758D)
         AzkarInsightTone.Benefit -> Color(0xFF70907C)
-        AzkarInsightTone.Practice -> Color(0xFFA17A68)
         AzkarInsightTone.Reference -> Color(0xFF798386)
     }
     val background = lerp(colors.surface, accent, if (expanded) 0.10f else 0.06f)
