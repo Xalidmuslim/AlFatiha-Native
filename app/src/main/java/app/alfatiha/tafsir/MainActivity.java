@@ -1484,7 +1484,8 @@ public class MainActivity extends Activity {
         mark.setPadding(iconPad,iconPad,iconPad,iconPad);
 
         boolean heartChrome=
-                homeTop || "settings".equals(currentSection);
+                homeTop || "personalReadingHub".equals(current.type)
+                || "settings".equals(currentSection);
         if(heartChrome){
             mark.setBackground(surfaceBg(
                     dark?Color.rgb(45,54,49):Color.rgb(247,242,232),
