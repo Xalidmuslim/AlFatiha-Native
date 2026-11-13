@@ -45,6 +45,7 @@ internal fun AzkarListReadingScreen(
     listState: LazyListState,
     settings: AzkarReaderSettings,
     modifier: Modifier = Modifier,
+    readingAreaModifier: Modifier = Modifier,
     onOpenSettings: () -> Unit,
     onOpenSearch: () -> Unit = {},
     isDarkTheme: Boolean = false,
@@ -101,6 +102,7 @@ internal fun AzkarListReadingScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
+                        .then(readingAreaModifier)
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
                         .padding(bottom = AzkarSpacing.shellBottomBase)
                         .testTag(AzkarReadingTestTags.List),
