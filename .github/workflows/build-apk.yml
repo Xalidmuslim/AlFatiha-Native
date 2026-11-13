@@ -48,7 +48,15 @@ jobs:
           python3 scripts/verify_azkar_semantic_literary_all.py
           python3 scripts/verify_compass_small_shirk_azkar_wording.py
           python3 scripts/verify_azkar_heart_contemplation.py
+          python3 scripts/verify_compass_inline_collapse_scroll.py
           python3 scripts/verify_quiz_mode_navigator.py
+      - name: Test inline disclosure scroll destination
+        run: |
+          mkdir -p build/inline-scroll-tests
+          javac -d build/inline-scroll-tests \
+            app/src/main/java/app/alfatiha/tafsir/InlineDisclosureScrollTarget.java \
+            app/src/test/java/app/alfatiha/tafsir/InlineDisclosureScrollTargetTest.java
+          java -ea -cp build/inline-scroll-tests app.alfatiha.tafsir.InlineDisclosureScrollTargetTest
       - name: Verify Medicine startup readiness
         run: python3 scripts/verify_medicine_entry.py
       - name: Test Azkar navigation and Medicine shared theme regressions
