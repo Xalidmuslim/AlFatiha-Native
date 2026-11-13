@@ -129,6 +129,8 @@ internal object AzkarReadingTestTags {
 }
 
 internal val LocalAzkarPreviousPeriod = staticCompositionLocalOf<AzkarPeriod?> { null }
+// Shared across keyed period screens so rapid switches do not reset the droplet.
+internal val LocalAzkarTabIndicator = staticCompositionLocalOf<Animatable<Float>?> { null }
 
 
 @Composable
@@ -409,7 +411,8 @@ internal fun AzkarPeriodTabs(
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val tabWidth = (maxWidth - AzkarSpacing.periodGap * 2) / 3
             val initial = LocalAzkarPreviousPeriod.current ?: period
-            val tabPosition = remember { Animatable(initial.ordinal.toFloat()) }
+            val fallbackPosition = remember { Animatable(initial.ordinal.toFloat()) }
+            val tabPosition = LocalAzkarTabIndicator.current ?: fallbackPosition
             LaunchedEffect(period) {
                 tabPosition.animateTo(
                     targetValue = period.ordinal.toFloat(),
