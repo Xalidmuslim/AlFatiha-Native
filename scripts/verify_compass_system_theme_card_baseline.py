@@ -21,7 +21,7 @@ assert 'chooseThemeMode(option[0])' in settings, "Settings must use Compass glob
 assert 'putString("theme_mode",themeMode)' in host, "Global setter must persist theme mode"
 assert 'putBoolean("dark",dark)' in host, "Keep older modules relying on the legacy bool in sync"
 assert 'c.setGravity(Gravity.CENTER_VERTICAL);' in home, "Tile content must be vertically centered"
-assert 'textBlock.setGravity(Gravity.TOP|Gravity.START);' in home, "Shared title baseline is required"
+assert 'textBlock.setGravity(Gravity.CENTER);' in home, "Shared centered title region is required"
 assert 'textBlock.setMinimumHeight(dp(homeTileHeightDp<=128?54:62));' in home, "Card text regions must have matching heights"
 assert 't.setMinLines(1);' in home and 't.setMaxLines(2);' in home
 assert 'new LinearLayout.LayoutParams(-1,dp(homeTileIconDp))' in home
