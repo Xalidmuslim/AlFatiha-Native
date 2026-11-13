@@ -16,8 +16,8 @@ assert guide.count('wordMeanings = listOf(')==22, "All Azkar need separate word 
 assert guide.count('contemplation = "')==22, "All Azkar need expansive reflection"
 assert guide.count('heartResponse = "')==22, "All Azkar need a careful description of heart response"
 assert '«Субхана-Ллах»' in guide and 'несправедливост' in guide and 'невежеств' in guide, "Give concrete examples of what Allah is exalted above"
-assert '«аль-Ханнас»' in guide and 'отступает' in guide, "Explain An-Nas key word"
-assert '«Мидад»' in guide, "Explain the unlimited measure of words"
+assert '«аль-ханнас»' in guide.lower() and 'отступает' in guide, "Explain An-Nas key word"
+assert '«мидада калиматихи»' in guide.lower(), "Explain the unlimited measure of words"
 assert 'title = "О чём размышлять"' in sheet
 assert 'title = "Что означают слова"' in sheet
 assert 'title = "Состояние сердца"' in sheet
