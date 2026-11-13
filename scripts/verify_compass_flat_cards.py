@@ -14,7 +14,7 @@ native = MAIN.read_text(encoding="utf-8")
 home = native.split("private LinearLayout homeFeature(", 1)[1].split("// --- Малый ширк", 1)[0]
 assert re.search(r'^\s*t\.setMinLines\(1\);', home, re.MULTILINE), "Natural-height titles prevent empty gaps below one-line headings"
 assert 'c.setGravity(Gravity.CENTER_VERTICAL);' in home, "Center consistent-height content groups inside all dashboard cards"
-assert 'textBlock.setGravity(Gravity.TOP|Gravity.START);' in home, "Title and subtitle use shared top baseline"
+assert 'textBlock.setGravity(Gravity.CENTER);' in home, "Title and subtitle are centered beneath the icon"
 assert 'textBlock.setMinimumHeight(dp(homeTileHeightDp<=128?54:62));' in home, "Reserve equal text area to prevent unequal card alignment"
 assert 'subLp.setMargins(0,dp(2),0,0);' in home, "Title/subtitle gap should remain consistent"
 assert 'new LinearLayout.LayoutParams(1,0,1f)' not in home, "Weighted spacer causes single-line titles to drop"
