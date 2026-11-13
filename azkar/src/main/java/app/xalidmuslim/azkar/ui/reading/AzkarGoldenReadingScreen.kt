@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -130,7 +131,7 @@ internal object AzkarReadingTestTags {
 
 internal val LocalAzkarPreviousPeriod = staticCompositionLocalOf<AzkarPeriod?> { null }
 // Shared across keyed period screens so rapid switches do not reset the droplet.
-internal val LocalAzkarTabIndicator = staticCompositionLocalOf<Animatable<Float>?> { null }
+internal val LocalAzkarTabIndicator = staticCompositionLocalOf<Animatable<Float, AnimationVector1D>?> { null }
 
 
 @Composable
