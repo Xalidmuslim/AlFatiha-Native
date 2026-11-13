@@ -632,6 +632,7 @@ fun AzkarReaderScreen(
                         activeIndex = activeIndex,
                         listState = listState,
                         settings = settings,
+                        readingAreaModifier = transitionModifier,
                         modifier = Modifier
                             .fillMaxSize()
                             .windowInsetsPadding(
